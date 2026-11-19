@@ -221,6 +221,7 @@ def self_test(tmp):
     root.mkdir()
     (root / "cont.py").write_text("x = 1\nPASSWORD = (\n    'my dog spot runs'\n)\nAPI_KEY = \\\n  'abcdefgh'\ny = 2\n")
     (root / "list.py").write_text("API_KEYS = [\n    'abcd1234efgh5678',\n    'abcd1234efgh5679',\n]\nx = 1\n")
+    (root / "long-list.py").write_text("API_KEYS = [\n" + "".join(f"    'abcd1234efgh56{i:02d}',\n" for i in range(8)) + "]\n")
     (root / "block.yml").write_text("db:\n  password: |\n    hunter2hunter2\n  host: x\n")
     (root / "late-nul.txt").write_bytes(b"a\n" * 10000 + b"\x00\n")
     (root / "wide.py").write_text("x = " + "y + " * 2000 + "1\n")
@@ -234,6 +235,9 @@ def self_test(tmp):
     rules, src = check("list.py", 3)
     if src.snippet != HIDDEN:
         problems.append(f"the third line of a secret list is not hidden: {src.snippet!r}")
+    rules, src = check("long-list.py", 9)   # needs the look-back to reach the opening line 8 lines up
+    if src.snippet != HIDDEN:
+        problems.append(f"a secret list's ninth line is not hidden: {src.snippet!r}")
     rules, src = check("list.py", 5)
     if rules:
         problems.append("a line after a closed secret list is hidden")
