@@ -17,13 +17,16 @@ SECRET_NAMES = (".env", ".env.*", ".env*", "*.env", "*.pem", "*.key", "*.p12", "
                 "id_ed25519*", "id_ecdsa*", "id_dsa*", ".npmrc", ".pypirc", ".netrc", ".git-credentials",
                 "credentials", "credentials.json", "*.kdbx")
 SECRET_DIRS = ("secrets", ".ssh", ".aws", ".gnupg", ".git")
-# Secret content refused inside a cited range, so a key kept in an ordinary source file is not rendered. Add-only.
-# Conservative on purpose: a false refusal costs the author one other line to cite; a miss publishes a key.
+# Lines hidden inside a cited snippet, so a key kept in an ordinary source file is never rendered (owner decision
+# 2026-11-19: hide, do not refuse, so the scan can be strict). The citation stays and is still verified. Add-only.
+HIDDEN = "[line hidden: may hold a secret]"
 # 1. Known token shapes, wherever they appear.
 SECRET_SHAPES = {name: re.compile(p) for name, p in (
     ("github token", r"gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}"),
+    ("gitlab token", r"glpat-[A-Za-z0-9_-]{20,}"),
+    ("npm token", r"\bnpm_[A-Za-z0-9]{30,}"),
     ("openai-style key", r"sk-[A-Za-z0-9_-]{20,}"),
-    ("stripe-style key", r"\b[sr]k_(?:live|test)_[A-Za-z0-9]{10,}"),
+    ("stripe-style key", r"\b(?:[sr]k|whsec)_(?:live_|test_)?[A-Za-z0-9]{16,}"),
     ("aws key id", r"\bA(?:KIA|SIA)[0-9A-Z]{16}\b"),
     ("google api key", r"AIza[0-9A-Za-z_-]{30,}"),
     ("slack token", r"xox[abeprs]-[A-Za-z0-9-]{10,}"),
@@ -31,51 +34,35 @@ SECRET_SHAPES = {name: re.compile(p) for name, p in (
     ("json web token", r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"),
     ("key body line", r"^\s*[A-Za-z0-9+/]{40,}={0,2}\s*$"),
     ("long opaque literal", r"[\"'`][A-Za-z0-9+/_=-]{32,}[\"'`]"),
-    ("url with a password", r"://[^/\s:@\"']+:[^/\s@\"']+@"),
+    ("url with a password", r"://[^/\s:@\"']*:[^/\s@\"']+@"),
     ("bearer or basic credential", r"(?i)\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]{12,}"),
 )}
-# 2. A line that names a secret (any of these, any case, anywhere in an identifier or key) and also holds a value:
-#    a string literal (other than an ALL_CAPS name such as an environment variable's), or an assigned value that
-#    contains a digit or a symbol (a bare name like `password` or `settings.API_KEY` is not a value).
-SECRET_WORDS = ("passw", "pwd", "secret", "token", "apikey", "api_key", "api-key", "accesskey", "access_key",
+# 2. A line that names a secret (any of these, any case, anywhere: `DB_PASS`, `client_secret`, `<password>`) and
+#    holds anything that could be a value: a quote, or `=`, `:`, `=>` or `>` followed by more text. Strict on
+#    purpose: hiding a harmless line (`self.password = password`) costs nothing but that line in the snippet.
+SECRET_WORDS = ("pass", "pwd", "secret", "token", "apikey", "api_key", "api-key", "accesskey", "access_key",
                 "private_key", "privatekey", "credential", "auth", "bearer", "salt", "signing", "session_key", "dsn",
                 "database_url", "conn_str", "connection_string", "cookie")
-_LITERAL = re.compile(r"[\"'`]{1,3}([^\"'`\n]{4,})")
-_ASSIGNED = re.compile(r"(?:=>|:=|[:=])\s*([^\s\"'`(\[{,;\\]+)")
-_NAME_ONLY = re.compile(r"[A-Z][A-Z0-9_]*")
-_NUMBER = re.compile(r"-?[0-9][0-9_.]*")
-_LITERAL_WORDS = ("none", "null", "nil", "true", "false", "undefined", "return", "pass", "raise", "yield", "await",
-                  "not", "lambda", "new", "function", "this", "self", "continue", "break", "else", "if", "await")
-# 3. An assignment to a secret name continued on the next lines (`password = \`, `KEY = (`): checked on the
-#    window of SECRET_CONTEXT lines before the range joined with the range.
-_OPEN_ASSIGN = re.compile(r"(?:=>|:=|[:=])\s*[\\(\[{]+\s*$")
-# How many lines before a cited range are read with it, so a literal continued from an assignment above is caught.
-SECRET_CONTEXT = 2
+_VALUE = re.compile(r"[\"'`]|(?:=>|:=|[:=>])\s*\S")
+# 3. A line continuing an assignment to a secret name opened on the line above (`password = \`, `KEY = (`,
+#    `"password":`), also when that line is just before the cited range.
+_OPENS = re.compile(r"(?:=>|:=|[:=(\[{,\\])\s*$")
 
 
-def _plain_value(value):
-    """True for a right-hand side that names something rather than holding a secret: an attribute path
-    (`settings.API_KEY`), a number, null/true/false, or a name that itself names a secret (`token`, `hash_password`)."""
-    low = value.lower()
-    return ("." in value and not value.startswith(".")) or bool(_NUMBER.fullmatch(value)) or low in _LITERAL_WORDS \
-        or any(w in low for w in SECRET_WORDS)
+def _names_secret(text):
+    low = text.lower()
+    return any(w in low for w in SECRET_WORDS)
 
 
-def secret_line(text):
-    """Why one line of a cited file looks like it holds a secret, or None. Linear in the line's length."""
+def secret_line(text, above=""):
+    """Why one line of a cited file is hidden, or None. above is the line before it. Linear in the line's length."""
     for name, pat in SECRET_SHAPES.items():
         if pat.search(text):
             return name
-    low = text.lower()
-    if not any(w in low for w in SECRET_WORDS):
-        return None
-    for m in _LITERAL.finditer(text):
-        if not _NAME_ONLY.fullmatch(m.group(1).strip()):
-            return "a value next to a secret name"
-    for m in _ASSIGNED.finditer(text):
-        value = m.group(1).rstrip(")]};,")
-        if value and not _plain_value(value):
-            return "a value assigned to a secret name"
+    if _names_secret(text) and _VALUE.search(text):
+        return "a secret name next to a value"
+    if above and _names_secret(above) and _OPENS.search(above):
+        return "continues a secret assignment from the line above"
     return None
 
 
@@ -139,46 +126,47 @@ def verify(root, src):
     if src.line > len(lines) or last > len(lines):
         return [{"severity": "error", "rule": "source-line-past-end", "path": src.at,
                  "message": f"'{src.path}' has {len(lines)} lines; cited {src.line}" + (f"-{last}" if last != src.line else "")}]
-    first = max(1, src.line - SECRET_CONTEXT)
-    for n in range(src.line, last + 1):
-        why = secret_line(lines[n - 1])
-        # a line before the range counts only through an assignment it opens and this line continues
-        if why is None and n > first and _OPEN_ASSIGN.search(lines[n - 2]) and secret_line(lines[n - 2] + " 'v4lue'"):
-            why = "a secret assignment continued from the line above"
-        if why:
-            return [{"severity": "error", "rule": "source-secret-content", "path": src.at,
-                     "message": f"'{src.path}' line {n} looks like a secret ({why}); cite other lines "
-                                "(lines naming a secret next to a value are refused, even harmless ones)"}]
-    shown = [x if len(x) <= LINE_CHARS else x[:LINE_CHARS] + " …"
-             for x in lines[src.line - 1:min(last, src.line + SNIPPET_LINES - 1)]]
+    shown, hidden = [], []
+    for n in range(src.line, min(last, src.line + SNIPPET_LINES - 1) + 1):
+        text = lines[n - 1]
+        if secret_line(text, lines[n - 2] if n > 1 else ""):
+            hidden.append(n)
+            text = HIDDEN
+        shown.append(text if len(text) <= LINE_CHARS else text[:LINE_CHARS] + " …")
     src.snippet = "\n".join(shown)
+    if hidden:
+        return [{"severity": "info", "rule": "source-lines-hidden", "path": src.at,
+                 "message": f"'{src.path}' line(s) {', '.join(map(str, hidden))} hidden in the snippet: they may hold a "
+                            "secret"}]
     return []
 
 
-# One line per refusal reason (the reason it must give), lines that must be refused, and ordinary lines that must not.
+# One line per shape (the reason it must give), lines that must be hidden, and lines that must be shown.
 _SHAPE_CASES = {
     "github token": "t = 'ghp_" + "A" * 36 + "'",
-    "openai-style key": "client = Client('sk-" + "a1" * 12 + "')",
-    "stripe-style key": "stripe_key: sk_live_" + "4eC39HqLyjWDarjtT1zdp7dc",
+    "gitlab token": "GL = glpat-" + "x" * 20,
+    "npm token": "//registry/:_authToken npm_" + "a1" * 18,
+    "openai-style key": "client = Client(sk-" + "a1" * 12 + ")",
+    "stripe-style key": "hook = whsec_" + "4eC39HqLyjWDarjtT1zdp7dc",
     "aws key id": "aws_id = AKIA" + "IOSFODNN7EXAMPLE",
-    "google api key": "maps = 'AIza" + "SyA" + "1" * 32 + "'",
+    "google api key": "maps = AIza" + "SyA" + "1" * 32,
     "slack token": "hook = xoxb-" + "1234567890-abcdefghij",
     "private key header": "-----BEGIN RSA PRIVATE" + " KEY-----",
     "json web token": "jwt = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0",
     "key body line": "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7",
     "long opaque literal": "digest = '" + "0123456789abcdef" * 3 + "'",
-    "url with a password": "DATABASE_URL = postgres://app:hunter2hunter2@db/prod",
+    "url with a password": "CACHE = redis://:hunter2hunter2@cache",
     "bearer or basic credential": "curl -H Authorization: Bearer abcdefghijklmnop",
 }
-_REFUSED = ['app.config["SECRET_KEY"] = "dev-secret-key-123"', 'SMTP_PASSWORD = """hunter2hunter2"""',
-            "spring.datasource.password=p@ssw0rd!23", 'password = "my dog spot runs"', 'client_secret: "abc123def456"',
-            "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY", "TOKEN=abcdef123456", "password: changeme",
-            'conn = connect(password="s3cr3tpass")', '"api_key": "abcdef0123"', "auth_token = 'tok_12345678'"]
-_ALLOWED = ["def handle(request):", "    token = get_token(request)", '    api_key = os.environ["API_KEY"]',
-            "self.password = password", "stripe.api_key = settings.STRIPE_API_KEY", "password = None", "if not secret:",
-            "TOKEN_TTL = 3600", 'return render(request, "checkout.html", {"order": order})',
-            "password_hash = hash_password(raw)", "auth = Auth(app)", 'SECRET_KEY = os.environ.get("SECRET_KEY")',
-            "if token is None: return None", "order = Order.objects.create(user=user, total=total)"]
+_HIDE = ['API_KEY = "ABCD1234EFGH5678"', 'TOTP_SECRET = "JBSWY3DPEHPK3PXP"', "POSTGRES_PASSWORD: rootpassword1",
+         "JWT_SECRET: supersecretjwtkey2024", "SENDGRID_API_KEY: SG.abc.def", "ADMIN_PASSWORD: 12345678",
+         "spring.datasource.password=Passw0rd.2024", 'SMTP_PASSWORD = """hunter2hunter2"""', "DB_PASS=hunter2",
+         "<password>hunter2</password>", 'password = "my dog spot runs"', "TOKEN=abcdef123456", "password: changeme",
+         'conn = connect(password="s3cr3tpass")', "self.password = password", 'token_type = "Bearer"',
+         "auth_cookie => abc", "client_secret: x"]
+_SHOW = ["def handle(request):", "def check_password(user, raw):", "if not secret:", "    return render(request)",
+         "order = Order.objects.create(user=user, total=total)", "db.session.add(ticket)", "x = 1", "}",
+         "for item in items:", 'url = f"{base}/v1/checkout/sessions"']
 
 
 def self_test(tmp):
@@ -189,8 +177,11 @@ def self_test(tmp):
     for want, line in _SHAPE_CASES.items():
         if secret_line(line) != want:
             problems.append(f"secret shape '{want}' not found in {line!r} (got {secret_line(line)!r})")
-    problems += [f"secret not refused: {x!r}" for x in _REFUSED if not secret_line(x)]
-    problems += [f"ordinary line refused: {x!r} ({secret_line(x)})" for x in _ALLOWED if secret_line(x)]
+    problems += [f"secret line not hidden: {x!r}" for x in _HIDE if not secret_line(x)]
+    problems += [f"ordinary line hidden: {x!r} ({secret_line(x)})" for x in _SHOW if secret_line(x)]
+    for word in SECRET_WORDS:
+        if not secret_line(f"MY_{word.upper()}_X = 'v'"):
+            problems.append(f"the secret word '{word}' is not acted on")
     start = time.monotonic()
     for long in ("a" * 50000, "token" + "a" * 50000, "token = " + "b" * 50000):
         secret_line(long)
@@ -204,11 +195,14 @@ def self_test(tmp):
     def check(rel, line, end=None):
         src = SimpleNamespace(path=rel, line=line, end_line=end, at="t", snippet=None)
         return [d["rule"] for d in verify(root, src)], src
-    for line in (3, 6):
-        if check("cont.py", line)[0] != ["source-secret-content"]:
-            problems.append(f"a secret continued onto line {line} is not refused")
-    if check("cont.py", 1)[0] or check("cont.py", 7)[0]:
-        problems.append("a line next to a refused one is refused too")
+    for line in (2, 3, 6):
+        rules, src = check("cont.py", line)
+        if rules != ["source-lines-hidden"] or src.snippet != HIDDEN or "spot" in src.snippet:
+            problems.append(f"secret line {line} of a continued assignment is not hidden: {rules} {src.snippet!r}")
+    rules, src = check("cont.py", 1, 7)
+    want = ["x = 1", HIDDEN, HIDDEN, ")", HIDDEN, HIDDEN, "y = 2"]
+    if src.snippet != "\n".join(want) or rules != ["source-lines-hidden"]:
+        problems.append(f"a range is not hidden line by line: {src.snippet!r}")
     if check("late-nul.txt", 1)[0] != ["source-not-text"]:
         problems.append("a NUL byte past the first 8 KB is not treated as binary")
     rules, src = check("wide.py", 1)

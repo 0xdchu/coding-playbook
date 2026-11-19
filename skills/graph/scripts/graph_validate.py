@@ -240,6 +240,13 @@ def self_test():
             if rules != {rule}:
                 problems.append(f"invalid/{f.name}: expected only {rule}, got {sorted(rules) or 'nothing'}")
         problems += [f"sources: {x}" for x in graph_sources.self_test(tmp)]
+        for name in ("source-hidden.json", "source-hidden-continued.json"):
+            d, diags = load(TESTS / "valid" / name, root)
+            snippets = [s.snippet or "" for s in all_sources(d)] if d else []
+            if "source-lines-hidden" not in {x["rule"] for x in diags} \
+                    or any(k in "".join(snippets) for k in ("abcd1234", "hunter2")) \
+                    or graph_sources.HIDDEN not in "".join(snippets):
+                problems.append(f"valid/{name}: the secret line is not hidden in the snippet: {snippets}")
         deep = tmp / "deep.json"
         deep.write_text("[" * 200000 + "]" * 200000)
         if [x["rule"] for x in load(deep)[1]] != ["bad-json"]:

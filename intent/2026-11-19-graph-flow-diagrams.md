@@ -49,6 +49,7 @@ Reference outputs the owner wants to reach (screenshots shared in the owner's re
 - Flowcharts run top-down by default; left-to-right on request.
 - Two versions: this repo's skill is standard-library Python under `skills/graph/`, contributed as 0xdonniechu; the maintainer's Rust engine (`ambysto-graph`) gets the same features under its own intent in its own repo.
 - The default `sequence` look follows the owner's "User Flow" reference: dark, compact actor boxes, numbered labels above arrows, one emphasised step in an accent colour; the light theme stays available.
+- A cited code line that may hold a secret is hidden in the snippet (`[line hidden: may hold a secret]`), not refused, so the secret check can be strict without breaking diagrams (2026-11-19, after two review rounds).
 
 ## Open questions
 None.

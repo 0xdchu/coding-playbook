@@ -66,7 +66,7 @@ Every field (`?` = optional). Any other field, a `null` value or a key given twi
 graph.py validate diagram.json [--repo-root <repo>] [--json]
 graph.py render diagram.json -o diagram.html [--repo-root <repo>] [--theme dark|light]
 ```
-- With `--repo-root`, every cited `path:line` must exist inside that repo; secret-shaped files (`.env*`, keys, `secrets/`) are refused, and so is a cited line that looks like it holds a secret: a token or key shape, or a line naming a password, token, secret, key or auth next to a value. Harmless lines get refused this way too (`token_type = "Bearer"`); cite a nearby line instead. An edge from an internal party without sources is drawn grey dashed as unproven and warned about. Without `--repo-root` nothing is checked against code: there is no such warning, so say in the hand-over that nothing was verified.
+- With `--repo-root`, every cited `path:line` must exist inside that repo; secret-shaped files (`.env*`, keys, `secrets/`) are refused. In the code snippets, a line that may hold a secret (a token or key shape, or a line naming a password, token, secret, key or auth next to any value) is shown as `[line hidden: may hold a secret]`; the citation stays and is still checked. Harmless lines are hidden this way too; that is intended. An edge from an internal party without sources is drawn grey dashed as unproven and warned about. Without `--repo-root` nothing is checked against code: there is no such warning, so say in the hand-over that nothing was verified.
 - `render` validates first and refuses a diagram with errors, including layout errors (a route through a box, labels on top of each other).
 - Fix every error. Fix warnings unless you can say why one stays, and say it.
 
