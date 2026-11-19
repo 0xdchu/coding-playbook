@@ -1,5 +1,5 @@
 ---
-status: building   # draft → planned → building → verified
+status: verified   # draft → planned → building → verified
 ---
 # Plan: flow diagrams for the graph skill (`skills/graph/`)
 
@@ -56,6 +56,7 @@ Rated HARD there (the sync decides what is published). T1 brought the result her
 
 ### T1 (main) Bring the internal prerequisite here by sync
 - allow: `scripts/check.py` `scripts/sync-public.py` `docs/internals.md` `.sync-source.json`
+- not needed: done before this build, by the sync commit d83768f in PR #5 (merged)
 - check: `python3 scripts/check.py`
 
 ### T2 (main) IR, validator, safe source reader, geometry gates
@@ -97,4 +98,15 @@ Rated HARD there (the sync decides what is published). T1 brought the result her
 10. After the merge, the internal `sync-public.py` report is `IN STEP` and `skills/graph/` is still on public `main`.
 11. A fresh agent given only `SKILL.md` draws the User Flow from a prose description; where it had to guess is recorded in the PR.
 
-## Result
+## Result (2026-11-19)
+1. PASS `python3 scripts/check.py` here (10 skills; it runs `graph.py --self-test`, which runs the self-tests of every graph module) and in the internal copy (9 skills, graph absent).
+2. PASS the three references validate with 0 errors and 0 warnings and render dark and light; screenshots of each, dark and light, were taken and shown to the owner. They are not attached to the PR: the CLI cannot upload images.
+3. PASS every negative fixture in `tests/invalid` raises its named rule and no other; `route-through-node` and `label-overlap` are tested in `graph_geometry.py --self-test` and through the render path (`tests/cli/bad-layout.json`); a key literal in an ordinary file is hidden in the snippet and absent from the rendered page (`tests/valid/source-hidden*.json`).
+4. PASS `core-flow` has 0 gate errors; steps 1, 2 and 3 share x = 163.
+5. PASS each reference rendered twice gives identical bytes (sha256).
+6. PASS no rendered reference contains `http://`, `https://`, `<link`, a `src=` other than `data:`, or a `url(` other than `#`.
+7. PASS `graph.py --self-test` checksums the scratch repo root before and after `validate` and `render`.
+8. PASS a trace captured from a code-graph tool on this skill's own scripts (`cmd_render` to `to_svg`, 2 proven hops) converts, validates with no warning and renders; heuristic hops drawn unproven, each with its own call site, are tested with `tests/cli/trace-repeat.json`.
+9. PASS `HOME=<scratch> install.py --settings`, then `--check`: exit 0, `skills/graph/scripts/graph.py` installed.
+10. not run: runs after the merge (internal `sync-public.py` report).
+11. PASS a fresh agent given only `SKILL.md` drew the User Flow from prose; validate passed on the first try. It guessed at two points (whether unproven warnings need `--repo-root`; whether a step between two external parties needs `external`); `SKILL.md` now states both.
