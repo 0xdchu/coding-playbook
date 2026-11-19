@@ -170,17 +170,17 @@ def _frame_text(sh, labels):
     for lb in labels:
         by = lb["y"] + lb["h"] / 2 + BASELINE
         if ":branch" in lb["id"]:
+            # An opaque plate (as under step labels) so a lifeline never runs through the condition or branch text.
+            out.append(f'<rect class="lblbg" x="{_n(lb["x"] + 2)}" y="{_n(lb["y"] + 2)}" width="{_n(max(lb["w"] - 4, 0))}" '
+                       f'height="{_n(max(lb["h"] - 4, 0))}" rx="3"/>')
             out.append(f'<text class="branch" x="{_n(lb["x"] + geo.LABEL_PAD_X)}" y="{_n(by)}"{_attrs(sh["ref"], None)}>'
                        f'{esc(lb["text"])}</text>')
             continue
-        name = sh["label"]
-        cond = lb["text"][len(name):].strip() if lb["text"].startswith(name) else ""
+        name = sh["label"]      # the tab holds only the fragment name; the condition is its own label
         tab_w = lb["x"] + geo.LABEL_PAD_X + text_width(name) * 1.12 + 8 - sh["x"]
         out.append(f'<rect class="tab" x="{_n(sh["x"])}" y="{_n(sh["y"])}" width="{_n(r(tab_w))}" height="{_n(TAB_H)}" rx="3"/>')
-        text = f'<tspan class="name">{esc(name)}</tspan>'
-        if cond:
-            text += f'<tspan class="cond" dx="8">{esc(cond)}</tspan>'
-        out.append(f'<text x="{_n(lb["x"] + geo.LABEL_PAD_X)}" y="{_n(by)}"{_attrs(sh["ref"], None)}>{text}</text>')
+        out.append(f'<text x="{_n(lb["x"] + geo.LABEL_PAD_X)}" y="{_n(by)}"{_attrs(sh["ref"], None)}>'
+                   f'<tspan class="name">{esc(name)}</tspan></text>')
     out.append("</g>")
     return "".join(out)
 

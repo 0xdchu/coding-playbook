@@ -6,8 +6,9 @@
 The trace: {"paths": [{"steps": [{"from_name", "from_file", "from_line", "to_name", "to_file", "to_line",
 "provenance", "site_file", "site_line"}, ...]}, ...]}. Only the first path is used. Participants are the files in
 first-seen order (label: the file name), each hop is one step labelled with the callee name (kind "self" when both
-ends are the same file) and one edge that cites the call site and keeps the hop's provenance: "proven" stays proven,
-every other value is read as "heuristic" (it is drawn unproven).
+ends are the same file) and one edge of its own (id "h1", "h2", ...; the step names it with "edge", so a later hop
+between the same two files, or a hop inside one file, keeps its own call site) that cites the call site and keeps the
+hop's provenance: "proven" stays proven, every other value is read as "heuristic" (it is drawn unproven).
 """
 import posixpath
 
@@ -53,7 +54,7 @@ def convert(trace):
         frm_file, to_file = _text(st, "from_file", where), _text(st, "to_file", where)
         name = _text(st, "to_name", where)
         frm, to = pid(frm_file), pid(to_file)
-        edge = {"from": frm, "to": to, "label": name}
+        edge = {"id": f"h{i + 1}", "from": frm, "to": to, "label": name}
         prov = st.get("provenance")
         if isinstance(prov, str) and prov.strip():
             edge["provenance"] = "proven" if prov == "proven" else "heuristic"
@@ -62,7 +63,7 @@ def convert(trace):
         if isinstance(site_file, str) and site_file.strip() and site_line:
             edge["sources"] = [{"path": site_file, "line": site_line, "label": f"call to {name}"}]
         edges.append(edge)
-        step = {"from": frm, "to": to, "label": name, "kind": "self" if frm == to else "call"}
+        step = {"from": frm, "to": to, "label": name, "kind": "self" if frm == to else "call", "edge": edge["id"]}
         to_line = _line(st, "to_line")
         if to_line:
             step["note"] = f"{name} is defined at {to_file}:{to_line}"
