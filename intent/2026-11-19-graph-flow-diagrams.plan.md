@@ -3,9 +3,10 @@ status: draft   # draft → planned → building → verified
 ---
 # Plan: flow diagrams for the graph skill (`skills/graph/`)
 
-Intent: `intent/2026-11-19-graph-flow-diagrams.md` (approved). Built here in standard-library Python; `ambysto-graph` is not changed.
+Intent: `intent/2026-11-19-graph-flow-diagrams.md` (approved). Built here in standard-library Python. The Rust engine gets the same features under its own intent and plan in its own repo; this plan does not change it.
 
 ## Decisions this plan makes
+- **The IR is the shared contract.** The JSON format below is written so the Rust engine can read the same files later; `SKILL.md` documents it as a format, not as this script's internals.
 - **One skill folder, plain scripts.** `skills/graph/SKILL.md`, `skills/graph/scripts/*.py`, one HTML template, `examples/` and `tests/`. The installer already copies every file of `skills/<name>/` to `~/.claude/skills/<name>/`, so the skill runs as `python3 ~/.claude/skills/graph/scripts/graph.py …`.
 - **CLI.** `graph.py validate <ir.json> [--repo-root <dir>] [--json]`, `graph.py render <ir.json> -o <out.html> [--repo-root <dir>] [--theme dark|light]` (render validates first and refuses an invalid diagram), `graph.py from-trace <trace.json> -o <ir.json>`, `graph.py --self-test`. Exit 0 valid or written, 1 invalid, 2 usage or refused.
 - **IR** (strict: an unknown field fails with its JSON path):

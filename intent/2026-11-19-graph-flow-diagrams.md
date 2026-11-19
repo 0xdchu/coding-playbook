@@ -3,7 +3,7 @@ status: approved   # draft → approved → planned → building → verified �
 ---
 # Flow diagrams that are exact and easy to read: steps on one model, fragments, real flowcharts
 
-Design for the flow diagrams of the graph skill (`/graph`). The Problem describes `ambysto-graph`, the code-graph and diagram tool the global instructions' Tools section names, as it stands today. The owner decided (below) to build the flow diagrams here, as a standard-library Python skill in `skills/graph/`; `ambysto-graph` is not changed.
+Design for the flow diagrams of the graph skill (`/graph`). The Problem describes `ambysto-graph`, the code-graph and diagram tool the global instructions' Tools section names, as it stands today. The owner decided (below) on two versions: a standard-library Python skill here in `skills/graph/`, and the same features in the Rust engine under that engine's own intent. This intent and its plan cover the Python skill.
 
 ## Problem
 `ambysto-graph` promises diagrams of how a system works that a human can trust. Today the two flow modes fall short:
@@ -47,7 +47,7 @@ Reference outputs the owner wants to reach (screenshots shared in the owner's re
 - A step whose endpoints have no declared edge is a `validate` error, unless the step is marked `external`.
 - Several views in one HTML (perspectives, drill-down) is a later intent.
 - Flowcharts run top-down by default; left-to-right on request.
-- Built in this repo as a standard-library Python skill under `skills/graph/`, contributed as 0xdonniechu; `ambysto-graph` stays unchanged.
+- Two versions: this repo's skill is standard-library Python under `skills/graph/`, contributed as 0xdonniechu; the maintainer's Rust engine (`ambysto-graph`) gets the same features under its own intent in its own repo.
 - The default `sequence` look follows the owner's "User Flow" reference: dark, compact actor boxes, numbered labels above arrows, one emphasised step in an accent colour; the light theme stays available.
 
 ## Open questions
