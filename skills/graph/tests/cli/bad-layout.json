@@ -1,0 +1,13 @@
+{
+  "width": 520,
+  "height": 160,
+  "shapes": [
+    {"id": "actor:a", "kind": "actor", "shape": "box", "x": 40, "y": 40, "w": 100, "h": 44, "label": "A", "sublabel": null, "ref": "a", "emphasis": false},
+    {"id": "actor:b", "kind": "actor", "shape": "box", "x": 200, "y": 40, "w": 100, "h": 44, "label": "B", "sublabel": null, "ref": "b", "emphasis": false},
+    {"id": "actor:c", "kind": "actor", "shape": "box", "x": 360, "y": 40, "w": 100, "h": 44, "label": "C", "sublabel": null, "ref": "c", "emphasis": false}
+  ],
+  "routes": [
+    {"id": "step:1", "ref": "steps[0]", "from": "actor:a", "to": "actor:c", "points": [[140, 62], [360, 62]], "style": "solid", "head": "filled", "emphasis": false, "back": false}
+  ],
+  "labels": []
+}

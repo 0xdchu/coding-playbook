@@ -1,0 +1,81 @@
+{
+  "kind": "sequence",
+  "title": "Two calls between one pair",
+  "participants": [
+    {
+      "id": "a",
+      "label": "A"
+    },
+    {
+      "id": "b",
+      "label": "B"
+    },
+    {
+      "id": "x",
+      "label": "Provider",
+      "external": true
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "a",
+      "to": "b",
+      "label": "f",
+      "provenance": "proven"
+    },
+    {
+      "id": "e2",
+      "from": "a",
+      "to": "b",
+      "label": "g",
+      "provenance": "heuristic"
+    },
+    {
+      "id": "e3",
+      "from": "b",
+      "to": "b",
+      "label": "h"
+    },
+    {
+      "id": "out",
+      "from": "a",
+      "to": "x",
+      "label": "create"
+    }
+  ],
+  "steps": [
+    {
+      "from": "a",
+      "to": "b",
+      "label": "f()",
+      "edge": "e1"
+    },
+    {
+      "from": "b",
+      "to": "b",
+      "label": "h()",
+      "kind": "self",
+      "edge": "e3"
+    },
+    {
+      "from": "b",
+      "to": "a",
+      "label": "back",
+      "edge": "e1"
+    },
+    {
+      "from": "a",
+      "to": "b",
+      "label": "g()",
+      "edge": "e2"
+    },
+    {
+      "from": "x",
+      "to": "a",
+      "label": "webhook",
+      "kind": "async",
+      "edge": "out"
+    }
+  ]
+}

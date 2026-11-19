@@ -1,0 +1,51 @@
+{
+  "kind": "workflow",
+  "title": "Skip rank",
+  "nodes": [
+    {
+      "id": "a",
+      "label": "Collect input",
+      "shape": "start"
+    },
+    {
+      "id": "b",
+      "label": "Validate"
+    },
+    {
+      "id": "c",
+      "label": "Transform"
+    },
+    {
+      "id": "d",
+      "label": "Store"
+    },
+    {
+      "id": "e",
+      "label": "Report",
+      "shape": "end"
+    }
+  ],
+  "links": [
+    {
+      "from": "a",
+      "to": "b"
+    },
+    {
+      "from": "b",
+      "to": "c"
+    },
+    {
+      "from": "c",
+      "to": "d"
+    },
+    {
+      "from": "d",
+      "to": "e"
+    },
+    {
+      "from": "a",
+      "to": "e",
+      "label": "skip checks"
+    }
+  ]
+}

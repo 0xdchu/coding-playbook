@@ -1,0 +1,40 @@
+{
+  "kind": "sequence",
+  "title": "Nine participants",
+  "participants": [
+    {"id": "p1", "label": "Browser"},
+    {"id": "p2", "label": "CDN"},
+    {"id": "p3", "label": "Load balancer"},
+    {"id": "p4", "label": "Web server"},
+    {"id": "p5", "label": "Auth service"},
+    {"id": "p6", "label": "Billing service"},
+    {"id": "p7", "label": "Cache"},
+    {"id": "p8", "label": "Database"},
+    {"id": "p9", "label": "Search index"}
+  ],
+  "edges": [
+    {"from": "p1", "to": "p2"}, {"from": "p2", "to": "p3"}, {"from": "p3", "to": "p4"},
+    {"from": "p4", "to": "p5"}, {"from": "p4", "to": "p6"}, {"from": "p6", "to": "p7"},
+    {"from": "p7", "to": "p8"}, {"from": "p8", "to": "p9"}, {"from": "p1", "to": "p9"}
+  ],
+  "steps": [
+    {"from": "p1", "to": "p2", "label": "request"},
+    {"from": "p2", "to": "p3", "label": "miss"},
+    {"from": "p3", "to": "p4", "label": "forward"},
+    {"from": "p4", "to": "p5", "label": "who is this?", "kind": "call-return"},
+    {"from": "p5", "to": "p5", "label": "check the session", "kind": "self"},
+    {"fragment": "alt", "branches": [
+      {"label": "paid", "steps": [
+        {"from": "p4", "to": "p6", "label": "usage"},
+        {"from": "p6", "to": "p7", "label": "get plan", "kind": "call-return"},
+        {"from": "p7", "to": "p8", "label": "load on miss"}
+      ]},
+      {"label": "free", "steps": [
+        {"from": "p4", "to": "p6", "label": "limit"}
+      ]}
+    ]},
+    {"from": "p1", "to": "p9", "label": "typeahead query, straight to the index", "kind": "async"},
+    {"from": "p8", "to": "p9", "label": "reindex", "kind": "async"},
+    {"from": "p9", "to": "p9", "label": "merge segments", "kind": "self"}
+  ]
+}

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en" data-theme="{{THEME}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+:root{--bg:#0b0d12;--fg:#e8ebf2;--muted:#98a2b3;--panel:#121722;--edge:#2a3142;--accent:#4da3ff;--code:#0e1320}
+:root[data-theme="light"]{--bg:#fafbfc;--fg:#1b2230;--muted:#5b6578;--panel:#f1f4f9;--edge:#d3d9e4;--accent:#1668d6;--code:#ffffff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+body{display:flex;flex-direction:column;height:100vh}
+header{padding:8px 20px;border-bottom:1px solid var(--edge);display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:12px}
+header .kind{padding:1px 10px;border:1px solid var(--accent);border-radius:10px;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:minmax(0,1fr);gap:0}
+#stage{padding:12px;overflow:auto;min-height:0}
+#stage svg.flow{display:block;margin:0 auto;max-width:none}
+aside{border-left:1px solid var(--edge);background:var(--panel);padding:16px;overflow:auto;min-height:0}
+aside h2{margin:0 0 4px;font-size:16px}
+aside h3{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+aside .meta{color:var(--muted);margin:0 0 8px}
+aside .badge{display:inline-block;margin:0 6px 6px 0;padding:1px 8px;border:1px solid var(--edge);border-radius:10px;font-size:12px}
+aside .badge.warn{border-color:var(--accent);color:var(--accent)}
+aside .src{margin:10px 0 2px;font-weight:600}
+aside code{font-family:ui-monospace,Menlo,Consolas,monospace}
+aside pre{margin:4px 0 8px;padding:8px;background:var(--code);border:1px solid var(--edge);border-radius:6px;overflow:auto;font-size:12px}
+aside .hint{color:var(--muted)}
+aside .legend{list-style:none;margin:0;padding:0}
+aside .legend li{display:flex;align-items:center;margin:0 0 6px}
+aside .legend .sw{flex:none;display:inline-block;position:relative;width:38px;height:0;margin-right:12px;border-top:2px solid currentColor}
+aside .legend .sw.dashed{border-top-style:dashed}
+aside .legend .sw.filled::after{content:"";position:absolute;right:-2px;top:-6px;border-left:9px solid currentColor;border-top:5px solid transparent;border-bottom:5px solid transparent}
+aside .legend .sw.open::after{content:"";position:absolute;right:0;top:-5px;width:8px;height:8px;border-top:2px solid currentColor;border-right:2px solid currentColor;transform:rotate(45deg)}
+aside .legend .call{color:var(--fg)}
+aside .legend .async{color:var(--fg)}
+aside .legend .unproven{color:var(--muted)}
+aside .legend .accent{color:var(--accent)}
+aside .counts{margin:0;padding:0;list-style:none;color:var(--muted)}
+kbd{border:1px solid var(--edge);border-radius:4px;padding:0 5px;font-size:12px}
+svg.flow [data-k]{cursor:pointer}
+svg.flow.walking [data-k]{opacity:.22}
+svg.flow.walking [data-k].active{opacity:1}
+svg.flow .active.route path.line{stroke-width:3}
+svg.flow .active.node .sh{stroke:var(--c-accent);stroke-width:2.5}
+@media (max-width:900px){body{height:auto}main{display:block}#stage{height:70vh}aside{border-left:0;border-top:1px solid var(--edge)}}
+</style>
+</head>
+<body>
+<header><span class="kind" id="kind"></span><span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> walk through &middot; click a step &middot; <kbd>Esc</kbd> leave &middot; <kbd>T</kbd> theme &middot; <kbd>E</kbd> export SVG</span></header>
+<main>
+<div id="stage">{{SVG}}</div>
+<aside id="panel" aria-live="polite"></aside>
+</main>
+<script type="application/json" id="flow-data">{{DATA}}</script>
+<script>
+(function () {
+  "use strict";
+  var data = JSON.parse(document.getElementById("flow-data").textContent);
+  var items = data.items || [];
+  var svg = document.querySelector("svg.flow");
+  var panel = document.getElementById("panel");
+  var stage = document.getElementById("stage");
+  var cur = -1;
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+
+  function legendRow(cls, sw, text) {
+    var li = el("li", cls);
+    li.appendChild(el("span", "sw " + sw));
+    li.appendChild(document.createTextNode(text));
+    return li;
+  }
+
+  function showHint() {
+    var seq = data.kind !== "workflow", st = data.stats || {};
+    panel.textContent = "";
+    panel.appendChild(el("h2", "", seq ? "Sequence" : "Workflow"));
+    panel.appendChild(el("p", "hint", "Press the right arrow to walk through one at a time, or click a step."));
+    panel.appendChild(el("h3", "", "Legend"));
+    var ul = el("ul", "legend");
+    if (seq) {
+      ul.appendChild(legendRow("call", "filled", "solid arrow: call"));
+      ul.appendChild(legendRow("async", "dashed open", "dashed open arrow: async or reply"));
+      ul.appendChild(legendRow("unproven", "dashed filled", "grey dashed: unproven (no source)"));
+    } else {
+      ul.appendChild(legendRow("call", "filled", "solid arrow: flows to the next node"));
+    }
+    ul.appendChild(legendRow("accent", "filled", "accent: emphasised"));
+    panel.appendChild(ul);
+    panel.appendChild(el("h3", "", "Counts"));
+    var counts = el("ul", "counts");
+    counts.appendChild(el("li", "", items.length + (seq ? " steps" : " nodes")));
+    if (seq) {
+      counts.appendChild(el("li", "", (st.external || 0) + " external participants"));
+      counts.appendChild(el("li", "", (st.unproven || 0) + " unproven edges"));
+    }
+    panel.appendChild(counts);
+  }
+
+  function showItem(it) {
+    panel.textContent = "";
+    var kindName = data.kind === "workflow" ? "Node " : "Step ";
+    panel.appendChild(el("h2", "", kindName + it.number + ": " + it.label));
+    panel.appendChild(el("p", "meta", "kind: " + it.kind + (it.route ? " | " + it.route : "") +
+      " | " + (it.k + 1) + " of " + items.length));
+    if (it.unproven) panel.appendChild(el("span", "badge warn", "unproven: no proven source for this call"));
+    if (it.external) panel.appendChild(el("span", "badge warn", "external"));
+    if (it.detail) panel.appendChild(el("p", "", it.detail));
+    if (it.note) panel.appendChild(el("p", "", it.note));
+    (it.sources || []).forEach(function (s) {
+      var where = s.path + ":" + s.line + (s.end_line && s.end_line !== s.line ? "-" + s.end_line : "");
+      var row = el("div", "src");
+      row.appendChild(el("code", "", where));
+      if (s.label) row.appendChild(document.createTextNode(" " + s.label));
+      panel.appendChild(row);
+      if (s.snippet !== null && s.snippet !== undefined) panel.appendChild(el("pre", "", s.snippet));
+      else panel.appendChild(el("p", "hint", "not verified (no repo root was given)"));
+    });
+  }
+
+  var BASE_TEXT = 13, MIN_TEXT = 9, MAX_SCALE = 1.25;
+
+  // Contain: the whole diagram in the visible area, never above MAX_SCALE, and scrolling only when
+  // containing it would shrink the 13 px text below MIN_TEXT px on screen.
+  function fit() {
+    var w = parseFloat(svg.getAttribute("width")), h = parseFloat(svg.getAttribute("height"));
+    var cs = getComputedStyle(stage);
+    var aw = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var ah = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (!(w > 0 && h > 0 && aw > 0)) return;
+    var s = ah > 0 ? Math.min(aw / w, ah / h, MAX_SCALE) : Math.min(aw / w, MAX_SCALE);
+    s = Math.max(s, MIN_TEXT / BASE_TEXT);
+    svg.style.width = Math.floor(w * s) + "px";
+    svg.style.height = Math.floor(h * s) + "px";
+  }
+
+  function mark(k) {
+    var all = svg.querySelectorAll("[data-k]");
+    for (var i = 0; i < all.length; i++) {
+      all[i].classList.toggle("active", k >= 0 && all[i].getAttribute("data-k") === String(k));
+    }
+    svg.classList.toggle("walking", k >= 0);
+  }
+
+  function show(k) {
+    if (!items.length) return;
+    cur = Math.max(0, Math.min(items.length - 1, k));
+    mark(cur);
+    showItem(items[cur]);
+    var a = svg.querySelector("[data-k].active");
+    if (a && a.scrollIntoView) a.scrollIntoView({block: "center", inline: "nearest"});
+  }
+
+  function leave() {
+    cur = -1;
+    mark(-1);
+    showHint();
+  }
+
+  function exportSvg() {
+    var clone = svg.cloneNode(true);
+    clone.classList.remove("walking");
+    var act = clone.querySelectorAll(".active");
+    for (var i = 0; i < act.length; i++) act[i].classList.remove("active");
+    var cs = getComputedStyle(svg), style = "";
+    ["--c-bg", "--c-fg", "--c-muted", "--c-border", "--c-box", "--c-line", "--c-accent", "--c-unproven",
+     "--c-frame", "--c-tab", "--c-pill", "--c-dec"].forEach(function (n) {
+      style += n + ":" + cs.getPropertyValue(n).trim() + ";";
+    });
+    clone.setAttribute("style", style);
+    var text = new XMLSerializer().serializeToString(clone);
+    var blob = new Blob([text], {type: "image/svg+xml"});
+    var make = URL["createObjectURL"], drop = URL["revokeObjectURL"];
+    var link = document.createElement("a");
+    link.href = make.call(URL, blob);
+    link.download = (data.title || "diagram").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".svg";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () { drop.call(URL, link.href); }, 1000);
+  }
+
+  svg.addEventListener("click", function (ev) {
+    var t = ev.target.closest ? ev.target.closest("[data-k]") : null;
+    if (t) show(parseInt(t.getAttribute("data-k"), 10));
+  });
+
+  document.addEventListener("keydown", function (ev) {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    var key = ev.key;
+    if (key === "t" || key === "T") {
+      var root = document.documentElement;
+      root.setAttribute("data-theme", root.getAttribute("data-theme") === "light" ? "dark" : "light");
+    } else if (key === "ArrowRight") {
+      ev.preventDefault();
+      show(cur < 0 ? 0 : cur + 1);
+    } else if (key === "ArrowLeft") {
+      ev.preventDefault();
+      show(cur < 0 ? 0 : cur - 1);
+    } else if (key === "Escape") {
+      leave();
+    } else if (key === "e" || key === "E") {
+      exportSvg();
+    }
+  });
+
+  document.getElementById("kind").textContent = data.kind === "workflow" ? "Workflow" : "Sequence";
+  window.addEventListener("resize", fit);
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(stage);
+  fit();
+  showHint();
+})();
+</script>
+</body>
+</html>

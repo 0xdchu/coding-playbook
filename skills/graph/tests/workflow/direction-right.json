@@ -1,0 +1,55 @@
+{
+  "kind": "workflow",
+  "title": "Left to right",
+  "direction": "right",
+  "nodes": [
+    {
+      "id": "in",
+      "label": "Order received",
+      "shape": "start"
+    },
+    {
+      "id": "stock",
+      "label": "In stock?",
+      "shape": "decision"
+    },
+    {
+      "id": "pack",
+      "label": "Pack the order"
+    },
+    {
+      "id": "wait",
+      "label": "Wait for supplier"
+    },
+    {
+      "id": "send",
+      "label": "Send the parcel",
+      "shape": "end"
+    }
+  ],
+  "links": [
+    {
+      "from": "in",
+      "to": "stock"
+    },
+    {
+      "from": "stock",
+      "to": "pack",
+      "label": "Yes"
+    },
+    {
+      "from": "stock",
+      "to": "wait",
+      "label": "No"
+    },
+    {
+      "from": "wait",
+      "to": "stock",
+      "label": "Delivered"
+    },
+    {
+      "from": "pack",
+      "to": "send"
+    }
+  ]
+}

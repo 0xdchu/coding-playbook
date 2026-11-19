@@ -1,0 +1,114 @@
+{
+  "kind": "sequence",
+  "title": "A par with three branches",
+  "participants": [
+    {
+      "id": "api",
+      "label": "API"
+    },
+    {
+      "id": "mail",
+      "label": "Mailer",
+      "external": true
+    },
+    {
+      "id": "sms",
+      "label": "SMS gateway",
+      "external": true
+    },
+    {
+      "id": "log",
+      "label": "Audit log"
+    }
+  ],
+  "edges": [
+    {
+      "from": "api",
+      "to": "log"
+    },
+    {
+      "from": "api",
+      "to": "mail"
+    },
+    {
+      "from": "api",
+      "to": "sms"
+    }
+  ],
+  "steps": [
+    {
+      "from": "api",
+      "to": "api",
+      "label": "order paid",
+      "kind": "self"
+    },
+    {
+      "fragment": "par",
+      "label": "notify",
+      "branches": [
+        {
+          "label": "email",
+          "steps": [
+            {
+              "from": "api",
+              "to": "mail",
+              "label": "send receipt",
+              "kind": "call-return"
+            }
+          ]
+        },
+        {
+          "label": "text message",
+          "steps": [
+            {
+              "from": "api",
+              "to": "sms",
+              "label": "send code"
+            },
+            {
+              "from": "api",
+              "to": "api",
+              "label": "mark as sent",
+              "kind": "self"
+            }
+          ]
+        },
+        {
+          "label": "audit",
+          "steps": [
+            {
+              "from": "api",
+              "to": "log",
+              "label": "record"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fragment": "par",
+      "branches": [
+        {
+          "label": "a",
+          "steps": [
+            {
+              "from": "api",
+              "to": "log",
+              "label": "close"
+            }
+          ]
+        },
+        {
+          "label": "b",
+          "steps": [
+            {
+              "from": "log",
+              "to": "api",
+              "label": "ack"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

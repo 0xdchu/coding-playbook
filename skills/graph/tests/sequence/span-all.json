@@ -1,0 +1,27 @@
+{
+  "kind": "sequence",
+  "title": "A step spanning every lifeline",
+  "participants": [
+    {"id": "p1", "label": "Browser"},
+    {"id": "p2", "label": "Edge"},
+    {"id": "p3", "label": "API"},
+    {"id": "p4", "label": "Queue"},
+    {"id": "p5", "label": "Database"}
+  ],
+  "edges": [
+    {"from": "p1", "to": "p2"},
+    {"from": "p2", "to": "p3"},
+    {"from": "p3", "to": "p4"},
+    {"from": "p4", "to": "p5"},
+    {"from": "p1", "to": "p5"}
+  ],
+  "steps": [
+    {"from": "p1", "to": "p2", "label": "GET"},
+    {"from": "p2", "to": "p3", "label": "route"},
+    {"from": "p3", "to": "p4", "label": "push"},
+    {"from": "p4", "to": "p5", "label": "save"},
+    {"from": "p1", "to": "p5", "label": "poll the stored result directly, bypassing every service in between", "emphasis": true},
+    {"from": "p5", "to": "p1", "label": "result", "kind": "reply", "number": "5a"},
+    {"from": "p3", "to": "p2", "label": "ok"}
+  ]
+}

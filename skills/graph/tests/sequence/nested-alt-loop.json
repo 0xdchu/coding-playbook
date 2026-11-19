@@ -1,0 +1,132 @@
+{
+  "kind": "sequence",
+  "title": "Nested alt, loop and opt",
+  "participants": [
+    {
+      "id": "user",
+      "label": "User",
+      "external": true
+    },
+    {
+      "id": "app",
+      "label": "App"
+    },
+    {
+      "id": "db",
+      "label": "Database"
+    },
+    {
+      "id": "llm",
+      "label": "Model API",
+      "external": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "user",
+      "to": "app"
+    },
+    {
+      "from": "app",
+      "to": "db"
+    },
+    {
+      "from": "app",
+      "to": "llm"
+    }
+  ],
+  "steps": [
+    {
+      "from": "user",
+      "to": "app",
+      "label": "scan site"
+    },
+    {
+      "fragment": "alt",
+      "label": "cache",
+      "branches": [
+        {
+          "label": "hit",
+          "steps": [
+            {
+              "from": "app",
+              "to": "user",
+              "label": "cached report",
+              "kind": "reply"
+            }
+          ]
+        },
+        {
+          "label": "miss",
+          "steps": [
+            {
+              "from": "app",
+              "to": "app",
+              "label": "plan pages",
+              "kind": "self"
+            },
+            {
+              "fragment": "loop",
+              "label": "each page",
+              "steps": [
+                {
+                  "from": "app",
+                  "to": "db",
+                  "label": "load page",
+                  "kind": "call-return"
+                },
+                {
+                  "from": "app",
+                  "to": "app",
+                  "label": "extract facts",
+                  "kind": "self"
+                },
+                {
+                  "fragment": "opt",
+                  "label": "needs a second opinion",
+                  "steps": [
+                    {
+                      "from": "app",
+                      "to": "llm",
+                      "label": "ask",
+                      "kind": "async"
+                    },
+                    {
+                      "fragment": "loop",
+                      "label": "retry",
+                      "steps": [
+                        {
+                          "from": "app",
+                          "to": "app",
+                          "label": "back off",
+                          "kind": "self"
+                        },
+                        {
+                          "from": "app",
+                          "to": "llm",
+                          "label": "ask again",
+                          "kind": "call-return"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "from": "app",
+              "to": "db",
+              "label": "store report"
+            },
+            {
+              "from": "app",
+              "to": "user",
+              "label": "new report",
+              "kind": "reply"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

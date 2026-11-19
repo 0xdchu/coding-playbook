@@ -1,5 +1,5 @@
 ---
-status: draft   # draft → planned → building → verified
+status: verified   # draft → planned → building → verified
 ---
 # Plan: flow diagrams for the graph skill (`skills/graph/`)
 
@@ -13,15 +13,16 @@ Intent: `intent/2026-11-19-graph-flow-diagrams.md` (approved). Built here in sta
   - top level: `kind` (`sequence` | `workflow`), `title`, `subtitle?`, `theme?`, `direction?` (`down` default | `right`, workflow only).
   - `participants` (sequence): `id`, `label`, `external?` (a person or third-party service), `sources?`.
   - `edges` (the model, sequence): `id?`, `from`, `to`, `label?`, `provenance?` (`proven` | `heuristic`), `sources?`.
-  - `steps` (sequence, ordered): a step `{from, to, label, kind?, note?, emphasis?, external?, number?}` with `kind` `call` (default) | `call-return` | `async` | `reply` | `self`; or a fragment `{fragment: alt|opt|loop|par|break, label, steps}`, where `alt` and `par` take `branches: [{label, steps}]` instead of `steps`.
+  - `steps` (sequence, ordered): a step `{from, to, label, kind?, note?, emphasis?, external?, number?, edge?}` (`edge` picks one edge by `id` when a pair has several; error `unknown-edge` or `edge-mismatch`) with `kind` `call` (default) | `call-return` | `async` | `reply` | `self`; or a fragment `{fragment: alt|opt|loop|par|break, label, steps}`, where `alt` and `par` take `branches: [{label, steps}]` instead of `steps`.
   - `nodes` (workflow): `id`, `label`, `detail?`, `shape` (`start` | `step` | `decision` | `end`), `note?`, `sources?`; `links`: `from`, `to`, `label?`.
   - `sources`: `{path, line, end_line?, label?}`, repo-relative.
-- **Model rule.** A sequence step is valid when an edge `from → to` is declared, or `to → from` is (then it is drawn as a reply), or the step is marked `external`, or the step starts at an `external` participant (a person or third-party service acting: a click, a webhook arriving), or `kind` is `self`. A step that starts at an internal participant needs an edge even when it calls an external service, because the call is in the code. Anything else is the error `step-without-edge`. An edge that starts at an internal participant and has no `sources` is drawn dashed-grey as unproven when the diagram is checked against a repo (`--repo-root`), with the warning `edge-without-source`; without a repo root no source can be verified, so neither is shown. The exemptions for steps that start at an external participant and for `self` steps go beyond the owner's wording ("a step marked external") and are named for the owner's approval of this plan. In a workflow the links are the model itself: there is no separate edge list, and node `sources` are verified like edge sources (the plan narrows outcome 1 this way for workflows).
+- **Model rule.** A sequence step is valid when an edge `from → to` is declared, or `to → from` is (then it is drawn as a reply), or the step is marked `external`, or the step starts at an `external` participant (a person or third-party service acting: a click, a webhook arriving), or `kind` is `self`. A step that starts at an internal participant needs an edge even when it calls an external service, because the call is in the code. A step that an external party starts never matches an edge in reverse (a webhook is not the reply to a call our code made). Anything else is the error `step-without-edge`. An edge that starts at an internal participant and has no `sources` is drawn dashed-grey as unproven when the diagram is checked against a repo (`--repo-root`), with the warning `edge-without-source`; without a repo root no source can be verified, so neither is shown. The exemptions for steps that start at an external participant and for `self` steps go beyond the owner's wording ("a step marked external") and are named for the owner's approval of this plan. In a workflow the links are the model itself: there is no separate edge list, and node `sources` are verified like edge sources (the plan narrows outcome 1 this way for workflows).
 - **Numbering.** Top-level steps and fragments take `1, 2, 3…`; a fragment numbered `N` numbers what it contains `N.1, N.2…` across all its branches in order; nested fragments add a level. `number` overrides the shown label only; a duplicate shown number is an error.
 - **Sequence layout** (User Flow look): compact actor boxes in declaration order at top, dashed lifelines, one row per step, label centred above its arrow, number prefix; `call-return` draws the return arrow dashed on the next row; `async` dashed with an open head; `self` a loop on the lifeline; fragments are labelled frames spanning the participants they touch (plus padding), nested frames inset; `emphasis` uses the accent colour.
 - **Workflow layout** (deterministic layered graph): back edges found by DFS from `start` nodes in declaration order; ranks by longest path; in-rank order by 4 barycentre sweeps with declaration order breaking ties; the first outgoing link of a node keeps its column, so the main path runs straight; decisions are diamonds; links are orthogonal; back edges route in a channel outside the nodes. Coordinates are rounded to 0.5 px.
+- **Layout contract.** Each layout module returns the layout dict documented in `graph_geometry.py` (shapes, routes, labels, all coordinates rounded); `graph_svg.py` draws only that dict, so the gates check exactly what is drawn.
 - **Geometry gates** run after layout on the coordinates that are drawn: a route segment through a node box that is not its endpoint (`route-through-node`), two labels overlapping, or a label over a node or over a route it does not name (`label-overlap`); crossings are counted and reported.
-- **Sources are read safely.** Paths resolve under `--repo-root` with no `..` escape and no symlink leaving it; files on a secret skip list (`.env*`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`, `id_ed25519*`, `.npmrc`, `.pypirc`, `.netrc`, `secrets/`, `.ssh/`, `.aws/`, `.gnupg/`) are refused, not read; a cited range whose text matches a secret shape (token prefixes such as `ghp_`, `sk-`, `AKIA`, a private key header, or `password`/`secret`/`token`/`api_key` assigned a literal) is refused (`source-secret-content`), so a key in `settings.py` is not rendered either; a line past the end of the file is an error; snippets are at most 30 lines. Without `--repo-root`, sources are shown as plain references and the warning `sources-not-verified` is given.
+- **Sources are read safely.** Paths resolve under `--repo-root` with no `..` escape and no symlink leaving it; files on a secret skip list (`.env*`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`, `id_ed25519*`, `.npmrc`, `.pypirc`, `.netrc`, `secrets/`, `.ssh/`, `.aws/`, `.gnupg/`) are refused, not read; in a snippet, every line that may hold a secret (a known token or key shape; a line naming a password, token, secret, key or auth next to any value; a line continuing such an assignment) is replaced by `[line hidden: may hold a secret]` and reported as the info `source-lines-hidden`, so a key in `settings.py` is not rendered either (owner decision 2026-11-19, after two review rounds: hide rather than refuse, so the scan can be strict without breaking diagrams); a line past the end of the file is an error; snippets are at most 30 lines. Without `--repo-root`, sources are shown as plain references and the warning `sources-not-verified` is given.
 - **Viewer.** One HTML file: the SVG is drawn in Python (the same coordinates the gates checked), with inline CSS and plain JavaScript: dark/light (`T`), walkthrough (`←`/`→`, `Esc`) highlighting one step or node with its note and source snippet, click for the same panel, `E` to export the SVG. No URL to anything outside the file.
 - **Trace import.** `from-trace` reads the JSON a code-graph tool prints for a call trace: `paths[0].steps[]` with `from_name`, `from_file`, `from_line`, `to_name`, `to_file`, `to_line`, `provenance`, `site_file`, `site_line`. Participants are the files, steps are the hops, each edge carries the call site as its source and keeps its provenance. The shape is documented in `SKILL.md` without naming a tool.
 - **Universal only.** `SKILL.md`, the scripts and the examples name no project, tool or path of the owner's.
@@ -37,9 +38,9 @@ Rated HARD there (the sync decides what is published). T1 brought the result her
 ## Files
 1. `scripts/check.py`, `scripts/sync-public.py`, `docs/internals.md`, `.sync-source.json` (synced, T1)
 2. `skills/graph/scripts/graph_ir.py`, `graph_validate.py`, `graph_sources.py`, `graph_geometry.py` (T2)
-3. `skills/graph/scripts/graph_sequence.py` (T3)
-4. `skills/graph/scripts/graph_workflow.py` (T4)
-5. `skills/graph/scripts/graph.py`, `graph_trace.py`, `graph_viewer.html` (T5)
+3. `skills/graph/scripts/graph_sequence.py` (T3, layout only)
+4. `skills/graph/scripts/graph_workflow.py` (T4, layout only)
+5. `skills/graph/scripts/graph.py`, `graph_svg.py`, `graph_trace.py`, `graph_viewer.html` (T5)
 6. `skills/graph/SKILL.md`, `skills/graph/examples/*.json`, `skills/graph/tests/**` (T2 to T6)
 7. `README.md` (one line: the tenth skill) (T6)
 
@@ -55,24 +56,26 @@ Rated HARD there (the sync decides what is published). T1 brought the result her
 
 ### T1 (main) Bring the internal prerequisite here by sync
 - allow: `scripts/check.py` `scripts/sync-public.py` `docs/internals.md` `.sync-source.json`
+- not needed: done before this build, by the sync commit d83768f in PR #5 (merged)
 - check: `python3 scripts/check.py`
 
 ### T2 (main) IR, validator, safe source reader, geometry gates
 - allow: `skills/graph/scripts/graph_ir.py` `skills/graph/scripts/graph_validate.py` `skills/graph/scripts/graph_sources.py` `skills/graph/scripts/graph_geometry.py` `skills/graph/tests/**`
 - check: `python3 skills/graph/scripts/graph_validate.py --self-test`
+- check: `python3 skills/graph/scripts/graph_geometry.py --self-test`
 
-### T3 (builder, parallel) Sequence layout and SVG
+### T3 (builder, parallel) Sequence layout
 - allow: `skills/graph/scripts/graph_sequence.py` `skills/graph/tests/sequence/**`
 - forbid: `skills/graph/scripts/graph_ir.py` `skills/graph/scripts/graph_validate.py` `skills/graph/scripts/graph_sources.py` `skills/graph/scripts/graph_geometry.py`
 - check: `python3 skills/graph/scripts/graph_sequence.py --self-test`
 
-### T4 (builder, parallel) Workflow layout and SVG
+### T4 (builder, parallel) Workflow layout
 - allow: `skills/graph/scripts/graph_workflow.py` `skills/graph/tests/workflow/**`
 - forbid: `skills/graph/scripts/graph_ir.py` `skills/graph/scripts/graph_validate.py` `skills/graph/scripts/graph_sources.py` `skills/graph/scripts/graph_geometry.py`
 - check: `python3 skills/graph/scripts/graph_workflow.py --self-test`
 
-### T5 (builder) CLI, viewer, trace import
-- allow: `skills/graph/scripts/graph.py` `skills/graph/scripts/graph_trace.py` `skills/graph/scripts/graph_viewer.html` `skills/graph/tests/cli/**`
+### T5 (builder) SVG, CLI, viewer, trace import
+- allow: `skills/graph/scripts/graph.py` `skills/graph/scripts/graph_svg.py` `skills/graph/scripts/graph_trace.py` `skills/graph/scripts/graph_viewer.html` `skills/graph/tests/cli/**`
 - check: `python3 skills/graph/scripts/graph.py --self-test`
 
 ### T6 (main) SKILL.md, the three reference examples, README and CLAUDE.md skill lists
@@ -85,7 +88,7 @@ Rated HARD there (the sync decides what is published). T1 brought the result her
 ## Proof
 1. `python3 scripts/check.py` passes here (it runs the graph self-test) and in the internal copy.
 2. The three references (`user-flow`, `core-flow`, `run-billing`) validate with 0 errors and 0 warnings and render; a screenshot of each, dark and light, is in the PR.
-3. Each negative fixture fails with its named rule: `unknown-field`, `step-without-edge`, `alt-one-branch`, `par-in-par`, `empty-fragment`, `duplicate-number`, `decision-unlabelled`, `decision-one-branch`, `unreachable-node`, `route-through-node`, `label-overlap`, `source-outside-root` (`..` and a symlink), `source-line-past-end`, `source-secret` (`.env`), `source-secret-content` (a key literal in an ordinary file).
+3. Each negative fixture fails with its named rule: `unknown-field`, `step-without-edge`, `alt-one-branch`, `par-in-par`, `empty-fragment`, `duplicate-number`, `decision-unlabelled`, `decision-one-branch`, `unreachable-node`, `route-through-node`, `label-overlap`, `source-outside-root` (`..` and a symlink), `source-line-past-end`, `source-secret` (`.env`); and a key literal in an ordinary file is hidden in the snippet, never rendered (`source-hidden` fixtures).
 4. `core-flow` renders with 0 `route-through-node`, 0 `label-overlap`, and steps 1 to 3 at the same x.
 5. Rendering each reference twice gives identical bytes (sha256).
 6. No rendered file contains `http://`, `https://`, `<link`, `src=` to anything but `data:`, or `url(` to anything but `#` or `data:`.
@@ -95,4 +98,15 @@ Rated HARD there (the sync decides what is published). T1 brought the result her
 10. After the merge, the internal `sync-public.py` report is `IN STEP` and `skills/graph/` is still on public `main`.
 11. A fresh agent given only `SKILL.md` draws the User Flow from a prose description; where it had to guess is recorded in the PR.
 
-## Result
+## Result (2026-11-19)
+1. PASS `python3 scripts/check.py` here (10 skills; it runs `graph.py --self-test`, which runs the self-tests of every graph module) and in the internal copy (9 skills, graph absent).
+2. PASS the three references validate with 0 errors and 0 warnings and render dark and light; screenshots of each, dark and light, were taken and shown to the owner. They are not attached to the PR: the CLI cannot upload images.
+3. PASS every negative fixture in `tests/invalid` raises its named rule and no other; `route-through-node` and `label-overlap` are tested in `graph_geometry.py --self-test` and through the render path (`tests/cli/bad-layout.json`); a key literal in an ordinary file is hidden in the snippet and absent from the rendered page (`tests/valid/source-hidden*.json`).
+4. PASS `core-flow` has 0 gate errors; steps 1, 2 and 3 share x = 163.
+5. PASS each reference rendered twice gives identical bytes (sha256).
+6. PASS no rendered reference contains `http://`, `https://`, `<link`, a `src=` other than `data:`, or a `url(` other than `#`.
+7. PASS `graph.py --self-test` checksums the scratch repo root before and after `validate` and `render`.
+8. PASS a trace captured from a code-graph tool on this skill's own scripts (`cmd_render` to `to_svg`, 2 proven hops) converts, validates with no warning and renders; heuristic hops drawn unproven, each with its own call site, are tested with `tests/cli/trace-repeat.json`.
+9. PASS `HOME=<scratch> install.py --settings`, then `--check`: exit 0, `skills/graph/scripts/graph.py` installed.
+10. not run: runs after the merge (internal `sync-public.py` report).
+11. PASS a fresh agent given only `SKILL.md` drew the User Flow from prose; validate passed on the first try. It guessed at two points (whether unproven warnings need `--repo-root`; whether a step between two external parties needs `external`); `SKILL.md` now states both.

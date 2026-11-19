@@ -1,0 +1,21 @@
+{
+  "kind": "sequence",
+  "title": "A fragment whose header is wider than its lifelines",
+  "participants": [
+    {"id": "a", "label": "A"},
+    {"id": "b", "label": "B"},
+    {"id": "c", "label": "C"}
+  ],
+  "edges": [
+    {"from": "a", "to": "b"},
+    {"from": "b", "to": "c"}
+  ],
+  "steps": [
+    {"from": "a", "to": "b", "label": "go"},
+    {"fragment": "loop", "label": "for every prompt of every engine until the budget is used up", "steps": [
+      {"from": "a", "to": "b", "label": "ask"},
+      {"from": "b", "to": "b", "label": "tick", "kind": "self"}
+    ]},
+    {"from": "b", "to": "c", "label": "done"}
+  ]
+}

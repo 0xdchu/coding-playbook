@@ -1,0 +1,37 @@
+{
+  "kind": "sequence",
+  "title": "User flow",
+  "participants": [
+    {
+      "id": "buyer",
+      "label": "Buyer",
+      "external": true
+    },
+    {
+      "id": "stripe",
+      "label": "Stripe",
+      "external": true
+    },
+    {
+      "id": "api",
+      "label": "API"
+    },
+    {
+      "id": "db",
+      "label": "Database"
+    },
+    {
+      "id": "mail",
+      "label": "Mailer",
+      "external": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "api",
+      "to": "db",
+      "label": "write"
+    }
+  ],
+  "steps": []
+}

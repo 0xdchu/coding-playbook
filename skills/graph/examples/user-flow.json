@@ -1,0 +1,97 @@
+{
+  "kind": "sequence",
+  "title": "User flow",
+  "subtitle": "From purchase to first lesson",
+  "participants": [
+    {
+      "id": "buyer",
+      "label": "Buyer",
+      "external": true
+    },
+    {
+      "id": "pay",
+      "label": "Payment provider",
+      "external": true
+    },
+    {
+      "id": "api",
+      "label": "Course API"
+    },
+    {
+      "id": "db",
+      "label": "Database"
+    },
+    {
+      "id": "mail",
+      "label": "Email service",
+      "external": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "buyer",
+      "to": "api",
+      "label": "checkout request"
+    },
+    {
+      "from": "api",
+      "to": "pay",
+      "label": "create checkout session"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "label": "write user and ticket"
+    },
+    {
+      "from": "api",
+      "to": "mail",
+      "label": "send welcome email"
+    }
+  ],
+  "steps": [
+    {
+      "from": "buyer",
+      "to": "api",
+      "label": "click buy"
+    },
+    {
+      "from": "api",
+      "to": "pay",
+      "label": "create checkout session"
+    },
+    {
+      "from": "buyer",
+      "to": "pay",
+      "label": "pay"
+    },
+    {
+      "from": "pay",
+      "to": "api",
+      "label": "webhook: paid",
+      "kind": "async",
+      "emphasis": true,
+      "note": "The only signal that money arrived; everything after depends on it."
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "label": "write user + ticket"
+    },
+    {
+      "from": "api",
+      "to": "mail",
+      "label": "send welcome email"
+    },
+    {
+      "from": "mail",
+      "to": "buyer",
+      "label": "email: join the course"
+    },
+    {
+      "from": "buyer",
+      "to": "api",
+      "label": "enter email, get 6-digit code, start"
+    }
+  ]
+}

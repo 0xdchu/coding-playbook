@@ -1,0 +1,67 @@
+{
+  "kind": "workflow",
+  "title": "Two loops",
+  "nodes": [
+    {
+      "id": "start",
+      "label": "Start",
+      "shape": "start"
+    },
+    {
+      "id": "plan",
+      "label": "Plan the work"
+    },
+    {
+      "id": "build",
+      "label": "Build it"
+    },
+    {
+      "id": "test",
+      "label": "Tests pass?",
+      "shape": "decision"
+    },
+    {
+      "id": "review",
+      "label": "Review"
+    },
+    {
+      "id": "ship",
+      "label": "Ship",
+      "shape": "end"
+    }
+  ],
+  "links": [
+    {
+      "from": "start",
+      "to": "plan"
+    },
+    {
+      "from": "plan",
+      "to": "build"
+    },
+    {
+      "from": "build",
+      "to": "test"
+    },
+    {
+      "from": "test",
+      "to": "review",
+      "label": "Yes"
+    },
+    {
+      "from": "test",
+      "to": "build",
+      "label": "No, fix"
+    },
+    {
+      "from": "review",
+      "to": "ship",
+      "label": "Approved"
+    },
+    {
+      "from": "review",
+      "to": "plan",
+      "label": "Rework the plan"
+    }
+  ]
+}

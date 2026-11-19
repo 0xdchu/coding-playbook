@@ -1,0 +1,85 @@
+{
+  "kind": "workflow",
+  "title": "Core flow",
+  "nodes": [
+    {
+      "id": "s1",
+      "label": "1. Onboarding",
+      "shape": "start"
+    },
+    {
+      "id": "s2",
+      "label": "2. Agent setup"
+    },
+    {
+      "id": "d",
+      "label": "Can it connect?",
+      "shape": "decision"
+    },
+    {
+      "id": "y",
+      "label": "Write via API"
+    },
+    {
+      "id": "n",
+      "label": "Print JSON"
+    },
+    {
+      "id": "s3",
+      "label": "3. Review"
+    },
+    {
+      "id": "run",
+      "label": "Run"
+    },
+    {
+      "id": "res",
+      "label": "Results"
+    },
+    {
+      "id": "lost",
+      "label": "Lost"
+    }
+  ],
+  "links": [
+    {
+      "from": "s1",
+      "to": "s2"
+    },
+    {
+      "from": "s2",
+      "to": "d"
+    },
+    {
+      "from": "d",
+      "to": "y",
+      "label": "Yes"
+    },
+    {
+      "from": "d",
+      "to": "n",
+      "label": "No"
+    },
+    {
+      "from": "y",
+      "to": "s3"
+    },
+    {
+      "from": "n",
+      "to": "s3"
+    },
+    {
+      "from": "s3",
+      "to": "run"
+    },
+    {
+      "from": "run",
+      "to": "res"
+    },
+    {
+      "from": "res",
+      "to": "run",
+      "label": "next run"
+    }
+  ]
+}
