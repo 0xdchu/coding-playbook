@@ -3,8 +3,10 @@
 
 The public repo (for students) holds every file of this repo's merged main, with the rewrites in
 `public-sync.json` "replace" applied to the files each one names, except the files listed as "public_only"
-(its own CLAUDE.md, README.md and branch rule, written for that audience, and files only the public repo holds). Those are never written; each is
-reported until it has been brought in step by hand after its internal counterpart changed (`--reviewed`).
+(its own CLAUDE.md, README.md and branch rule, written for that audience, and files only the public repo holds). Those are never written; each file
+entry is reported until it has been brought in step by hand after its internal counterpart changed (`--reviewed`). An entry
+ending in '/' is a folder only the public repo holds: every file under it is kept, nothing is reviewed, and the report lists
+it only when this repo holds a file under it (not published; remove it here or ask the owner).
 
   python3 scripts/sync-public.py            report what differs between internal and public main
                                             (exit 0 in step, 1 out of step, 2 refused or failed)
@@ -88,9 +90,27 @@ def merged_config(src, ref, notes):
     for key in ("target", "replace", "public_only", "leak_patterns"):
         if key not in cfg:
             raise Refused(f"{CONFIG} at {ref}: missing '{key}'")
+    check_public_only(cfg["public_only"], ref)
     cfg["source_ref"] = ref
     cfg.setdefault("public_ref", "origin/main")
     return cfg
+
+
+def check_public_only(entries, ref="the config"):
+    """A public-only entry is a repo-relative path; one ending in '/' is a folder and covers every file under it."""
+    if not isinstance(entries, list):
+        raise Refused(f"{CONFIG} at {ref}: public_only is not a list")
+    for e in entries:
+        if not isinstance(e, str):
+            raise Refused(f"{CONFIG} at {ref}: public-only entry {e!r} is not a string")
+        body = e[:-1] if e.endswith("/") else e
+        if not body or e.startswith("/") or any(x in ("", ".", "..") for x in body.split("/")):
+            raise Refused(f"{CONFIG} at {ref}: public-only entry {e!r} is not a repo-relative path")
+
+
+def public_only(path, cfg):
+    """True when path is listed public-only, or lies under a listed folder (an entry ending in '/')."""
+    return any(path == e or (e.endswith("/") and path.startswith(e)) for e in cfg["public_only"])
 
 
 def load_state(text):
@@ -120,9 +140,9 @@ def rewrite(path, data, cfg):
 
 def desired(src, cfg):
     """{path: (mode, bytes)} the public repo should hold, public-only files and the config left out."""
-    skip = set(cfg["public_only"]) | {CONFIG, STATE}
     return {p: (mode, rewrite(p, blob(src, sha), cfg))
-            for p, (mode, sha) in tree(src, cfg["source_ref"]).items() if p not in skip}
+            for p, (mode, sha) in tree(src, cfg["source_ref"]).items()
+            if p not in (CONFIG, STATE) and not public_only(p, cfg)}
 
 
 def compare(want, have_files, read):
@@ -142,6 +162,12 @@ def compare(want, have_files, read):
 def reviews(src, dst_files, state, cfg, head):
     out = []
     for path in cfg["public_only"]:
+        if path.endswith("/"):
+            held = sorted(p for p in tree(src, head) if p.startswith(path))
+            if held:
+                out.append((path, f"internal holds {held[0]} under this public-only folder; it is not published "
+                                  "(remove it here, or ask the owner whether the folder stays public-only)"))
+            continue
         last = state["reviewed"].get(path)
         if path not in dst_files:
             if ok(src, "cat-file", "-e", f"{head}:{path}"):
@@ -181,6 +207,10 @@ def run(src, override=None, write=False, reviewed=None, out=print, source_ref="o
         if not ok(dst, "merge-base", "--is-ancestor", cfg["public_ref"], "HEAD"):
             raise Refused(f"{dst}: branch {branch} does not contain {cfg['public_ref']}; start it from there")
     if reviewed:
+        folders = [p for p in reviewed if p.endswith("/") and p in cfg["public_only"]]
+        if folders:
+            raise Refused(f"a public-only folder has nothing to review: {', '.join(folders)} (if the report lists it, "
+                          "remove the internal file under it, or ask the owner)")
         bad = [p for p in reviewed if p not in cfg["public_only"]]
         if bad:
             raise Refused(f"not public-only: {', '.join(bad)}")
@@ -199,7 +229,7 @@ def run(src, override=None, write=False, reviewed=None, out=print, source_ref="o
     if not write:
         pub = tree(dst, cfg["public_ref"])
         add, update, mode, _ = compare(want, {p: m for p, (m, _) in pub.items()}, lambda p: blob(dst, pub[p][1]))
-        delete = sorted(set(pub) - set(want) - set(cfg["public_only"]) - {STATE})
+        delete = sorted(p for p in set(pub) - set(want) - {STATE} if not public_only(p, cfg))
         state = load_state(blob(dst, pub[STATE][1]).decode("utf-8") if STATE in pub else "")
         todo = reviews(src, pub, state, cfg, head)
         for label, items in (("add", add), ("update", update), ("mode", mode), ("delete", delete)):
@@ -224,7 +254,7 @@ def run(src, override=None, write=False, reviewed=None, out=print, source_ref="o
             if parent.is_symlink():
                 raise Refused(f"{parent} is a symlink; not written through")
     add, update, mode, _ = compare(want, have, lambda p: (dst / p).read_bytes())
-    delete = sorted(set(have) - set(want) - set(cfg["public_only"]) - {STATE})
+    delete = sorted(p for p in set(have) - set(want) - {STATE} if not public_only(p, cfg))
     found = leaks(want, add + update, cfg)
     if found:
         raise Refused("leak pattern in a file to publish: " + "; ".join(found))
@@ -293,7 +323,7 @@ def self_test():
         cfg = {"target": str(dst), "public_ref": "main", "source_ref": "no-such-ref",
                "replace": [{"from": "~/work/in/repo", "to": "~/work/pub/repo", "paths": ["rores/*"]},
                            {"from": "secret-name", "to": "a name", "paths": ["intent/*.md"]}],
-               "public_only": ["CLAUDE.md", "README.md", "RULES.md", "PUB.md"],
+               "public_only": ["CLAUDE.md", "README.md", "RULES.md", "PUB.md", "pubdir/"],
                "leak_patterns": ["gh" + "p_[A-Za-z0-9]{20}", "secret-" + "name"]}
         (src / CONFIG).write_text(json.dumps(cfg))
         (src / "rores").mkdir()
@@ -313,6 +343,11 @@ def self_test():
         (dst / "README.md").write_text("public readme\n")
         (dst / "PUB.md").write_text("only the public repo has this\n")
         (dst / "old.md").write_text("gone soon\n")
+        (dst / "pubdir" / "sub").mkdir(parents=True)
+        (dst / "pubdir" / "a.md").write_text("a public-only folder\n")
+        (dst / "pubdir" / "sub" / "b.md").write_text("nested in it\n")
+        (dst / "pubdirx.md").write_text("a name that only starts like the folder\n")
+        (dst / "PUB.md.old").write_text("a name that only starts like a public-only file\n")
         (dst / "plain.py").write_text("x = 1\n")
         os.chmod(dst / "plain.py", 0o755)
         (dst / "docs" / "a").mkdir(parents=True)
@@ -328,6 +363,8 @@ def self_test():
         for want in ("add     rores/g.md", "delete  old.md", "mode    plain.py", "review  CLAUDE.md", "review  PUB.md"):
             if want not in text:
                 problems.append(f"first report lacks {want!r}: {text!r}")
+        if "pubdir/" in text or "delete  pubdirx.md" not in text or "delete  PUB.md.old" not in text:
+            problems.append(f"public-only folder reported, or a look-alike name kept: {text!r}")
         if "RULES.md" in text:
             problems.append(f"public-only file missing on both sides reported: {text!r}")
         if rc != 1:
@@ -365,6 +402,10 @@ def self_test():
             problems.append("directory not replaced by the source's file")
         if (dst / "CLAUDE.md").read_text() != "public rules\n" or (dst / CONFIG).exists():
             problems.append("public-only file overwritten or config published")
+        if not (dst / "pubdir" / "a.md").exists() or not (dst / "pubdir" / "sub" / "b.md").exists():
+            problems.append("file under a public-only folder deleted")
+        if (dst / "pubdirx.md").exists():
+            problems.append("a name that only starts like a public-only folder was kept")
         if not (dst / "PUB.md").exists() or (dst / "PUB.md").read_text() != "only the public repo has this\n":
             problems.append("public-only file held only by the public repo deleted or changed")
         (dst / "README.md").write_text("public readme, brought in step by hand\n")
@@ -386,9 +427,44 @@ def self_test():
             problems.append(f"not in step after merge: {text!r}")
         if not refused(reviewed=["CLAUDE.md"]):
             problems.append("--reviewed on main not refused")
+        (src / "pubdir").mkdir()
+        (src / "pubdir" / "x.md").write_text("internal file under the public-only folder\n")
+        sh(src, "add", "pubdir")
+        sh(src, "commit", "-qm", "internal under pubdir", "--", "pubdir")
+        rc, text = report()
+        if rc != 1 or "review  pubdir/ by hand: internal holds pubdir/x.md" not in text or re.search(r"^add +pubdir/", text, re.M):
+            problems.append(f"internal file under a public-only folder not reported, or published: {text!r}")
+        sh(src, "rm", "-rq", "pubdir")
+        sh(src, "commit", "-qm", "drop it again", "--", "pubdir")
+        rc, text = report()
+        if rc != 0:
+            problems.append(f"not in step after the internal file under the folder left: {text!r}")
+        for bad in (["/"], [""], ["../x/"], ["a/../b"], ["/abs"], ["./x"], ["a//b"], ["a//"], [3], {"a": 1}):
+            try:
+                check_public_only(bad)
+                problems.append(f"public-only entry {bad} accepted")
+            except Refused:
+                pass
+        check_public_only(["CLAUDE.md", "skills/graph/", "intent/a.plan.md"])
         sh(dst, "checkout", "-q", "-b", "review-checks", "main")
         if not refused(reviewed=["plain.py"]):
             problems.append("--reviewed accepted a synced file")
+        try:
+            run(src, None, reviewed=["pubdir/"], out=quiet, source_ref="main")
+            problems.append("--reviewed accepted a public-only folder")
+        except Refused as e:
+            if "nothing to review" not in str(e):
+                problems.append(f"--reviewed of a folder refused for another reason: {e}")
+        bad_cfg = tmp / "bad-config"
+        init(bad_cfg)
+        (bad_cfg / CONFIG).write_text(json.dumps(cfg | {"public_only": ["skills/graph//"]}))
+        sh(bad_cfg, "add", "-A")
+        sh(bad_cfg, "commit", "-qm", "bad")
+        try:
+            merged_config(bad_cfg, "main", [])
+            problems.append("a config with a bad public-only entry loaded")
+        except Refused:
+            pass
         os.symlink(tmp / "elsewhere", dst / "linked")
         with open(dst / ".git" / "info" / "exclude", "a") as f:
             f.write("linked\n")

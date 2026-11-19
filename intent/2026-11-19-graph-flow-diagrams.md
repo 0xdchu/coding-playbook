@@ -1,9 +1,9 @@
 ---
-status: draft   # draft → approved → planned → building → verified → shipped (PR #n)
+status: approved   # draft → approved → planned → building → verified → shipped (PR #n)
 ---
 # Flow diagrams that are exact and easy to read: steps on one model, fragments, real flowcharts
 
-Design for the flow diagrams of the graph skill (`/graph`, today installed as the `ambysto-graph` skill; not one of this repo's skills yet). It lives here, in `coding-playbook`, as an intent only; the diagram engine it describes is `ambysto-graph` (the code-graph and diagram tool the global instructions' Tools section names). Where the engine work is built, and whether the skill joins this repo's skills, is decided with the plan.
+Design for the flow diagrams of the graph skill (`/graph`). The Problem describes `ambysto-graph`, the code-graph and diagram tool the global instructions' Tools section names, as it stands today. The owner decided (below) on two versions: a standard-library Python skill here in `skills/graph/`, and the same features in the Rust engine under that engine's own intent. This intent and its plan cover the Python skill.
 
 ## Problem
 `ambysto-graph` promises diagrams of how a system works that a human can trust. Today the two flow modes fall short:
@@ -27,13 +27,13 @@ Reference outputs the owner wants to reach (screenshots shared in the owner's re
 4. **Numbering.** Steps are numbered `1, 2, 3` at top level and `2.1, 2.2` inside a fragment, shown on every arrow; an author may override a label but not create duplicate numbers.
 5. **Real flowcharts.** `workflow` nodes take a `shape` (`start`, `step`, `decision`, `end`). The layout is a deterministic layered top-down graph (left-to-right on request): the main path runs straight down, branches spread sideways, back edges route on the outside. `validate` fails a decision whose outgoing edges are unlabelled or fewer than two, an unreachable node, a connector that crosses a node card, and a label that overlaps a route.
 6. **Walkthrough.** The viewer gets a step-by-step mode (next/previous, keyboard), highlighting one step or flowchart node at a time with its note and verified source snippet.
-7. **Auto sequence keeps working.** `render --auto --mode sequence --from --to` emits the new IR, with every step tied to a proven or heuristic graph edge.
+7. **Code traces become sequences.** The JSON a code-graph tool prints for a call trace (`trace --json`, when such a tool is installed) converts into the new IR, every step tied to the traced edge, its provenance (`proven` or `heuristic`) and its call-site citation.
 8. The skill (`SKILL.md`) teaches agents to write these diagrams, with the three reference flows as worked examples.
 
 ## Constraints
-- Same promises as v1: offline single binary, no network in the binary or the HTML, read-only on sources, secrets never rendered, deterministic output for the same input.
-- The IR stays strict JSON with `deny_unknown_fields`. Changes are additive; existing v1 diagrams still validate and render the same, or the plan says exactly which ones change and why.
-- No new layout runtime (no Graphviz, ELK, dagre, React). Layout stays in Rust.
+- Offline: no network in the scripts or the generated HTML (no external script, font, style or image). Read-only on the repo it cites; writes only the requested output file. Secrets never rendered. Deterministic: the same input gives the same bytes.
+- Standard library Python only (this repo's rule); no layout runtime (Graphviz, ELK, dagre, React).
+- The IR is strict JSON: an unknown field is an error with its path.
 - English output by default.
 
 ## Out of scope
@@ -47,6 +47,7 @@ Reference outputs the owner wants to reach (screenshots shared in the owner's re
 - A step whose endpoints have no declared edge is a `validate` error, unless the step is marked `external`.
 - Several views in one HTML (perspectives, drill-down) is a later intent.
 - Flowcharts run top-down by default; left-to-right on request.
+- Two versions: this repo's skill is standard-library Python under `skills/graph/`, contributed as 0xdonniechu; the maintainer's Rust engine (`ambysto-graph`) gets the same features under its own intent in its own repo.
 - The default `sequence` look follows the owner's "User Flow" reference: dark, compact actor boxes, numbered labels above arrows, one emphasised step in an accent colour; the light theme stays available.
 
 ## Open questions
