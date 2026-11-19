@@ -1,0 +1,120 @@
+{
+  "kind": "workflow",
+  "title": "Core flow",
+  "nodes": [
+    {
+      "id": "onboarding",
+      "label": "1. Onboarding",
+      "shape": "start",
+      "detail": "company name + website"
+    },
+    {
+      "id": "setup",
+      "label": "2. Agent setup",
+      "detail": "one button: Copy setup prompt"
+    },
+    {
+      "id": "agent",
+      "label": "User's own agent",
+      "detail": "reads memory, PLAN.md, research.md... max 3 questions, user confirms"
+    },
+    {
+      "id": "check",
+      "label": "Agent checks itself: can it connect MCP?",
+      "shape": "decision"
+    },
+    {
+      "id": "mcp",
+      "label": "Writes straight into the app via MCP: update_context"
+    },
+    {
+      "id": "json",
+      "label": "Prints one JSON block, user pastes it on the Agent setup page"
+    },
+    {
+      "id": "context",
+      "label": "3. Context page",
+      "detail": "review + edit"
+    },
+    {
+      "id": "topics",
+      "label": "4. Topics + prompts",
+      "detail": "user confirms"
+    },
+    {
+      "id": "tracking",
+      "label": "5. Tracking settings",
+      "detail": "engines, schedule, cost, balance"
+    },
+    {
+      "id": "run",
+      "label": "Run: prompts x engines"
+    },
+    {
+      "id": "detect",
+      "label": "Detect mentions + citations"
+    },
+    {
+      "id": "results",
+      "label": "6. Results",
+      "detail": "mention %, citation %, competitors, sources"
+    }
+  ],
+  "links": [
+    {
+      "from": "onboarding",
+      "to": "setup"
+    },
+    {
+      "from": "setup",
+      "to": "agent"
+    },
+    {
+      "from": "agent",
+      "to": "check"
+    },
+    {
+      "from": "check",
+      "to": "mcp",
+      "label": "Yes"
+    },
+    {
+      "from": "check",
+      "to": "json",
+      "label": "No"
+    },
+    {
+      "from": "mcp",
+      "to": "context"
+    },
+    {
+      "from": "json",
+      "to": "context"
+    },
+    {
+      "from": "context",
+      "to": "topics"
+    },
+    {
+      "from": "topics",
+      "to": "tracking"
+    },
+    {
+      "from": "tracking",
+      "to": "run"
+    },
+    {
+      "from": "run",
+      "to": "detect"
+    },
+    {
+      "from": "detect",
+      "to": "results"
+    },
+    {
+      "from": "results",
+      "to": "run",
+      "label": "next scheduled run"
+    }
+  ]
+}
