@@ -78,7 +78,7 @@ def write_atomic(path, text):
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(text.encode("utf-8"))
-            os.fchmod(f.fileno(), 0o666 & ~_umask())
+        os.chmod(tmp, 0o666 & ~_umask())   # by path: os.fchmod is missing on Windows before Python 3.13
         os.replace(tmp, path)
     except BaseException:
         with contextlib.suppress(OSError):

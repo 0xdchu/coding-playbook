@@ -81,7 +81,7 @@ def _sequence(d, diags):
                     err("unknown-edge", f"{it.at}.edge", f"no edge has id '{it.edge_id}'")
                 elif (e.frm, e.to) == (it.frm, it.to):
                     it.edge = e
-                elif (e.to, e.frm) == (it.frm, it.to):
+                elif (e.to, e.frm) == (it.frm, it.to) and not (it.external or parts[it.frm].external):
                     it.edge, it.reply = e, True
                 else:
                     err("edge-mismatch", f"{it.at}.edge",
@@ -166,7 +166,7 @@ def validate(d, repo_root=None):
             for e in d.edges:
                 if not e.sources and e.frm not in externals:
                     diags.append(ir.diag("warning", "edge-without-source", e.at,
-                                         f"edge '{e.frm}' -> '{e.to}' cites no source; it is drawn as unproven"))
+                                         f"edge '{e.frm}' -> '{e.to}' cites no source; its steps are drawn as unproven (unless marked external)"))
     else:
         _workflow(d, diags)
     sources = list(all_sources(d))
@@ -239,6 +239,11 @@ def self_test():
             rules = {x["rule"] for x in diags if x["severity"] in ("error", "warning")}
             if rules != {rule}:
                 problems.append(f"invalid/{f.name}: expected only {rule}, got {sorted(rules) or 'nothing'}")
+        problems += [f"sources: {x}" for x in graph_sources.self_test(tmp)]
+        deep = tmp / "deep.json"
+        deep.write_text("[" * 200000 + "]" * 200000)
+        if [x["rule"] for x in load(deep)[1]] != ["bad-json"]:
+            problems.append("JSON nested past the parser's limit is not reported as bad-json")
         if (root / ".env").read_text() != "TOKEN=not-a-real-one\n":
             problems.append("a fixture changed the scratch repo")
         seq = ir.parse({"kind": "sequence", "title": "t",

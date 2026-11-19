@@ -164,6 +164,17 @@ def self_test():
     rules = [d["rule"] for d in check(lay) if d["severity"] == "error"]
     if rules.count("route-through-node") != 1 or rules.count("label-overlap") != 1:
         problems.append(f"check() rules wrong: {rules}")
+    over_node = dict(lay, labels=[{"id": "l3", "owner": "r1", "text": "z", "x": 110, "y": 5, "w": 20, "h": 18}],
+                     shapes=lay["shapes"][:2] + [{"id": "c", "kind": "node", "x": 100, "y": 0, "w": 60, "h": 30,
+                                                  "label": "C"}], routes=[])
+    if [d["rule"] for d in check(over_node) if d["severity"] == "error"] != ["label-overlap"]:
+        problems.append("a label over a node is not reported")
+    on_route = dict(lay, shapes=lay["shapes"][:2],
+                    routes=lay["routes"] + [{"id": "r2", "ref": "links[1]", "from": "a", "to": "b",
+                                             "points": [[60, 60], [200, 60]]}],
+                    labels=[{"id": "l4", "owner": "r2", "text": "w", "x": 120, "y": 6, "w": 20, "h": 18}])
+    if [d["rule"] for d in check(on_route) if d["severity"] == "error"] != ["label-overlap"]:
+        problems.append("a label lying on a route it does not name is not reported")
     lay["shapes"].pop()
     lay["labels"].pop()
     if [d for d in check(lay) if d["severity"] == "error"]:

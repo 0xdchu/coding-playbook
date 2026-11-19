@@ -34,7 +34,7 @@ Sequence:
               {"label": "new buyer", "steps": [{"from": "api", "to": "db", "label": "write user + ticket"}]},
               {"label": "known buyer", "steps": [{"from": "api", "to": "db", "label": "add ticket"}]}]}]}
 ```
-- `edges` is the model: declare each link your code makes once, with `sources`, including calls to outside services. A step must match an edge (either direction; the reverse is drawn as a reply) unless it is marked `external: true`, starts at an `external` party (a click, a webhook arriving) or is `kind: "self"`.
+- `edges` is the model: declare each link your code makes once, with `sources`, including calls to outside services. A step must match an edge (either direction; the reverse is drawn as a reply) unless it starts at an `external` party (a click, a webhook arriving: nothing more to mark, even toward another external party) or is `kind: "self"`. A step an external party starts never matches an edge the other way: a webhook is not the reply to your call. Mark a step `external: true` only when your side makes it but no code of yours does (a person clicking in an admin page, a hosted form).
 - When two parties have several links (two different calls), give each edge an `id` and pick it on the step with `"edge": "<id>"`; otherwise a step takes the first matching edge.
 - Step `kind`: `call` (default), `call-return` (return drawn for you), `async` (dashed: events, webhooks, queues), `reply`, `self` (a party working on its own: from = to).
 - Fragments: `opt`, `loop`, `break` take `label` and `steps`; `alt` and `par` take `branches` (two or more, each `label` and `steps`). Nest freely, but not `par` directly in `par`.
@@ -66,7 +66,7 @@ Every field (`?` = optional). Any other field, a `null` value or a key given twi
 graph.py validate diagram.json [--repo-root <repo>] [--json]
 graph.py render diagram.json -o diagram.html [--repo-root <repo>] [--theme dark|light]
 ```
-- With `--repo-root`, every cited `path:line` must exist inside that repo; secret-shaped files (`.env`, keys, `secrets/`) and cited lines that hold a token, key or password literal are refused. An edge from an internal party without sources is drawn grey dashed as unproven and warned about.
+- With `--repo-root`, every cited `path:line` must exist inside that repo; secret-shaped files (`.env*`, keys, `secrets/`) are refused, and so is a cited line that looks like it holds a secret: a token or key shape, or a line naming a password, token, secret, key or auth next to a value. Harmless lines get refused this way too (`token_type = "Bearer"`); cite a nearby line instead. An edge from an internal party without sources is drawn grey dashed as unproven and warned about. Without `--repo-root` nothing is checked against code: there is no such warning, so say in the hand-over that nothing was verified.
 - `render` validates first and refuses a diagram with errors, including layout errors (a route through a box, labels on top of each other).
 - Fix every error. Fix warnings unless you can say why one stays, and say it.
 

@@ -1,0 +1,94 @@
+{
+  "kind": "sequence",
+  "title": "User flow",
+  "participants": [
+    {
+      "id": "buyer",
+      "label": "Buyer",
+      "external": true
+    },
+    {
+      "id": "stripe",
+      "label": "Stripe",
+      "external": true
+    },
+    {
+      "id": "api",
+      "label": "API"
+    },
+    {
+      "id": "db",
+      "label": "Database"
+    },
+    {
+      "id": "mail",
+      "label": "Mailer",
+      "external": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "api",
+      "to": "db",
+      "label": "write",
+      "sources": [
+        {
+          "path": "app.py",
+          "line": 3,
+          "end_line": 5,
+          "label": "write"
+        }
+      ]
+    },
+    {
+      "from": "api",
+      "to": "stripe",
+      "label": "create checkout"
+    },
+    {
+      "from": "api",
+      "to": "mail",
+      "label": "send email",
+      "sources": [
+        {
+          "path": "app.py",
+          "line": 7
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "from": "buyer",
+      "to": "api",
+      "label": "click buy"
+    },
+    {
+      "from": "api",
+      "to": "stripe",
+      "label": "create checkout"
+    },
+    {
+      "from": "buyer",
+      "to": "stripe",
+      "label": "pay"
+    },
+    {
+      "from": "stripe",
+      "to": "api",
+      "label": "webhook: paid",
+      "kind": "async",
+      "emphasis": true
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "label": "write user + ticket"
+    },
+    {
+      "from": "api",
+      "to": "mail",
+      "label": "send welcome email"
+    }
+  ]
+}
