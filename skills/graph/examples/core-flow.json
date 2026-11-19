@@ -1,0 +1,123 @@
+{
+  "kind": "workflow",
+  "title": "Core flow",
+  "subtitle": "Onboarding to recurring results",
+  "nodes": [
+    {
+      "id": "onb",
+      "label": "1. Onboarding",
+      "detail": "company name + website",
+      "shape": "start"
+    },
+    {
+      "id": "setup",
+      "label": "2. Agent setup",
+      "detail": "one button: Copy setup prompt"
+    },
+    {
+      "id": "agent",
+      "label": "User's own agent",
+      "detail": "reads memory, PLAN.md, research.md; max 3 questions, user confirms"
+    },
+    {
+      "id": "can",
+      "label": "Agent checks itself: can it connect to the app?",
+      "shape": "decision"
+    },
+    {
+      "id": "direct",
+      "label": "Writes straight into the app",
+      "detail": "via the app's update_context tool"
+    },
+    {
+      "id": "paste",
+      "label": "Prints one JSON block",
+      "detail": "user pastes it on the Agent setup page"
+    },
+    {
+      "id": "ctx",
+      "label": "3. Context page",
+      "detail": "review + edit"
+    },
+    {
+      "id": "topics",
+      "label": "4. Topics + prompts",
+      "detail": "user confirms"
+    },
+    {
+      "id": "track",
+      "label": "5. Tracking settings",
+      "detail": "engines, schedule, cost, balance"
+    },
+    {
+      "id": "run",
+      "label": "Run: prompts x engines"
+    },
+    {
+      "id": "detect",
+      "label": "Detect mentions + citations"
+    },
+    {
+      "id": "res",
+      "label": "6. Results",
+      "detail": "mention %, citation %, competitors, sources"
+    }
+  ],
+  "links": [
+    {
+      "from": "onb",
+      "to": "setup"
+    },
+    {
+      "from": "setup",
+      "to": "agent"
+    },
+    {
+      "from": "agent",
+      "to": "can"
+    },
+    {
+      "from": "can",
+      "to": "direct",
+      "label": "Yes"
+    },
+    {
+      "from": "can",
+      "to": "paste",
+      "label": "No"
+    },
+    {
+      "from": "direct",
+      "to": "ctx"
+    },
+    {
+      "from": "paste",
+      "to": "ctx"
+    },
+    {
+      "from": "ctx",
+      "to": "topics"
+    },
+    {
+      "from": "topics",
+      "to": "track"
+    },
+    {
+      "from": "track",
+      "to": "run"
+    },
+    {
+      "from": "run",
+      "to": "detect"
+    },
+    {
+      "from": "detect",
+      "to": "res"
+    },
+    {
+      "from": "res",
+      "to": "run",
+      "label": "next scheduled run"
+    }
+  ]
+}

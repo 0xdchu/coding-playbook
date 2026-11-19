@@ -37,7 +37,7 @@ _LIGHT = ("--c-bg:#fafbfc;--c-fg:#1b2230;--c-muted:#5b6578;--c-border:#2b3548;--
 CSS = (
     f".flow{{{_DARK}font-family:{FONT};}}"
     f'.flow[data-theme="light"],:root[data-theme="light"] .flow{{{_LIGHT}}}'
-    ".flow .bg{fill:var(--c-bg)}"
+    ".flow .bg{fill:var(--c-bg)}.flow .lblbg{fill:var(--c-bg)}"
     ".flow text{fill:var(--c-fg);font-size:13px;paint-order:stroke;stroke:var(--c-bg);stroke-width:6px;stroke-linejoin:round}"
     ".flow .title{font-size:22px;font-weight:700}"
     ".flow .subtitle{font-size:14px;fill:var(--c-muted)}"
@@ -278,6 +278,10 @@ def to_svg(layout, diagram):
             cls += (" emphasis" if rt.get("emphasis") else "") + (" unproven" if rt["style"] == "unproven" else "")
         ref = rt["ref"] if rt else ""
         k = kmap.get(lb["owner"])
+        # An opaque plate under the text, inset from the box edges so it never covers the label's own arrow:
+        # lifelines and frame lines pass behind the label at any zoom (a stroke halo alone thins out when scaled).
+        body.append(f'<rect class="lblbg" x="{_n(lb["x"] + 2)}" y="{_n(lb["y"] + 2)}" width="{_n(max(lb["w"] - 4, 0))}" '
+                    f'height="{_n(max(lb["h"] - 4, 0))}" rx="3"/>')
         body.append(f'<text class="{cls}" x="{_n(r(lb["x"] + lb["w"] / 2))}" y="{_n(r(lb["y"] + lb["h"] / 2 + BASELINE))}" '
                     f'text-anchor="middle"{_attrs(ref, k)}>{esc(lb["text"])}</text>')
 
