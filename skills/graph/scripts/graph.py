@@ -48,7 +48,8 @@ def _json_in_script(obj):
 def build_page(d, layout, theme):
     """The standalone HTML page for a validated diagram and its layout."""
     items, _ = graph_svg.walkthrough(layout, d)
-    data = {"title": d.title, "subtitle": d.subtitle or "", "kind": d.kind, "items": items}
+    stats = {"external": sum(1 for p in d.participants if p.external), "unproven": sum(1 for it in items if it["unproven"])}
+    data = {"title": d.title, "subtitle": d.subtitle or "", "kind": d.kind, "items": items, "stats": stats}
     fields = {"THEME": theme, "TITLE": graph_svg.esc(d.title), "SUBTITLE": graph_svg.esc(d.subtitle or ""),
               "SVG": graph_svg.to_svg(layout, d), "DATA": _json_in_script(data)}
     template = VIEWER.read_text(encoding="utf-8")
@@ -272,6 +273,19 @@ def self_test():
                 problems.append(f"{tag}: no panel data")
             elif {it["k"] for it in data["items"]} != set(range(len(data["items"]))):
                 problems.append(f"{tag}: walkthrough indexes are not 0..n-1")
+            else:
+                n = len(data["items"])
+                svg_text = text[text.index("<svg"):text.index("</svg>")]
+                drawn = {int(k) for k in re.findall(r'\bdata-k="(\d+)"', svg_text)}
+                if drawn != set(range(n)):
+                    problems.append(f"{tag}: data-k in the svg {sorted(drawn)} is not 0..{n - 1}")
+                for rid in re.findall(r'<g class="route[^"]* return"([^>]*)>', svg_text):
+                    if "data-k=" not in rid:
+                        problems.append(f"{tag}: a return arrow has no data-k, so the walkthrough would not highlight it")
+                if sorted(data.get("stats", {})) != ["external", "unproven"]:
+                    problems.append(f"{tag}: panel data lacks the legend counts")
+                if "paint-order:stroke" not in svg_text:
+                    problems.append(f"{tag}: svg text has no background halo")
         extra_files = sorted(p.name for p in out.iterdir() if p.name not in expected_files)
         if extra_files:
             problems.append(f"render left other files in the output folder: {extra_files}")

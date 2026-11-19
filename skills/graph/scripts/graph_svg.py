@@ -38,16 +38,16 @@ CSS = (
     f".flow{{{_DARK}font-family:{FONT};}}"
     f'.flow[data-theme="light"],:root[data-theme="light"] .flow{{{_LIGHT}}}'
     ".flow .bg{fill:var(--c-bg)}"
-    ".flow text{fill:var(--c-fg);font-size:13px}"
+    ".flow text{fill:var(--c-fg);font-size:13px;paint-order:stroke;stroke:var(--c-bg);stroke-width:6px;stroke-linejoin:round}"
     ".flow .title{font-size:22px;font-weight:700}"
     ".flow .subtitle{font-size:14px;fill:var(--c-muted)}"
     ".flow .actor rect{fill:var(--c-box);stroke:var(--c-border);stroke-width:1.5}"
-    ".flow .actor text{font-size:14px;font-weight:700}"
+    ".flow .actor text{font-size:14px;font-weight:700;stroke:var(--c-box)}"
     ".flow .lifeline{stroke:var(--c-frame);stroke-width:1;stroke-dasharray:4 4;fill:none}"
     ".flow .frame rect.box{fill:none;stroke:var(--c-frame);stroke-width:1;stroke-dasharray:1 3;stroke-linecap:round}"
     ".flow .frame rect.tab{fill:var(--c-tab);stroke:var(--c-frame);stroke-width:1}"
     ".flow .frame .divider{stroke:var(--c-frame);stroke-width:1;stroke-dasharray:6 4}"
-    ".flow .frame .name{font-weight:700}"
+    ".flow .frame .name{font-weight:700;stroke:var(--c-tab)}"
     ".flow .frame .cond,.flow .branch{fill:var(--c-muted)}"
     ".flow .route path.line{fill:none;stroke:var(--c-line);stroke-width:1.5;stroke-linejoin:round}"
     ".flow .route.dashed path.line{stroke-dasharray:6 4}"
@@ -63,6 +63,9 @@ CSS = (
     ".flow .node .sh{fill:var(--c-box);stroke:var(--c-border);stroke-width:1.5}"
     ".flow .node.start .sh,.flow .node.end .sh{fill:var(--c-pill)}"
     ".flow .node.decision .sh{fill:var(--c-dec)}"
+    ".flow .node text{stroke:var(--c-box)}"
+    ".flow .node.start text,.flow .node.end text{stroke:var(--c-pill)}"
+    ".flow .node.decision text{stroke:var(--c-dec)}"
     ".flow .node .t-b{font-weight:700}"
     ".flow .node .t-d{fill:var(--c-muted)}"
 )
@@ -151,11 +154,19 @@ def _markers():
     return "<defs>" + "".join(defs) + "</defs>"
 
 
-def _frame(sh, labels):
+def _frame_box(sh):
+    """The frame's border and dividers: drawn under the lifelines and routes."""
     out = [f'<g class="frame"{_attrs(sh["ref"], None)}>',
            f'<rect class="box" x="{_n(sh["x"])}" y="{_n(sh["y"])}" width="{_n(sh["w"])}" height="{_n(sh["h"])}" rx="4"/>']
     for dy in sh.get("dividers", []):
         out.append(f'<line class="divider" x1="{_n(sh["x"])}" y1="{_n(dy)}" x2="{_n(sh["x"] + sh["w"])}" y2="{_n(dy)}"/>')
+    out.append("</g>")
+    return "".join(out)
+
+
+def _frame_text(sh, labels):
+    """The frame's name tab, condition and branch labels: drawn above the lifelines so no line runs over them."""
+    out = [f'<g class="frame"{_attrs(sh["ref"], None)}>']
     for lb in labels:
         by = lb["y"] + lb["h"] / 2 + BASELINE
         if ":branch" in lb["id"]:
@@ -241,7 +252,7 @@ def to_svg(layout, diagram):
             route_labels.append(lb)
     for sh in layout["shapes"]:
         if sh["kind"] == "frame":
-            body.append(_frame(sh, frame_labels.get(sh["id"], [])))
+            body.append(_frame_box(sh))
     for sh in layout["shapes"]:
         if sh["kind"] == "lifeline":
             body.append(f'<line class="lifeline" x1="{_n(sh["x"])}" y1="{_n(sh["y"])}" x2="{_n(sh["x"])}" '
@@ -257,6 +268,9 @@ def to_svg(layout, diagram):
     for sh in layout["shapes"]:
         if sh["kind"] == "node":
             body.append(_node(sh, kmap.get(sh["id"]), sh["ref"]))
+    for sh in layout["shapes"]:
+        if sh["kind"] == "frame":
+            body.append(_frame_text(sh, frame_labels.get(sh["id"], [])))
     for lb in route_labels:
         rt = routes.get(lb["owner"])
         cls = "lbl"
