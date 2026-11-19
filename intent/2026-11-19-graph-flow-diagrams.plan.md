@@ -1,5 +1,5 @@
 ---
-status: draft   # draft → planned → building → verified
+status: building   # draft → planned → building → verified
 ---
 # Plan: flow diagrams for the graph skill (`skills/graph/`)
 
@@ -20,6 +20,7 @@ Intent: `intent/2026-11-19-graph-flow-diagrams.md` (approved). Built here in sta
 - **Numbering.** Top-level steps and fragments take `1, 2, 3…`; a fragment numbered `N` numbers what it contains `N.1, N.2…` across all its branches in order; nested fragments add a level. `number` overrides the shown label only; a duplicate shown number is an error.
 - **Sequence layout** (User Flow look): compact actor boxes in declaration order at top, dashed lifelines, one row per step, label centred above its arrow, number prefix; `call-return` draws the return arrow dashed on the next row; `async` dashed with an open head; `self` a loop on the lifeline; fragments are labelled frames spanning the participants they touch (plus padding), nested frames inset; `emphasis` uses the accent colour.
 - **Workflow layout** (deterministic layered graph): back edges found by DFS from `start` nodes in declaration order; ranks by longest path; in-rank order by 4 barycentre sweeps with declaration order breaking ties; the first outgoing link of a node keeps its column, so the main path runs straight; decisions are diamonds; links are orthogonal; back edges route in a channel outside the nodes. Coordinates are rounded to 0.5 px.
+- **Layout contract.** Each layout module returns the layout dict documented in `graph_geometry.py` (shapes, routes, labels, all coordinates rounded); `graph_svg.py` draws only that dict, so the gates check exactly what is drawn.
 - **Geometry gates** run after layout on the coordinates that are drawn: a route segment through a node box that is not its endpoint (`route-through-node`), two labels overlapping, or a label over a node or over a route it does not name (`label-overlap`); crossings are counted and reported.
 - **Sources are read safely.** Paths resolve under `--repo-root` with no `..` escape and no symlink leaving it; files on a secret skip list (`.env*`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`, `id_ed25519*`, `.npmrc`, `.pypirc`, `.netrc`, `secrets/`, `.ssh/`, `.aws/`, `.gnupg/`) are refused, not read; a cited range whose text matches a secret shape (token prefixes such as `ghp_`, `sk-`, `AKIA`, a private key header, or `password`/`secret`/`token`/`api_key` assigned a literal) is refused (`source-secret-content`), so a key in `settings.py` is not rendered either; a line past the end of the file is an error; snippets are at most 30 lines. Without `--repo-root`, sources are shown as plain references and the warning `sources-not-verified` is given.
 - **Viewer.** One HTML file: the SVG is drawn in Python (the same coordinates the gates checked), with inline CSS and plain JavaScript: dark/light (`T`), walkthrough (`←`/`→`, `Esc`) highlighting one step or node with its note and source snippet, click for the same panel, `E` to export the SVG. No URL to anything outside the file.
@@ -37,9 +38,9 @@ Rated HARD there (the sync decides what is published). T1 brought the result her
 ## Files
 1. `scripts/check.py`, `scripts/sync-public.py`, `docs/internals.md`, `.sync-source.json` (synced, T1)
 2. `skills/graph/scripts/graph_ir.py`, `graph_validate.py`, `graph_sources.py`, `graph_geometry.py` (T2)
-3. `skills/graph/scripts/graph_sequence.py` (T3)
-4. `skills/graph/scripts/graph_workflow.py` (T4)
-5. `skills/graph/scripts/graph.py`, `graph_trace.py`, `graph_viewer.html` (T5)
+3. `skills/graph/scripts/graph_sequence.py` (T3, layout only)
+4. `skills/graph/scripts/graph_workflow.py` (T4, layout only)
+5. `skills/graph/scripts/graph.py`, `graph_svg.py`, `graph_trace.py`, `graph_viewer.html` (T5)
 6. `skills/graph/SKILL.md`, `skills/graph/examples/*.json`, `skills/graph/tests/**` (T2 to T6)
 7. `README.md` (one line: the tenth skill) (T6)
 
@@ -60,19 +61,20 @@ Rated HARD there (the sync decides what is published). T1 brought the result her
 ### T2 (main) IR, validator, safe source reader, geometry gates
 - allow: `skills/graph/scripts/graph_ir.py` `skills/graph/scripts/graph_validate.py` `skills/graph/scripts/graph_sources.py` `skills/graph/scripts/graph_geometry.py` `skills/graph/tests/**`
 - check: `python3 skills/graph/scripts/graph_validate.py --self-test`
+- check: `python3 skills/graph/scripts/graph_geometry.py --self-test`
 
-### T3 (builder, parallel) Sequence layout and SVG
+### T3 (builder, parallel) Sequence layout
 - allow: `skills/graph/scripts/graph_sequence.py` `skills/graph/tests/sequence/**`
 - forbid: `skills/graph/scripts/graph_ir.py` `skills/graph/scripts/graph_validate.py` `skills/graph/scripts/graph_sources.py` `skills/graph/scripts/graph_geometry.py`
 - check: `python3 skills/graph/scripts/graph_sequence.py --self-test`
 
-### T4 (builder, parallel) Workflow layout and SVG
+### T4 (builder, parallel) Workflow layout
 - allow: `skills/graph/scripts/graph_workflow.py` `skills/graph/tests/workflow/**`
 - forbid: `skills/graph/scripts/graph_ir.py` `skills/graph/scripts/graph_validate.py` `skills/graph/scripts/graph_sources.py` `skills/graph/scripts/graph_geometry.py`
 - check: `python3 skills/graph/scripts/graph_workflow.py --self-test`
 
-### T5 (builder) CLI, viewer, trace import
-- allow: `skills/graph/scripts/graph.py` `skills/graph/scripts/graph_trace.py` `skills/graph/scripts/graph_viewer.html` `skills/graph/tests/cli/**`
+### T5 (builder) SVG, CLI, viewer, trace import
+- allow: `skills/graph/scripts/graph.py` `skills/graph/scripts/graph_svg.py` `skills/graph/scripts/graph_trace.py` `skills/graph/scripts/graph_viewer.html` `skills/graph/tests/cli/**`
 - check: `python3 skills/graph/scripts/graph.py --self-test`
 
 ### T6 (main) SKILL.md, the three reference examples, README and CLAUDE.md skill lists
