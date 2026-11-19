@@ -36,6 +36,8 @@ TESTS = HERE.parent / "tests"
 VIEWER = HERE / "graph_viewer.html"
 
 
+WARNING_RULES = {"edge-without-source"}   # negative fixtures whose rule is a warning, not an error
+
 def _line(d):
     return f"{d['severity']} {d['rule']} {d['path'] or '(root)'}: {d['message']}"
 
@@ -336,6 +338,12 @@ def self_test():
             extra = ["--repo-root", str(root)] if rule.startswith("source-") or rule == "edge-without-source" else []
             target = out / f"invalid-{f.stem}.html"
             code, text_out, text_err = run(["render", str(f), "-o", str(target)] + extra)
+            if rule in WARNING_RULES:
+                # a warning does not stop the render; it must still be printed
+                if code != 0 or not target.exists() or rule not in text_out + text_err:
+                    problems.append(f"invalid/{f.name}: a warning fixture gave exit {code}, file written "
+                                    f"{target.exists()}, rule shown {rule in text_out + text_err}")
+                continue
             if code != 1 or target.exists() or rule not in text_out + text_err:
                 problems.append(f"invalid/{f.name}: exit {code}, file written {target.exists()}, "
                                 f"rule shown {rule in text_out + text_err}")
