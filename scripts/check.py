@@ -27,6 +27,14 @@ BUILD_HOOKS = [("PreToolUse", "*", "build"), ("PostToolUse", "Bash|PowerShell|Ed
 GUARDED = {"builder": BUILD_HOOKS, "reviewer": REVIEW_HOOKS, "hard-reviewer": REVIEW_HOOKS}
 TEMPLATE_SECTIONS = ["## What it does", "## Verify", "## HARD", "## MEDIUM", "## EASY", "## Rules", "## Read when", "## Session state"]
 SKILLS = {"starter-kit", "handoff", "sdlc", "teardown", "orca-worktree-setup", "agent-team", "create-skill", "secrets", "whats-next"}
+# Skills that live only in the public copy (a `skills/<name>/` public-only folder in public-sync.json, APS-80): checked like
+# the others when present, absent here without a failure. Each names its self-test script and its trigger prompts.
+PUBLIC_ONLY_SKILLS = {
+    "graph": ("skills/graph/scripts/graph.py",
+              (["draw a sequence diagram of the purchase flow with numbered steps and a webhook",
+                "flowchart of the onboarding flow with a decision and a loop"],
+               ["save progress to HANDOFF.md before clear"])),
+}
 HAND_INVOKED = {"orca-worktree-setup", "agent-team", "create-skill"}  # own skills that settings-defaults.json may set to user-invocable-only
 DEFAULT_KEYS = {"enabledPlugins", "skillOverrides"}
 OVERRIDES = {"on", "name-only", "user-invocable-only", "off"}
@@ -351,9 +359,28 @@ def skill_tokens(text):
     return out
 
 
-skills = sorted(p.name for p in (ROOT / "skills").iterdir() if p.is_dir()) if (ROOT / "skills").is_dir() else []
-if set(skills) != SKILLS:
-    fail(f"skills/: expected {sorted(SKILLS)}, found {skills}")
+# A skill folder counts when it holds a file outside __pycache__ (a branch switch can leave a cache-only folder behind).
+skills = sorted(p.name for p in (ROOT / "skills").iterdir()
+                if p.is_dir() and any(f.is_file() and "__pycache__" not in f.parts for f in p.rglob("*"))) \
+    if (ROOT / "skills").is_dir() else []
+public_skills = set(skills) & set(PUBLIC_ONLY_SKILLS)
+expected_skills = SKILLS | public_skills
+if set(skills) != expected_skills or not SKILLS <= set(skills):
+    fail(f"skills/: expected {sorted(SKILLS)} (plus any of the public-only {sorted(PUBLIC_ONLY_SKILLS)}), found {skills}")
+for name in sorted(public_skills):
+    script = PUBLIC_ONLY_SKILLS[name][0]
+    if not (ROOT / script).is_file():
+        fail(f"skills/{name}: public-only skill without its self-test script {script}")
+    elif not IN_SWITCH_COPY:
+        try:
+            run = subprocess.run([sys.executable, str(ROOT / script), "--self-test"], capture_output=True, text=True,
+                                 timeout=600)
+        except subprocess.TimeoutExpired:
+            fail(f"{script} --self-test did not finish within 600 s")
+            run = None
+        if run is not None and run.returncode != 0:
+            fail(f"{script} --self-test failed:\n" + (run.stdout + run.stderr).strip())
+triggers = SKILL_TRIGGERS | {name: PUBLIC_ONLY_SKILLS[name][1] for name in public_skills}
 skill_descs = {}
 for name in skills:
     rel = f"skills/{name}/SKILL.md"
@@ -373,7 +400,7 @@ if "starter-kit" in skills:
         fail("skills/starter-kit/SKILL.md: needs 'disable-model-invocation: true' (it must cost no context)")
 if set(SKILL_TRIGGERS) != SKILLS:
     fail(f"check.py SKILL_TRIGGERS: expected {sorted(SKILLS)}, found {sorted(SKILL_TRIGGERS)}")
-elif set(skills) == SKILLS:
+elif set(skills) == expected_skills:
     docs = {k: skill_tokens(v) for k, v in skill_descs.items()}
     df = {}
     for toks in docs.values():
@@ -397,7 +424,7 @@ elif set(skills) == SKILLS:
             sim = cosine(vecs[a], vecs[b])
             if sim > SKILL_COLLISION_LIMIT:
                 fail(f"skills/{a} and skills/{b}: descriptions collide (TF-IDF cosine {sim:.2f} > {SKILL_COLLISION_LIMIT})")
-    for name, (positives, negatives) in sorted(SKILL_TRIGGERS.items()):
+    for name, (positives, negatives) in sorted(triggers.items()):
         for prompt in positives:
             pv = tfidf(skill_tokens(prompt))
             ranked = sorted(skills, key=lambda s: cosine(pv, vecs[s]), reverse=True)

@@ -1,12 +1,13 @@
 {
-  "internal_commit": "5ef1bfd",
+  "internal_commit": "1821bc9",
   "reviewed": {
     ".claude/branch-name.json": "79964f2",
     "AGENTS.md": "b7862bd",
-    "CLAUDE.md": "0b30f5f",
+    "CLAUDE.md": "1821bc9",
     "GEMINI.md": "b7862bd",
     "README.md": "0b30f5f",
     "intent/2026-11-19-graph-flow-diagrams.md": "5ef1bfd",
+    "intent/2026-11-19-graph-flow-diagrams.plan.md": "1821bc9",
     "rores/global/AGENTS.md": "b7862bd",
     "rores/global/GEMINI.md": "b7862bd",
     "skills/starter-kit/project-AGENTS.md": "b7862bd",
