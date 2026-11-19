@@ -48,9 +48,11 @@ SECRET_WORDS = ("pass", "pwd", "pw", "key", "otp", "secret", "token", "apikey", 
                 "database_url", "conn_str", "connection_string", "cookie")
 _VALUE = re.compile(r"[\"'`]|(?:=>|:=|[:=>])\s*\S")
 # a secret word, the rest of its name, then a space and more text: `requirepass x`, `--password x`, `ENV API_TOKEN x`
-_SPACED = re.compile(r"(?i)(?:" + "|".join(re.escape(w) for w in SECRET_WORDS) + r")[A-Za-z0-9_.-]*[ \t]+\S")
+_WORD = re.compile(r"(?i)" + "|".join(re.escape(w) for w in SECRET_WORDS))
+_SPACED_AFTER = re.compile(r"[A-Za-z0-9_.-]{0,64}[ \t]+\S")   # bounded, so the scan stays linear
 # 3. A line continuing an assignment to a secret name opened on the line above (`password = \`, `KEY = (`,
 #    `"password":`), also when that line is just before the cited range.
+SECRET_LOOKBACK = 20   # lines read above a cited range to know whether it starts inside a hidden continuation
 _OPENS = re.compile(r"(?:=>|:=|[:=(\[{,\\|+]|>-?|\|-|\"\"\"|\'\'\')\s*$")
 
 
@@ -59,14 +61,20 @@ def _names_secret(text):
     return any(w in low for w in SECRET_WORDS)
 
 
-def secret_line(text, above=""):
-    """Why one line of a cited file is hidden, or None. above is the line before it. Linear in the line's length."""
+def _spaced(text):
+    """A secret word, the rest of its name, then a space and more text."""
+    return any(_SPACED_AFTER.match(text, m.end()) for m in _WORD.finditer(text))
+
+
+def secret_line(text, above="", above_hidden=False):
+    """Why one line of a cited file is hidden, or None. above is the line before it, above_hidden whether that line
+    was hidden (so a list or string continued over several lines stays hidden). Linear in the line's length."""
     for name, pat in SECRET_SHAPES.items():
         if pat.search(text):
             return name
-    if _names_secret(text) and (_VALUE.search(text) or _SPACED.search(text)):
+    if _names_secret(text) and (_VALUE.search(text) or _spaced(text)):
         return "a secret name next to a value"
-    if above and _names_secret(above):
+    if above and (above_hidden or _names_secret(above)):
         indent = lambda s: len(s) - len(s.lstrip())
         if _OPENS.search(above) or (text.strip() and (indent(text) > indent(above) or text.lstrip()[:1] in "\"'`")):
             return "continues a secret assignment from the line above"
@@ -134,9 +142,13 @@ def verify(root, src):
         return [{"severity": "error", "rule": "source-line-past-end", "path": src.at,
                  "message": f"'{src.path}' has {len(lines)} lines; cited {src.line}" + (f"-{last}" if last != src.line else "")}]
     shown, hidden = [], []
-    for n in range(src.line, min(last, src.line + SNIPPET_LINES - 1) + 1):
+    end = min(last, src.line + SNIPPET_LINES - 1)
+    flags = {}
+    for n in range(max(1, src.line - SECRET_LOOKBACK), end + 1):   # a continuation can start above the range
+        flags[n] = bool(secret_line(lines[n - 1], lines[n - 2] if n > 1 else "", flags.get(n - 1, False)))
+    for n in range(src.line, end + 1):
         text = lines[n - 1]
-        if secret_line(text, lines[n - 2] if n > 1 else ""):
+        if flags[n]:
             hidden.append(n)
             text = HIDDEN
         shown.append(text if len(text) <= LINE_CHARS else text[:LINE_CHARS] + " …")
@@ -164,6 +176,9 @@ _SHAPE_CASES = {
     "long opaque literal": "digest = '" + "0123456789abcdef" * 3 + "'",
     "url with a password": "CACHE = redis://:hunter2hunter2@cache",
     "bearer or basic credential": "curl -H Authorization: Bearer abcdefghijklmnop",
+    "sendgrid key": "SG.abcdefghijklmnopq.rstuvwxyz0123456789",
+    "slack webhook": "url = https://hooks.slack.com/services/T000/B000/XXXX",
+    "user and password option": "curl -u admin:hunter2 https://x",
 }
 _HIDE = ['API_KEY = "ABCD1234EFGH5678"', 'TOTP_SECRET = "JBSWY3DPEHPK3PXP"', "POSTGRES_PASSWORD: rootpassword1",
          "JWT_SECRET: supersecretjwtkey2024", "SENDGRID_API_KEY: SG.abc.def", "ADMIN_PASSWORD: 12345678",
@@ -198,13 +213,14 @@ def self_test(tmp):
         if not secret_line(line):
             problems.append(f"secret-word line not hidden: {line!r}")
     start = time.monotonic()
-    for long in ("a" * 50000, "token" + "a" * 50000, "token = " + "b" * 50000):
+    for long in ("a" * 50000, "token" + "a" * 50000, "token = " + "b" * 50000, "# " + "pass" * 25000):
         secret_line(long)
     if time.monotonic() - start > 2:
         problems.append("the secret scan is slow on a long line")
     root = tmp / "scan"
     root.mkdir()
     (root / "cont.py").write_text("x = 1\nPASSWORD = (\n    'my dog spot runs'\n)\nAPI_KEY = \\\n  'abcdefgh'\ny = 2\n")
+    (root / "list.py").write_text("API_KEYS = [\n    'abcd1234efgh5678',\n    'abcd1234efgh5679',\n]\nx = 1\n")
     (root / "block.yml").write_text("db:\n  password: |\n    hunter2hunter2\n  host: x\n")
     (root / "late-nul.txt").write_bytes(b"a\n" * 10000 + b"\x00\n")
     (root / "wide.py").write_text("x = " + "y + " * 2000 + "1\n")
@@ -215,6 +231,12 @@ def self_test(tmp):
         rules, src = check("cont.py", line)
         if rules != ["source-lines-hidden"] or src.snippet != HIDDEN or "spot" in src.snippet:
             problems.append(f"secret line {line} of a continued assignment is not hidden: {rules} {src.snippet!r}")
+    rules, src = check("list.py", 3)
+    if src.snippet != HIDDEN:
+        problems.append(f"the third line of a secret list is not hidden: {src.snippet!r}")
+    rules, src = check("list.py", 5)
+    if rules:
+        problems.append("a line after a closed secret list is hidden")
     rules, src = check("block.yml", 3)
     if src.snippet != HIDDEN:
         problems.append(f"a YAML block value under a secret key is not hidden: {src.snippet!r}")
