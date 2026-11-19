@@ -8,6 +8,10 @@ Step.reply). The look is a numbered "User Flow" sequence: compact actor boxes in
 down, one row per step, the label "N. text" centred just above its arrow. Column spacing is computed from the labels
 (a step's label must fit between its two lifelines), never fixed. Everything is deterministic and rounded with r().
 
+A fragment header is two labels: the name (on the tab, id "label:frame:N") and the condition ("label:frame:N:branch-cond",
+text "[...]"), which starts at least 8 px right of the tab graph_svg draws. "back" is False on every route (a sequence
+has no back edges); an arrow that points left is told from its points.
+
     python3 graph_sequence.py --self-test   lays out ../tests/valid/sequence-*.json and ../tests/sequence/*.json
 """
 import json
@@ -19,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import graph_geometry as geo  # noqa: E402
 import graph_ir as ir  # noqa: E402
 import graph_validate as val  # noqa: E402
-from graph_geometry import LABEL_H, label_box, r, text_width  # noqa: E402
+from graph_geometry import LABEL_H, LABEL_PAD_X, label_box, r, text_width  # noqa: E402
 
 TESTS = Path(__file__).resolve().parent.parent / "tests"
 
@@ -47,6 +51,9 @@ FRAME_HEADER = 28.0
 FRAME_FOOT = 12.0
 FRAME_AFTER = 8.0     # space after a frame before whatever follows
 FRAME_LABEL_X = 6.0
+TAB_SCALE = 1.12      # graph_svg draws the fragment-name tab this wide: label x + pad + name * TAB_SCALE + TAB_END
+TAB_END = 8.0
+COND_GAP = 8.0        # the condition text starts at least this far right of the tab
 DIVIDER_ABOVE = 10.0  # branch divider below the previous row
 BRANCH_ROW = 26.0     # the branch label row under a divider (label 4 below the line)
 TAIL = 16.0           # lifeline beyond the last row
@@ -68,15 +75,25 @@ class _Frame:
         self.kids = []
         self.steps = []
         self.lo = self.hi = None
-        self.head = _header_text(frag)
-        texts = [self.head] + [f"[{b.label}]" for b in (frag.branches or [])]
-        self.minw = max(label_box(t, 0, 0)["w"] for t in texts) + 2 * FRAME_LABEL_X
+        self.tab, self.cond = _head_boxes(frag, 0.0)
+        head_end = (self.cond or self.tab)["x"] + (self.cond or self.tab)["w"]
+        texts = [f"[{b.label}]" for b in (frag.branches or [])]
+        self.minw = max([head_end] + [label_box(t, 0, 0)["w"] + FRAME_LABEL_X for t in texts]) + FRAME_LABEL_X
         self.range = None
 
 
-def _header_text(frag):
+def _head_boxes(frag, left):
+    """The two label boxes of a fragment header for a frame whose left edge is at left: the tab (the fragment name; it
+    covers the tab graph_svg draws) and the condition (None without one), whose text starts COND_GAP right of the tab."""
+    tab_w = _ceil_half(LABEL_PAD_X + TAB_SCALE * text_width(frag.fragment) + TAB_END)
+    tab = {"x": r(left + FRAME_LABEL_X), "w": tab_w, "text": frag.fragment}
     sub = _sublabel(frag)
-    return f"{frag.fragment} [{sub}]" if sub else frag.fragment
+    cond = None
+    if sub:
+        text = f"[{sub}]"
+        cond = {"x": r(left + FRAME_LABEL_X + tab_w + COND_GAP - LABEL_PAD_X), "w": label_box(text, 0, 0)["w"],
+                "text": text}
+    return tab, cond
 
 
 def _sublabel(frag):
@@ -121,7 +138,6 @@ def layout(diagram, strict_sources=False):
             fr.hi = hi if fr.hi is None else max(fr.hi, hi)
         return fr
 
-    top_level = []
     for it in ir.walk_steps(diagram.steps):
         if isinstance(it, ir.Step):
             label_w[id(it)] = label_box(_step_text(it), 0, 0)["w"]
@@ -133,7 +149,7 @@ def layout(diagram, strict_sources=False):
                 wants.append((i, j, label_w[id(it)] + SPAN_PAD))
     for it in diagram.steps:
         if isinstance(it, ir.Fragment):
-            top_level.append(build(it))
+            build(it)
 
     for i, j, need in sorted(wants, key=lambda t: (t[1] - t[0], t[0], t[2])):
         have = sum(gaps[i:j])
@@ -220,7 +236,7 @@ def layout(diagram, strict_sources=False):
         y = cur + CALL_ARROW
         routes.append({"id": sid, "ref": step.at, "from": a_from, "to": a_to,
                        "points": [[r(x1), r(y)], [r(x2), r(y)]], "style": style, "head": head,
-                       "emphasis": step.emphasis, "back": x2 < x1})
+                       "emphasis": step.emphasis, "back": False})
         box = label_box(text, (x1 + x2) / 2, y - LABEL_GAP)
         labels.append({"id": f"label:{sid}", "owner": sid, "text": text, "x": box["x"], "y": box["y"],
                        "w": box["w"], "h": box["h"]})
@@ -229,7 +245,7 @@ def layout(diagram, strict_sources=False):
             y2 = cur + RETURN_ARROW
             routes.append({"id": f"{sid}:return", "ref": step.at, "from": a_to, "to": a_from,
                            "points": [[r(x2), r(y2)], [r(x1), r(y2)]], "style": "dashed", "head": "open",
-                           "emphasis": step.emphasis, "back": x1 < x2})
+                           "emphasis": step.emphasis, "back": False})
             cur += RETURN_PITCH
         return cur
 
@@ -252,7 +268,13 @@ def layout(diagram, strict_sources=False):
                  "label": frag.fragment, "sublabel": _sublabel(frag), "ref": frag.at, "emphasis": False,
                  "dividers": []}
         shapes_frames.append(shape)
-        frame_label(fid, fr.head, left, top + 5)
+        tab, cond = _head_boxes(frag, left)
+        labels.append({"id": f"label:{fid}", "owner": fid, "text": tab["text"], "x": tab["x"], "y": r(top + 5),
+                       "w": tab["w"], "h": LABEL_H})
+        if cond:
+            # the id carries ":branch" so graph_svg draws it as plain condition text, not as a second tab
+            labels.append({"id": f"label:{fid}:branch-cond", "owner": fid, "text": cond["text"], "x": cond["x"],
+                           "y": r(top + 5), "w": cond["w"], "h": LABEL_H})
         cur += FRAME_HEADER
         if frag.branches is not None:
             for bi, branch in enumerate(frag.branches):
@@ -365,6 +387,12 @@ def _verify(name, d, lay):
         else:
             if lb[0]["x"] <= rt["points"][1][0]:
                 add(f"self-call label {s.shown} is not right of its loop")
+            own = lifeline_x[s.frm]
+            for pid, lx in lifeline_x.items():
+                if pid != s.frm and lb[0]["x"] - 4 <= lx <= lb[0]["x"] + lb[0]["w"] + 4:
+                    add(f"self-call label {s.shown} lies over the lifeline of {pid}")
+                elif lx > own and lx - (lb[0]["x"] + lb[0]["w"]) < 20:
+                    add(f"self-call label {s.shown} ends {lx - (lb[0]['x'] + lb[0]['w'])} before the next lifeline (< 20)")
         ret = routes.get(f"step:{s.shown}:return")
         if (s.kind == "call-return") != (ret is not None):
             add(f"step {s.shown} ({s.kind}) has the wrong number of routes")
@@ -395,6 +423,29 @@ def _verify(name, d, lay):
         for lb in (x for x in lay["labels"] if x["owner"] == fid):
             if not _contains(fr, lb["x"], lb["y"], lb["w"], lb["h"]):
                 add(f"label '{lb['text']}' outside {fid}")
+        touched = set()
+        for x in inner:
+            if isinstance(x, ir.Step):
+                touched |= {x.frm, x.to}
+        order = [p.id for p in d.participants]
+        span = [order.index(t) for t in touched]
+        for k, pid in enumerate(order):
+            if not min(span) <= k <= max(span) and fr["x"] - 8 < lifeline_x[pid] < fr["x"] + fr["w"] + 8:
+                add(f"{fid} runs over (or within 8 px of) the lifeline of {pid}, which lies outside the lifelines it spans")
+        tab = [x for x in lay["labels"] if x["id"] == f"label:{fid}"]
+        cond = [x for x in lay["labels"] if x["id"] == f"label:{fid}:branch-cond"]
+        sub = it.label or (it.branches[0].label if it.branches else None)
+        if len(tab) != 1 or tab[0]["text"] != it.fragment or len(cond) != (1 if sub else 0) \
+                or (sub and cond[0]["text"] != f"[{sub}]"):
+            add(f"{fid}: the header must be one tab label '{it.fragment}' and one condition label [{sub}]")
+        elif cond:
+            # graph_svg ends the tab at label x + 6 + 1.12 * name width + 8 and draws the condition text 6 px right of
+            # its label's x: the text must start at least 8 px after the tab ends
+            tab_end = tab[0]["x"] + 6 + 1.12 * text_width(it.fragment) + 8
+            if cond[0]["x"] + 6 - tab_end < 8:
+                add(f"{fid}: the condition starts {cond[0]['x'] + 6 - tab_end} after the tab (< 8)")
+            if tab[0]["x"] + tab[0]["w"] < tab_end:
+                add(f"{fid}: the tab label does not cover the drawn tab")
         for kid in (x for x in inner if isinstance(x, ir.Fragment)):
             k = shapes[f"frame:{kid.shown}"]
             ins = (k["x"] - fr["x"], k["y"] - fr["y"], fr["x"] + fr["w"] - k["x"] - k["w"],
@@ -422,6 +473,17 @@ def _tiny():
     return d
 
 
+def _selfcall():
+    """A long self-call label on the first of two participants, nothing else wide: only the self-call rule can space them."""
+    d, _ = ir.parse({"kind": "sequence", "title": "t",
+                     "participants": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}],
+                     "edges": [{"from": "a", "to": "b"}],
+                     "steps": [{"from": "a", "to": "b", "label": "go"},
+                               {"from": "a", "to": "a", "label": "a rather long self call label to think about", "kind": "self"}]})
+    val.validate(d)
+    return d
+
+
 def self_test():
     problems = []
     files = sorted((TESTS / "valid").glob("sequence-*.json")) + sorted((TESTS / "sequence").glob("*.json"))
@@ -434,6 +496,14 @@ def self_test():
             problems.append(f"{f.name}: load errors {errors}")
             continue
         problems.extend(_verify(f.name, d, layout(d)))
+
+    d = _selfcall()
+    problems.extend(_verify("self-call spacing", d, layout(d)))
+    lay = layout(d)
+    lx = {x["ref"]: x["x"] for x in lay["shapes"] if x["kind"] == "lifeline"}
+    lb = next(x for x in lay["labels"] if x["text"].endswith("think about"))
+    if lx["b"] - (lb["x"] + lb["w"]) < 24:
+        problems.append(f"self-call label ends {lx['b'] - (lb['x'] + lb['w'])} before the next lifeline (< 24)")
 
     # exact values on a tiny diagram, so a layout regression is caught
     lay = layout(_tiny())
@@ -448,7 +518,7 @@ def self_test():
         (lay["routes"][0]["points"], [[100.0, 118.0], [252.0, 118.0]]),
         ((lay["routes"][0]["style"], lay["routes"][0]["head"]), ("solid", "filled")),
         (lay["routes"][1]["points"], [[252.0, 152.0], [100.0, 152.0]]),
-        ((lay["routes"][1]["style"], lay["routes"][1]["head"], lay["routes"][1]["back"]), ("dashed", "open", True)),
+        ((lay["routes"][1]["style"], lay["routes"][1]["head"], lay["routes"][1]["back"]), ("dashed", "open", False)),
         (lay["routes"][2]["points"], [[252.0, 186.0], [288.0, 186.0], [288.0, 210.0], [252.0, 210.0]]),
         (lay["routes"][3]["points"], [[252.0, 290.0], [100.0, 290.0]]),
         ((lay["routes"][3]["style"], lay["routes"][3]["head"]), ("dashed", "open")),
@@ -457,13 +527,15 @@ def self_test():
         ((shapes["frame:3"]["x"], shapes["frame:3"]["y"], shapes["frame:3"]["w"], shapes["frame:3"]["h"]),
          (76.0, 228.0, 200.0, 88.0)),
         ((shapes["frame:3"]["label"], shapes["frame:3"]["sublabel"]), ("loop", "each")),
-        ([lb["text"] for lb in lay["labels"] if lb["owner"] == "frame:3"], ["loop [each]"]),
+        ([lb["text"] for lb in lay["labels"] if lb["owner"] == "frame:3"], ["loop", "[each]"]),
     ]
     for got, want in expect:
         if got != want:
             problems.append(f"tiny diagram: got {got!r}, expected {want!r}")
 
-    # strict_sources and heuristic provenance mark a step unproven and keep its head
+    # a step is unproven when its edge is heuristic, and also when its edge has no sources and neither end is external,
+    # but that second rule applies only with strict_sources=True (the caller gave a repo root, so sources can be
+    # checked); without it a source-less edge is not marked. This is the specified behaviour.
     d, _ = _load(TESTS / "valid" / "sequence-basic.json")
     plain = {rt["id"]: rt["style"] for rt in layout(d)["routes"]}
     strict = {rt["id"]: (rt["style"], rt["head"]) for rt in layout(d, strict_sources=True)["routes"]}

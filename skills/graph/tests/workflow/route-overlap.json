@@ -1,0 +1,22 @@
+{
+  "kind": "workflow",
+  "title": "Routes that would share a vertical",
+  "direction": "down",
+  "nodes": [
+    {"id": "n0", "label": "Check", "shape": "start"},
+    {"id": "n1", "label": "x", "shape": "step"},
+    {"id": "n2", "label": "alpha", "shape": "step"},
+    {"id": "n3", "label": "x", "shape": "end"},
+    {"id": "n4", "label": "x", "shape": "end"},
+    {"id": "n5", "label": "Review + approve", "shape": "decision", "detail": "some detail text"}
+  ],
+  "links": [
+    {"from": "n0", "to": "n1", "label": "ok"},
+    {"from": "n1", "to": "n2"},
+    {"from": "n2", "to": "n3"},
+    {"from": "n1", "to": "n4"},
+    {"from": "n0", "to": "n5"},
+    {"from": "n5", "to": "n2", "label": "retry later"},
+    {"from": "n5", "to": "n0", "label": "maybe"}
+  ]
+}
