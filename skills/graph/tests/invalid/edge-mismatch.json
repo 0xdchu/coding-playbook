@@ -1,0 +1,63 @@
+{
+  "kind": "sequence",
+  "title": "Two calls between one pair",
+  "participants": [
+    {
+      "id": "a",
+      "label": "A"
+    },
+    {
+      "id": "b",
+      "label": "B"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "a",
+      "to": "b",
+      "label": "f",
+      "provenance": "proven"
+    },
+    {
+      "id": "e2",
+      "from": "a",
+      "to": "b",
+      "label": "g",
+      "provenance": "heuristic"
+    },
+    {
+      "id": "e3",
+      "from": "b",
+      "to": "b",
+      "label": "h"
+    }
+  ],
+  "steps": [
+    {
+      "from": "a",
+      "to": "b",
+      "label": "f()",
+      "edge": "e3"
+    },
+    {
+      "from": "b",
+      "to": "b",
+      "label": "h()",
+      "kind": "self",
+      "edge": "e3"
+    },
+    {
+      "from": "b",
+      "to": "a",
+      "label": "back",
+      "edge": "e1"
+    },
+    {
+      "from": "a",
+      "to": "b",
+      "label": "g()",
+      "edge": "e2"
+    }
+  ]
+}

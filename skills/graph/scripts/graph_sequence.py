@@ -209,8 +209,8 @@ def layout(diagram, strict_sources=False):
         if edge is not None:
             if edge.provenance == "heuristic":
                 return "unproven"
-            ends_external = step.external or external[step.frm] or external[step.to]
-            if strict_sources and not edge.sources and not ends_external:
+            # the plan: an edge that starts at an internal participant and cites nothing is unproven (with a repo root)
+            if strict_sources and not edge.sources and not step.external and not external[edge.frm]:
                 return "unproven"
         if step.kind in ("async", "reply") or (step.reply and step.kind != "call-return"):
             return "dashed"
@@ -533,8 +533,8 @@ def self_test():
         if got != want:
             problems.append(f"tiny diagram: got {got!r}, expected {want!r}")
 
-    # a step is unproven when its edge is heuristic, and also when its edge has no sources and neither end is external,
-    # but that second rule applies only with strict_sources=True (the caller gave a repo root, so sources can be
+    # a step is unproven when its edge is heuristic, and also when its edge starts at an internal participant and cites
+    # no sources (also toward an external service: the call is in our code), but that second rule applies only with strict_sources=True (the caller gave a repo root, so sources can be
     # checked); without it a source-less edge is not marked. This is the specified behaviour.
     d, _ = _load(TESTS / "valid" / "sequence-basic.json")
     plain = {rt["id"]: rt["style"] for rt in layout(d)["routes"]}
@@ -543,7 +543,7 @@ def self_test():
         problems.append("sequence-basic: a step is unproven without strict_sources")
     if strict["step:5"] != ("unproven", "filled"):
         problems.append(f"sequence-basic: step 5 (api -> db, edge without sources) is {strict['step:5']}")
-    if [k for k, v in strict.items() if v[0] == "unproven"] != ["step:5"]:
+    if [k for k, v in strict.items() if v[0] == "unproven"] != ["step:2", "step:5", "step:6"]:
         problems.append(f"sequence-basic: unproven steps {[k for k, v in strict.items() if v[0] == 'unproven']}")
     d.edges[0].provenance = "heuristic"
     if {rt["id"]: rt["style"] for rt in layout(d)["routes"]}["step:5"] != "unproven":

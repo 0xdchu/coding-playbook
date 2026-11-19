@@ -35,6 +35,7 @@ Sequence:
               {"label": "known buyer", "steps": [{"from": "api", "to": "db", "label": "add ticket"}]}]}]}
 ```
 - `edges` is the model: declare each link your code makes once, with `sources`, including calls to outside services. A step must match an edge (either direction; the reverse is drawn as a reply) unless it is marked `external: true`, starts at an `external` party (a click, a webhook arriving) or is `kind: "self"`.
+- When two parties have several links (two different calls), give each edge an `id` and pick it on the step with `"edge": "<id>"`; otherwise a step takes the first matching edge.
 - Step `kind`: `call` (default), `call-return` (return drawn for you), `async` (dashed: events, webhooks, queues), `reply`, `self` (a party working on its own: from = to).
 - Fragments: `opt`, `loop`, `break` take `label` and `steps`; `alt` and `par` take `branches` (two or more, each `label` and `steps`). Nest freely, but not `par` directly in `par`.
 - Numbers are given for you: `1, 2, 3`; inside fragment 3: `3.1, 3.2`. `number` overrides a shown number (no duplicates).

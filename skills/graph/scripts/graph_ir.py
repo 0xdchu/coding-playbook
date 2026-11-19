@@ -71,6 +71,7 @@ class Step:
     edge: object = None    # the matched Edge, or None (set by graph_validate)
     reply: bool = False    # matched an edge in the reverse direction (set by graph_validate)
     at: str = ""
+    edge_id: str = None    # the author's pick of one edge by id (IR key "edge"), when a pair has several
 
 
 @dataclass
@@ -205,7 +206,7 @@ class _Reader:
         if isinstance(value, dict) and "fragment" in value:
             return self.fragment(value, path)
         v = self.obj(value, path, ("from", "to", "label"),
-                     ("kind", "note", "emphasis", "external", "number"))
+                     ("kind", "note", "emphasis", "external", "number", "edge"))
         if v is None:
             return None
         frm, to = self.text(v.get("from"), f"{path}.from"), self.text(v.get("to"), f"{path}.to")
@@ -219,7 +220,7 @@ class _Reader:
         return Step(frm, to, label, self.choice(v.get("kind"), f"{path}.kind", STEP_KINDS, "call"),
                     self.text(v.get("note"), f"{path}.note", required=False),
                     self.flag(v.get("emphasis"), f"{path}.emphasis"), self.flag(v.get("external"), f"{path}.external"),
-                    number, at=path)
+                    number, at=path, edge_id=self.text(v.get("edge"), f"{path}.edge", required=False))
 
     def step_list(self, value, path):
         return [s for i, raw in enumerate(self.items(value, path)) if (s := self.step_or_fragment(raw, f"{path}[{i}]"))]

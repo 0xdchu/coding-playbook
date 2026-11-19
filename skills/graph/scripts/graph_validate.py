@@ -39,6 +39,7 @@ def _sequence(d, diags):
         parts[p.id] = p
     forward = {}
     seen_edge_ids = set()
+    by_id = {}
     for e in d.edges:
         for end in ("frm", "to"):
             if getattr(e, end) not in parts:
@@ -48,6 +49,7 @@ def _sequence(d, diags):
             if e.id in seen_edge_ids:
                 err("duplicate-id", f"{e.at}.id", f"edge id '{e.id}' is used twice")
             seen_edge_ids.add(e.id)
+            by_id.setdefault(e.id, e)
         forward.setdefault((e.frm, e.to), e)
     if not d.steps:
         err("empty-diagram", "steps", "a sequence needs at least one step")
@@ -73,13 +75,26 @@ def _sequence(d, diags):
                 err("unknown-participant", it.at, f"step names '{x}', which is not a participant")
             if (it.frm == it.to) != (it.kind == "self"):
                 err("self-mismatch", it.at, "a step from a participant to itself needs kind 'self', and only it")
+            elif not missing and it.edge_id is not None:
+                e = by_id.get(it.edge_id)
+                if e is None:
+                    err("unknown-edge", f"{it.at}.edge", f"no edge has id '{it.edge_id}'")
+                elif (e.frm, e.to) == (it.frm, it.to):
+                    it.edge = e
+                elif (e.to, e.frm) == (it.frm, it.to):
+                    it.edge, it.reply = e, True
+                else:
+                    err("edge-mismatch", f"{it.at}.edge",
+                        f"edge '{it.edge_id}' joins '{e.frm}' and '{e.to}', not '{it.frm}' and '{it.to}'")
             elif not missing and it.kind != "self":
                 # Exempt: a step marked external, or one that starts at an external party (a click, a webhook arriving).
                 # A step from an internal party needs an edge even toward an external service: the call is in the code.
                 external = it.external or parts[it.frm].external
                 if (it.frm, it.to) in forward:
                     it.edge = forward[(it.frm, it.to)]
-                elif (it.to, it.frm) in forward:
+                elif (it.to, it.frm) in forward and not external:
+                    # A step an external party starts (a webhook, a click) is its own message, never the reply of a
+                    # call our code made the other way, so it does not borrow that edge (or its proof).
                     it.edge, it.reply = forward[(it.to, it.frm)], True
                 elif not external:
                     err("step-without-edge", it.at,
@@ -149,7 +164,7 @@ def validate(d, repo_root=None):
         if repo_root:
             externals = {p.id for p in d.participants if p.external}
             for e in d.edges:
-                if not e.sources and e.frm not in externals and e.to not in externals:
+                if not e.sources and e.frm not in externals:
                     diags.append(ir.diag("warning", "edge-without-source", e.at,
                                          f"edge '{e.frm}' -> '{e.to}' cites no source; it is drawn as unproven"))
     else:
