@@ -62,12 +62,21 @@ def make_layout(d, strict):
     return graph_workflow.layout(d)
 
 
+def _umask():
+    mask = os.umask(0)
+    os.umask(mask)
+    return mask
+
+
 def write_atomic(path, text):
+    """Write text to path through a temp file in the same folder; the file gets the mode a plain open() would give it
+    (0o666 minus the umask), not the temp file's 0o600. Raises OSError (no temp file is left) when it cannot."""
     folder = os.path.dirname(os.path.abspath(path))
     fd, tmp = tempfile.mkstemp(dir=folder, prefix=".graph-", suffix=".tmp")
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(text.encode("utf-8"))
+            os.fchmod(f.fileno(), 0o666 & ~_umask())
         os.replace(tmp, path)
     except BaseException:
         with contextlib.suppress(OSError):
@@ -128,7 +137,10 @@ def cmd_render(args):
             print(_line(x))
         return 1
     page = build_page(d, layout, args.theme or d.theme)
-    write_atomic(args.output, page)
+    try:
+        write_atomic(args.output, page)
+    except OSError as e:
+        return _usage(f"cannot write {args.output}: {e.strerror or e}")
     crossings = next((x["message"] for x in geom if x["rule"] == "crossings"), "")
     print(f"wrote {args.output} ({crossings})")
     return 0
@@ -139,12 +151,17 @@ def cmd_from_trace(args):
         return _usage("-o must end in .json")
     if not os.path.isdir(os.path.dirname(os.path.abspath(args.output))):
         return _usage(f"the folder of {args.output!r} does not exist")
+    if os.path.realpath(args.output) == os.path.realpath(args.trace):
+        return _usage(f"-o {args.output!r} is the trace file itself; it would be overwritten")
     try:
         trace = json.loads(Path(args.trace).read_text(encoding="utf-8"))
         data = graph_trace.convert(trace)
     except (OSError, ValueError) as e:      # graph_trace.TraceError is a ValueError
         return _usage(f"cannot convert {args.trace}: {e}")
-    write_atomic(args.output, json.dumps(data, indent=2) + "\n")
+    try:
+        write_atomic(args.output, json.dumps(data, indent=2) + "\n")
+    except OSError as e:
+        return _usage(f"cannot write {args.output}: {e.strerror or e}")
     print(f"wrote {args.output} ({len(data['steps'])} step(s))")
     return 0
 
@@ -240,6 +257,12 @@ def _fixtures():
 
 def self_test():
     problems = []
+    for name, mod in (("graph_validate", val), ("graph_geometry", geo), ("graph_sequence", graph_sequence),
+                      ("graph_workflow", graph_workflow)):
+        try:
+            problems += [f"{name}: {p}" for p in mod.self_test()]
+        except Exception as e:      # a crashing module self-test is a failure, not a traceback
+            problems.append(f"{name}: self-test crashed: {type(e).__name__}: {e}")
     tmp = Path(tempfile.mkdtemp(prefix="graph-cli-"))
     try:
         root = val.scratch_repo(tmp)
@@ -406,6 +429,76 @@ def self_test():
                     problems.append("trace call site has no snippet with a repo root")
         if tree_checksum(troot) != tbefore:
             problems.append("the trace repo root changed")
+        # -o problems: an existing folder, an unwritable folder, the trace file itself; the file mode follows the umask
+        seq_ok = str(TESTS / "valid" / "sequence-basic.json")
+        folder_out, folder_json, linked = tmp / "folder.html", tmp / "dir.json", tmp / "sub"
+        for d in (folder_out, folder_json, linked):
+            d.mkdir()
+        locked = tmp / "locked"
+        locked.mkdir()
+        locked.chmod(0o555)
+        trace_in = str(TESTS / "cli" / "trace.json")
+        trace_copy = tmp / "t.json"
+        trace_copy.write_text(Path(trace_in).read_text())
+        try:
+            cases = [(["render", seq_ok, "-o", str(folder_out)], "render -o an existing folder"),
+                     (["from-trace", trace_in, "-o", str(folder_json)], "from-trace -o an existing folder"),
+                     (["from-trace", str(trace_copy), "-o", str(trace_copy)], "from-trace -o its own input"),
+                     (["from-trace", str(trace_copy), "-o", str(linked / ".." / "t.json")],
+                      "from-trace -o its own input by another path")]
+            if os.access(locked, os.W_OK):       # running as root: a folder cannot be made unwritable
+                print("note: unwritable-folder case not run (the folder stays writable)", file=sys.stderr)
+            else:
+                cases += [(["render", seq_ok, "-o", str(locked / "x.html")], "render -o an unwritable folder"),
+                          (["from-trace", trace_in, "-o", str(locked / "x.json")], "from-trace -o an unwritable folder")]
+            for argv, why in cases:
+                code, _, se = run(argv)
+                if code != 2 or not se.strip() or "Traceback" in se:
+                    problems.append(f"{why}: exit {code}, stderr {se.strip()!r}")
+            if trace_copy.read_text() != Path(trace_in).read_text():
+                problems.append("from-trace overwrote its own input")
+            if any(p.name.startswith(".graph-") for d in (tmp, locked) for p in d.iterdir()):
+                problems.append("a refused write left a temp file")
+            if any(folder_out.iterdir()) or any(folder_json.iterdir()):
+                problems.append("a refused write left files in the output folder")
+        finally:
+            locked.chmod(0o755)
+        mode_out = out / "mode.html"
+        code, _, _ = run(["render", seq_ok, "-o", str(mode_out)])
+        if code != 0 or (mode_out.stat().st_mode & 0o777) != (0o666 & ~_umask()):
+            problems.append(f"output file mode {oct(mode_out.stat().st_mode & 0o777) if mode_out.exists() else None}, "
+                            f"want {oct(0o666 & ~_umask())}")
+
+        # a trace with a repeated pair, a self hop and a return hop: every hop keeps its own edge, provenance and call site
+        rep_ir, rep_page = out / "trace-repeat-ir.json", out / "trace-repeat.html"
+        code, so, se = run(["from-trace", str(TESTS / "cli" / "trace-repeat.json"), "-o", str(rep_ir)])
+        if code != 0 or not rep_ir.exists():
+            problems.append(f"from-trace (repeat) failed: {code} {so} {se}")
+        else:
+            rep = json.loads(rep_ir.read_text())
+            if [s.get("edge") for s in rep["steps"]] != [e.get("id") for e in rep["edges"]] \
+                    or len({e.get("id") for e in rep["edges"]}) != 4:
+                problems.append("trace steps do not each name their own edge id")
+            code, so, se = run(["render", str(rep_ir), "-o", str(rep_page), "--repo-root", str(troot)])
+            text = rep_page.read_text(encoding="utf-8") if rep_page.exists() else ""
+            if code != 0:
+                problems.append(f"trace (repeat) render failed: {so} {se}")
+            else:
+                svg_text = text[text.index("<svg"):text.index("</svg>")]
+                styles = {int(i): st for st, i in re.findall(r'<g class="route (\w+)[^"]*"[^>]*data-ref="steps\[(\d+)\]"', svg_text)}
+                if styles != {0: "solid", 1: "unproven", 2: "unproven", 3: "unproven"}:
+                    problems.append(f"trace (repeat) route styles wrong: {styles}")
+                items = _panel_data(text)["items"]
+                want = [("src/api.py", 3, "api line 3"), ("src/orders.py", 5, "orders line 5"),
+                        ("src/orders.py", 7, "orders line 7"), ("src/api.py", 11, "api line 11")]
+                if [it["unproven"] for it in items] != [False, True, True, True]:
+                    problems.append("trace (repeat) panel provenance wrong")
+                for i, (path, line, snip) in enumerate(want):
+                    srcs = items[i]["sources"] if i < len(items) else []
+                    if len(srcs) != 1 or (srcs[0]["path"], srcs[0]["line"]) != (path, line) or snip not in (srcs[0]["snippet"] or ""):
+                        problems.append(f"trace (repeat) step {i} shows {[(s['path'], s['line']) for s in srcs]}, not {path}:{line}")
+        if tree_checksum(troot) != tbefore:
+            problems.append("the trace repo root changed (repeat)")
         for bad_trace, why in (({"paths": []}, "empty paths"), ({}, "no paths"), ({"paths": [{"steps": []}]}, "no steps"),
                                ({"paths": [{"steps": [{"from_file": "a.py"}]}]}, "missing fields")):
             tp, tout = tmp / "bad-trace.json", out / "bad-trace-ir.json"
