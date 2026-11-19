@@ -1,0 +1,20 @@
+{
+  "kind": "sequence",
+  "title": "Very long labels",
+  "participants": [
+    {"id": "a", "label": "Client application"},
+    {"id": "b", "label": "Gateway"},
+    {"id": "c", "label": "Worker"}
+  ],
+  "edges": [
+    {"from": "a", "to": "b"},
+    {"from": "b", "to": "c"}
+  ],
+  "steps": [
+    {"from": "a", "to": "b", "label": "submit the whole order including every line item, the shipping address and the gift message in one request"},
+    {"from": "b", "to": "c", "label": "enqueue a background job that validates stock, reserves the items and prices the basket"},
+    {"from": "c", "to": "c", "label": "walk through every line item and reserve stock one warehouse at a time", "kind": "self"},
+    {"from": "b", "to": "a", "label": "accepted, the confirmation arrives later by email", "kind": "call-return"},
+    {"from": "a", "to": "a", "label": "show a spinner until the confirmation page is ready to display", "kind": "self"}
+  ]
+}
