@@ -1,0 +1,135 @@
+{
+  "kind": "sequence",
+  "title": "Run and billing",
+  "participants": [
+    {
+      "id": "user",
+      "label": "User / Scheduler",
+      "external": true
+    },
+    {
+      "id": "app",
+      "label": "App"
+    },
+    {
+      "id": "llm",
+      "label": "Model API",
+      "external": true
+    }
+  ],
+  "edges": [],
+  "steps": [
+    {
+      "from": "user",
+      "to": "app",
+      "label": "run now"
+    },
+    {
+      "from": "app",
+      "to": "app",
+      "label": "balance >= cost?",
+      "kind": "self"
+    },
+    {
+      "fragment": "alt",
+      "branches": [
+        {
+          "label": "not enough",
+          "steps": [
+            {
+              "from": "app",
+              "to": "user",
+              "label": "paused: low balance",
+              "kind": "reply"
+            }
+          ]
+        },
+        {
+          "label": "enough",
+          "steps": [
+            {
+              "from": "app",
+              "to": "app",
+              "label": "hold estimated cost",
+              "kind": "self"
+            },
+            {
+              "fragment": "loop",
+              "label": "each prompt x engine",
+              "steps": [
+                {
+                  "from": "app",
+                  "to": "llm",
+                  "label": "ask prompt",
+                  "kind": "call-return"
+                },
+                {
+                  "from": "app",
+                  "to": "llm",
+                  "label": "judge mentions"
+                }
+              ]
+            },
+            {
+              "from": "app",
+              "to": "app",
+              "label": "settle cost",
+              "kind": "self"
+            },
+            {
+              "from": "app",
+              "to": "user",
+              "label": "results updated",
+              "kind": "reply"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fragment": "par",
+      "branches": [
+        {
+          "label": "a",
+          "steps": [
+            {
+              "fragment": "par",
+              "branches": [
+                {
+                  "label": "i",
+                  "steps": [
+                    {
+                      "from": "user",
+                      "to": "app",
+                      "label": "q"
+                    }
+                  ]
+                },
+                {
+                  "label": "j",
+                  "steps": [
+                    {
+                      "from": "user",
+                      "to": "app",
+                      "label": "r"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "b",
+          "steps": [
+            {
+              "from": "user",
+              "to": "app",
+              "label": "s"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

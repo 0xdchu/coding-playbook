@@ -1,0 +1,50 @@
+{
+  "kind": "sequence",
+  "title": "Run and billing",
+  "participants": [
+    {
+      "id": "user",
+      "label": "User / Scheduler",
+      "external": true
+    },
+    {
+      "id": "app",
+      "label": "App"
+    },
+    {
+      "id": "llm",
+      "label": "Model API",
+      "external": true
+    }
+  ],
+  "edges": [],
+  "steps": [
+    {
+      "from": "user",
+      "to": "app",
+      "label": "run now"
+    },
+    {
+      "from": "app",
+      "to": "app",
+      "label": "balance >= cost?",
+      "kind": "self"
+    },
+    {
+      "fragment": "alt",
+      "branches": [
+        {
+          "label": "not enough",
+          "steps": [
+            {
+              "from": "app",
+              "to": "user",
+              "label": "paused: low balance",
+              "kind": "reply"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
