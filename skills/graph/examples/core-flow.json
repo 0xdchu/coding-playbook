@@ -17,7 +17,7 @@
     {
       "id": "agent",
       "label": "User's own agent",
-      "detail": "reads memory, PLAN.md, research.md; max 3 questions, user confirms"
+      "detail": "reads the project's notes and plan; asks at most 3 questions, user confirms"
     },
     {
       "id": "can",
@@ -27,7 +27,7 @@
     {
       "id": "direct",
       "label": "Writes straight into the app",
-      "detail": "via the app's update_context tool"
+      "detail": "through the app's connector"
     },
     {
       "id": "paste",

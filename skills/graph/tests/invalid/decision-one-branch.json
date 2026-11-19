@@ -21,10 +21,6 @@
       "label": "Write via API"
     },
     {
-      "id": "n",
-      "label": "Print JSON"
-    },
-    {
       "id": "s3",
       "label": "3. Review"
     },
@@ -53,10 +49,6 @@
     },
     {
       "from": "y",
-      "to": "s3"
-    },
-    {
-      "from": "n",
       "to": "s3"
     },
     {

@@ -10,17 +10,29 @@ import os
 import re
 
 SNIPPET_LINES = 30
+LINE_CHARS = 400          # a longer line is cut in the snippet
 MAX_BYTES = 2 * 1024 * 1024
 # File names refused anywhere in a path, and folders refused as any path part. Add-only.
-SECRET_NAMES = (".env", ".env.*", "*.env", "*.pem", "*.key", "*.p12", "*.pfx", "*.keystore", "*.jks", "id_rsa*",
+SECRET_NAMES = (".env", ".env.*", ".env*", "*.env", "*.pem", "*.key", "*.p12", "*.pfx", "*.keystore", "*.jks", "id_rsa*",
                 "id_ed25519*", "id_ecdsa*", "id_dsa*", ".npmrc", ".pypirc", ".netrc", ".git-credentials",
                 "credentials", "credentials.json", "*.kdbx")
 SECRET_DIRS = ("secrets", ".ssh", ".aws", ".gnupg", ".git")
 # Text shapes refused inside a cited range, so a key kept in an ordinary source file is not rendered. Add-only.
+# Conservative on purpose: a false refusal costs the author one other line to cite; a miss publishes a key.
+_KEYWORD = r"[A-Za-z0-9_.-]*(?:passw(?:or)?d|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credential|auth[_-]?key|client[_-]?secret|signing[_-]?key|salt)[A-Za-z0-9_.-]*"
 SECRET_TEXT = [re.compile(p) for p in (
     r"gh[pousr]_[A-Za-z0-9]{20,}", r"github_pat_[A-Za-z0-9_]{20,}", r"sk-[A-Za-z0-9_-]{20,}", r"sk-ant-[A-Za-z0-9_-]{10,}",
-    r"AKIA[0-9A-Z]{16}", r"AIza[0-9A-Za-z_-]{30,}", r"xox[abprs]-[A-Za-z0-9-]{10,}", r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
-    r"(?i)\b(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\b[\"']?\s*[:=]\s*[\"'][^\"'\s]{6,}[\"']")]
+    r"\b[sr]k_(?:live|test)_[A-Za-z0-9]{10,}", r"AKIA[0-9A-Z]{16}", r"AIza[0-9A-Za-z_-]{30,}", r"xox[abprs]-[A-Za-z0-9-]{10,}",
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----", r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}",
+    r"^\s*[A-Za-z0-9+/]{40,}={0,2}\s*$",                                  # a line of a PEM or base64 key body
+    r"[\"'][A-Za-z0-9+/_=-]{32,}[\"']",                                    # a long opaque literal
+    # keyword = "literal" (any quote, also => := and an opening bracket before the literal)
+    r"(?i)" + _KEYWORD + r"[\"']?\s*(?:=>|:=|[:=])\s*[(\[{]?\s*[bru]{0,2}[\"'`][^\"'`\s]{6,}",
+    # keyword = bare value to the end of the line (env files, YAML, INI)
+    r"(?i)" + _KEYWORD + r"[\"']?\s*[:=]\s*[A-Za-z0-9_+/=~.-]{8,}\s*(?:#.*)?$",
+)]
+# How many lines before a cited range are read with it, so a literal continued from an assignment above is caught.
+SECRET_CONTEXT = 2
 
 
 def secret_reason(rel):
@@ -66,7 +78,7 @@ def read_lines(real):
         return None, f"larger than {MAX_BYTES} bytes"
     with open(real, "rb") as f:
         data = f.read(MAX_BYTES + 1)
-    if b"\x00" in data[:8192]:
+    if b"\x00" in data:
         return None, "a binary file"
     return data.decode("utf-8", errors="replace").splitlines(), None
 
@@ -83,11 +95,18 @@ def verify(root, src):
     if src.line > len(lines) or last > len(lines):
         return [{"severity": "error", "rule": "source-line-past-end", "path": src.at,
                  "message": f"'{src.path}' has {len(lines)} lines; cited {src.line}" + (f"-{last}" if last != src.line else "")}]
-    for n in range(src.line, last + 1):
-        if any(p.search(lines[n - 1]) for p in SECRET_TEXT):
+    first = max(1, src.line - SECRET_CONTEXT)
+    window = lines[first - 1:last]
+    joined = " ".join(x.strip() for x in window)
+    for n, text in enumerate(window, first):
+        if any(p.search(text) for p in SECRET_TEXT):
             return [{"severity": "error", "rule": "source-secret-content", "path": src.at,
                      "message": f"'{src.path}' line {n} looks like a secret (a token, key or password literal); "
                                 "cite other lines"}]
-    shown = lines[src.line - 1:min(last, src.line + SNIPPET_LINES - 1)]
+    if any(p.search(joined) for p in SECRET_TEXT[-2:-1]):
+        return [{"severity": "error", "rule": "source-secret-content", "path": src.at,
+                 "message": f"'{src.path}' lines {first}-{last} hold a secret assigned across lines; cite other lines"}]
+    shown = [x if len(x) <= LINE_CHARS else x[:LINE_CHARS] + " …"
+             for x in lines[src.line - 1:min(last, src.line + SNIPPET_LINES - 1)]]
     src.snippet = "\n".join(shown)
     return []

@@ -181,14 +181,22 @@ def validate(d, repo_root=None):
 
 def load(path, repo_root=None):
     """(Diagram or None, diagnostics) for an IR file."""
+    def no_duplicates(pairs):
+        keys = [k for k, _ in pairs]
+        dup = sorted({k for k in keys if keys.count(k) > 1})
+        if dup:
+            raise ValueError(f"key {dup[0]!r} appears twice in one object")
+        return dict(pairs)
     try:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        data = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=no_duplicates)
+        d, diags = ir.parse(data)
+        if d is None or any(x["severity"] == "error" for x in diags):
+            return d, diags
+        return d, diags + validate(d, repo_root)
+    except RecursionError:
+        return None, [ir.diag("error", "bad-json", "", f"{path}: nested too deeply")]
     except (OSError, ValueError) as e:
         return None, [ir.diag("error", "bad-json", "", f"{path}: {e}")]
-    d, diags = ir.parse(data)
-    if d is None or any(x["severity"] == "error" for x in diags):
-        return d, diags
-    return d, diags + validate(d, repo_root)
 
 
 def scratch_repo(tmp):
@@ -197,7 +205,9 @@ def scratch_repo(tmp):
     root.mkdir()
     (root / "app.py").write_text("".join(f"line {i}\n" for i in range(1, 21)))
     (root / ".env").write_text("TOKEN=not-a-real-one\n")
-    (root / "settings.py").write_text("DEBUG = True\nAPI_KEY = \"abcd1234efgh5678\"\nNAME = 'x'\n")
+    (root / "settings.py").write_text("DEBUG = True\nAPI_KEY = \"abcd1234efgh5678\"\nNAME = 'x'\n"
+                                      "PASSWORD = (\n    \"hunter2hunter2\"\n)\n")
+    (root / ".envrc").write_text("export DB_URL=not-a-real-one\n")
     (root / "secrets").mkdir()
     (root / "secrets" / "notes.txt").write_text("x\n")
     (tmp / "outside.txt").write_text("outside\n")
@@ -227,8 +237,8 @@ def self_test():
             with_root = rule.startswith("source-") or rule == "edge-without-source"
             _, diags = load(f, root if with_root else None)
             rules = {x["rule"] for x in diags if x["severity"] in ("error", "warning")}
-            if rule not in rules:
-                problems.append(f"invalid/{f.name}: expected {rule}, got {sorted(rules) or 'nothing'}")
+            if rules != {rule}:
+                problems.append(f"invalid/{f.name}: expected only {rule}, got {sorted(rules) or 'nothing'}")
         if (root / ".env").read_text() != "TOKEN=not-a-real-one\n":
             problems.append("a fixture changed the scratch repo")
         seq = ir.parse({"kind": "sequence", "title": "t",

@@ -31,6 +31,14 @@
       "from": "api",
       "to": "db",
       "label": "write"
+    },
+    {
+      "from": "api",
+      "to": "stripe"
+    },
+    {
+      "from": "api",
+      "to": "mail"
     }
   ],
   "steps": [

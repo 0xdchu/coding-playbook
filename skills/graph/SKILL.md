@@ -53,7 +53,13 @@ Workflow:
 ```
 - `shape`: `start`, `step` (default), `decision`, `end`. Every link out of a decision has a label; a decision has two or more. Every node is reachable from a start node. A link back to an earlier node is a loop and is routed outside. `"direction": "right"` lays it out left to right.
 
-Any field not shown here is an error, reported with its JSON path.
+Every field (`?` = optional). Any other field, a `null` value or a key given twice is an error, reported with its JSON path:
+- top level: `kind`, `title`, `subtitle?`, `theme?` (`dark` | `light`), `direction?` (`down` | `right`, workflow only).
+- participant: `id`, `label`, `external?`, `sources?`.
+- edge: `from`, `to`, `id?`, `label?`, `provenance?` (`proven` | `heuristic`: a link guessed rather than read in the code; drawn grey dashed as unproven), `sources?`.
+- step: `from`, `to`, `label`, `kind?`, `note?`, `emphasis?`, `external?`, `number?`, `edge?`. Fragment: `fragment`, `label`, `steps` or `branches` (as above); at most 32 levels deep.
+- node: `id`, `label`, `detail?`, `shape?`, `note?`, `sources?`. Link: `from`, `to`, `label?`.
+- source: `path` (relative to the repo root), `line`, `end_line?`, `label?`.
 
 ## 4. Check, then draw
 ```

@@ -27,6 +27,9 @@ def diag(severity, rule, path, message):
     return {"severity": severity, "rule": rule, "path": path, "message": message}
 
 
+MAX_DEPTH = 32   # fragments inside fragments; deeper input is refused, not recursed into
+
+
 @dataclass
 class Source:
     path: str
@@ -143,6 +146,8 @@ class _Reader:
             self.err("bad-type", path, "expected an object")
             return None
         for k in value:
+            if value[k] is None and (k in required or k in optional):
+                self.err("bad-type", f"{path}.{k}" if path else k, f"'{k}' is null; give a value or leave the field out")
             if k not in required and k not in optional:
                 self.err("unknown-field", f"{path}.{k}" if path else k,
                          f"unknown field '{k}' (allowed: {', '.join(sorted(set(required) | set(optional)))})")
@@ -152,8 +157,8 @@ class _Reader:
         return value
 
     def text(self, value, path, required=True, empty=False):
-        if value is None and not required:
-            return None
+        if value is None:
+            return None   # a missing required field was already reported by obj(), a null one too
         if not isinstance(value, str) or (not empty and not value.strip()):
             self.err("bad-type", path, "expected a non-empty string")
             return None
@@ -226,6 +231,16 @@ class _Reader:
         return [s for i, raw in enumerate(self.items(value, path)) if (s := self.step_or_fragment(raw, f"{path}[{i}]"))]
 
     def fragment(self, value, path):
+        self.depth = getattr(self, "depth", 0) + 1
+        try:
+            if self.depth > MAX_DEPTH:
+                self.err("bad-value", path, f"fragments nested deeper than {MAX_DEPTH}; flatten the diagram")
+                return None
+            return self._fragment(value, path)
+        finally:
+            self.depth -= 1
+
+    def _fragment(self, value, path):
         name = value.get("fragment")
         if name not in FRAGMENTS:
             self.err("bad-value", f"{path}.fragment", f"expected one of {', '.join(FRAGMENTS)}, got {name!r}")

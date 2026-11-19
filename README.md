@@ -27,6 +27,7 @@ Skills are separate from the roles: each folder is one skill, invoked by name or
 | `skills/create-skill/` | `~/.claude/skills/` | Turn a recurring job into a skill from a one-page template, trial it, with an eval and a feedback log (hand-invoked in the defaults) |
 | `skills/secrets/` | `~/.claude/skills/` | Keep API keys and passwords safe when delegating work to an agent, and push code to GitHub without leaking anything |
 | `skills/whats-next/` | `~/.claude/skills/` | Triage the session: sweep for unfinished work, propose next steps and the dependencies of large changes; read and propose only |
+| `skills/graph/` | `~/.claude/skills/` | Draw how a system works as one offline HTML page: numbered sequence diagrams (frames, webhooks, replies) and flowcharts (decisions, loops), each step checked against declared links and cited code lines |
 | `skills/teardown/` | `~/.claude/skills/` | Decompose an existing product, write a clean-room spec, then build from the spec only |
 | `skills/orca-worktree-setup/` | `~/.claude/skills/` | Setup scripts so every new Orca worktree gets the gitignored local files it needs |
 | `skills/sdlc/` | `~/.claude/skills/` | The artifact chain intent, plan, build, verify, ship; a plan's `## Tasks` section feeds the builder's contract |
