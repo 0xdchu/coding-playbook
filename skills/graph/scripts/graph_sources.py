@@ -36,17 +36,22 @@ SECRET_SHAPES = {name: re.compile(p) for name, p in (
     ("long opaque literal", r"[\"'`][A-Za-z0-9+/_=-]{32,}[\"'`]"),
     ("url with a password", r"://[^/\s:@\"']*:[^/\s@\"']+@"),
     ("bearer or basic credential", r"(?i)\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]{12,}"),
+    ("sendgrid key", r"\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}"),
+    ("slack webhook", r"hooks\.slack\.com/services/[A-Za-z0-9/]+"),
+    ("user and password option", r"(?:^|\s)-u\s*[^\s:]+:\S+"),
 )}
 # 2. A line that names a secret (any of these, any case, anywhere: `DB_PASS`, `client_secret`, `<password>`) and
 #    holds anything that could be a value: a quote, or `=`, `:`, `=>` or `>` followed by more text. Strict on
 #    purpose: hiding a harmless line (`self.password = password`) costs nothing but that line in the snippet.
-SECRET_WORDS = ("pass", "pwd", "secret", "token", "apikey", "api_key", "api-key", "accesskey", "access_key",
+SECRET_WORDS = ("pass", "pwd", "pw", "key", "otp", "secret", "token", "apikey", "api_key", "api-key", "accesskey", "access_key",
                 "private_key", "privatekey", "credential", "auth", "bearer", "salt", "signing", "session_key", "dsn",
                 "database_url", "conn_str", "connection_string", "cookie")
 _VALUE = re.compile(r"[\"'`]|(?:=>|:=|[:=>])\s*\S")
+# a secret word, the rest of its name, then a space and more text: `requirepass x`, `--password x`, `ENV API_TOKEN x`
+_SPACED = re.compile(r"(?i)(?:" + "|".join(re.escape(w) for w in SECRET_WORDS) + r")[A-Za-z0-9_.-]*[ \t]+\S")
 # 3. A line continuing an assignment to a secret name opened on the line above (`password = \`, `KEY = (`,
 #    `"password":`), also when that line is just before the cited range.
-_OPENS = re.compile(r"(?:=>|:=|[:=(\[{,\\])\s*$")
+_OPENS = re.compile(r"(?:=>|:=|[:=(\[{,\\|+]|>-?|\|-|\"\"\"|\'\'\')\s*$")
 
 
 def _names_secret(text):
@@ -59,10 +64,12 @@ def secret_line(text, above=""):
     for name, pat in SECRET_SHAPES.items():
         if pat.search(text):
             return name
-    if _names_secret(text) and _VALUE.search(text):
+    if _names_secret(text) and (_VALUE.search(text) or _SPACED.search(text)):
         return "a secret name next to a value"
-    if above and _names_secret(above) and _OPENS.search(above):
-        return "continues a secret assignment from the line above"
+    if above and _names_secret(above):
+        indent = lambda s: len(s) - len(s.lstrip())
+        if _OPENS.search(above) or (text.strip() and (indent(text) > indent(above) or text.lstrip()[:1] in "\"'`")):
+            return "continues a secret assignment from the line above"
     return None
 
 
@@ -163,7 +170,15 @@ _HIDE = ['API_KEY = "ABCD1234EFGH5678"', 'TOTP_SECRET = "JBSWY3DPEHPK3PXP"', "PO
          "spring.datasource.password=Passw0rd.2024", 'SMTP_PASSWORD = """hunter2hunter2"""', "DB_PASS=hunter2",
          "<password>hunter2</password>", 'password = "my dog spot runs"', "TOKEN=abcdef123456", "password: changeme",
          'conn = connect(password="s3cr3tpass")', "self.password = password", 'token_type = "Bearer"',
-         "auth_cookie => abc", "client_secret: x"]
+         "auth_cookie => abc", "client_secret: x", 'ENCRYPTION_KEY = "abcd1234efgh5678"',
+         "ALGOLIA_KEY: 0123456789abcdef0123456789abcdef", "--password hunter2hunter2", "pw = 'hunter2'",
+         "curl -u admin:hunter2 https://x", "SG.abcdefghijklmnop.qrstuvwxyz012345"]
+# One line per secret word, written out (not generated from SECRET_WORDS, so dropping a word fails the test).
+_WORD_CASES = ["requirepass hunter", "DB_PWD=x", "pw = 'x'", "ENCRYPTION_KEY = 'x'", "otp_seed: x", "JWT_SECRET: x",
+               "API_TOKEN abc", "apikey=x", "api_key=x", "api-key: x", "accesskey=x", "access_key=x",
+               "private_key: x", "privatekey: x", "credentials: x", "auth: x", "bearer: x", "salt = 'x'",
+               "signing: x", "session_key: x", "dsn: x", "database_url: x", "conn_str: x", "connection_string: x",
+               "cookie: x"]
 _SHOW = ["def handle(request):", "def check_password(user, raw):", "if not secret:", "    return render(request)",
          "order = Order.objects.create(user=user, total=total)", "db.session.add(ticket)", "x = 1", "}",
          "for item in items:", 'url = f"{base}/v1/checkout/sessions"']
@@ -179,9 +194,9 @@ def self_test(tmp):
             problems.append(f"secret shape '{want}' not found in {line!r} (got {secret_line(line)!r})")
     problems += [f"secret line not hidden: {x!r}" for x in _HIDE if not secret_line(x)]
     problems += [f"ordinary line hidden: {x!r} ({secret_line(x)})" for x in _SHOW if secret_line(x)]
-    for word in SECRET_WORDS:
-        if not secret_line(f"MY_{word.upper()}_X = 'v'"):
-            problems.append(f"the secret word '{word}' is not acted on")
+    for line in _WORD_CASES:
+        if not secret_line(line):
+            problems.append(f"secret-word line not hidden: {line!r}")
     start = time.monotonic()
     for long in ("a" * 50000, "token" + "a" * 50000, "token = " + "b" * 50000):
         secret_line(long)
@@ -190,6 +205,7 @@ def self_test(tmp):
     root = tmp / "scan"
     root.mkdir()
     (root / "cont.py").write_text("x = 1\nPASSWORD = (\n    'my dog spot runs'\n)\nAPI_KEY = \\\n  'abcdefgh'\ny = 2\n")
+    (root / "block.yml").write_text("db:\n  password: |\n    hunter2hunter2\n  host: x\n")
     (root / "late-nul.txt").write_bytes(b"a\n" * 10000 + b"\x00\n")
     (root / "wide.py").write_text("x = " + "y + " * 2000 + "1\n")
     def check(rel, line, end=None):
@@ -199,6 +215,9 @@ def self_test(tmp):
         rules, src = check("cont.py", line)
         if rules != ["source-lines-hidden"] or src.snippet != HIDDEN or "spot" in src.snippet:
             problems.append(f"secret line {line} of a continued assignment is not hidden: {rules} {src.snippet!r}")
+    rules, src = check("block.yml", 3)
+    if src.snippet != HIDDEN:
+        problems.append(f"a YAML block value under a secret key is not hidden: {src.snippet!r}")
     rules, src = check("cont.py", 1, 7)
     want = ["x = 1", HIDDEN, HIDDEN, ")", HIDDEN, HIDDEN, "y = 2"]
     if src.snippet != "\n".join(want) or rules != ["source-lines-hidden"]:

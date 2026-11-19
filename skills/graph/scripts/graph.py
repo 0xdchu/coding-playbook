@@ -326,6 +326,14 @@ def self_test():
         snippets = [s["snippet"] for it in data["items"] for s in it["sources"]]
         if "line 3\nline 4\nline 5" not in snippets:
             problems.append(f"panel data lacks the cited snippet: {snippets}")
+        # a cited line that may hold a secret reaches the page only as the placeholder
+        for name in ("source-hidden", "source-hidden-continued"):
+            page = out / f"{name}.html"
+            c, _, _ = run(["render", str(TESTS / "valid" / f"{name}.json"), "-o", str(page), "--repo-root", str(root)])
+            html = page.read_text(encoding="utf-8") if page.exists() else ""
+            if c != 0 or "line hidden: may hold a secret" not in html or any(
+                    k in html for k in ("abcd1234efgh5678", "hunter2hunter2")):
+                problems.append(f"{name}: the rendered page shows a secret line or lacks the placeholder")
         plain = out / "plain.html"
         run(["render", str(TESTS / "valid" / "source-cited.json"), "-o", str(plain)])
         data = _panel_data(plain.read_text(encoding="utf-8")) or {"items": []}
