@@ -7,6 +7,7 @@ source gets a snippet of at most SNIPPET_LINES lines. Nothing is ever written.
 """
 import fnmatch
 import os
+import re
 
 SNIPPET_LINES = 30
 MAX_BYTES = 2 * 1024 * 1024
@@ -15,6 +16,11 @@ SECRET_NAMES = (".env", ".env.*", "*.env", "*.pem", "*.key", "*.p12", "*.pfx", "
                 "id_ed25519*", "id_ecdsa*", "id_dsa*", ".npmrc", ".pypirc", ".netrc", ".git-credentials",
                 "credentials", "credentials.json", "*.kdbx")
 SECRET_DIRS = ("secrets", ".ssh", ".aws", ".gnupg", ".git")
+# Text shapes refused inside a cited range, so a key kept in an ordinary source file is not rendered. Add-only.
+SECRET_TEXT = [re.compile(p) for p in (
+    r"gh[pousr]_[A-Za-z0-9]{20,}", r"github_pat_[A-Za-z0-9_]{20,}", r"sk-[A-Za-z0-9_-]{20,}", r"sk-ant-[A-Za-z0-9_-]{10,}",
+    r"AKIA[0-9A-Z]{16}", r"AIza[0-9A-Za-z_-]{30,}", r"xox[abprs]-[A-Za-z0-9-]{10,}", r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    r"(?i)\b(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\b[\"']?\s*[:=]\s*[\"'][^\"'\s]{6,}[\"']")]
 
 
 def secret_reason(rel):
@@ -77,6 +83,11 @@ def verify(root, src):
     if src.line > len(lines) or last > len(lines):
         return [{"severity": "error", "rule": "source-line-past-end", "path": src.at,
                  "message": f"'{src.path}' has {len(lines)} lines; cited {src.line}" + (f"-{last}" if last != src.line else "")}]
+    for n in range(src.line, last + 1):
+        if any(p.search(lines[n - 1]) for p in SECRET_TEXT):
+            return [{"severity": "error", "rule": "source-secret-content", "path": src.at,
+                     "message": f"'{src.path}' line {n} looks like a secret (a token, key or password literal); "
+                                "cite other lines"}]
     shown = lines[src.line - 1:min(last, src.line + SNIPPET_LINES - 1)]
     src.snippet = "\n".join(shown)
     return []

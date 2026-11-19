@@ -17,7 +17,18 @@
       "external": true
     }
   ],
-  "edges": [],
+  "edges": [
+    {
+      "from": "user",
+      "to": "app",
+      "label": "run"
+    },
+    {
+      "from": "app",
+      "to": "llm",
+      "label": "ask, judge"
+    }
+  ],
   "steps": [
     {
       "from": "user",

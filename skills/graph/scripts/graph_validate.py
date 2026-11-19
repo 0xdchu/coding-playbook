@@ -74,7 +74,9 @@ def _sequence(d, diags):
             if (it.frm == it.to) != (it.kind == "self"):
                 err("self-mismatch", it.at, "a step from a participant to itself needs kind 'self', and only it")
             elif not missing and it.kind != "self":
-                external = it.external or parts[it.frm].external or parts[it.to].external
+                # Exempt: a step marked external, or one that starts at an external party (a click, a webhook arriving).
+                # A step from an internal party needs an edge even toward an external service: the call is in the code.
+                external = it.external or parts[it.frm].external
                 if (it.frm, it.to) in forward:
                     it.edge = forward[(it.frm, it.to)]
                 elif (it.to, it.frm) in forward:
@@ -82,7 +84,7 @@ def _sequence(d, diags):
                 elif not external:
                     err("step-without-edge", it.at,
                         f"no edge declared between '{it.frm}' and '{it.to}'; declare it in 'edges' (with sources), "
-                        "or mark the step or a participant external")
+                        "or mark the step external (an external participant exempts only the steps it starts)")
         if it.shown in shown:
             err("duplicate-number", it.at, f"number {it.shown} is already used at {shown[it.shown]}")
         shown.setdefault(it.shown, it.at)
@@ -180,6 +182,7 @@ def scratch_repo(tmp):
     root.mkdir()
     (root / "app.py").write_text("".join(f"line {i}\n" for i in range(1, 21)))
     (root / ".env").write_text("TOKEN=not-a-real-one\n")
+    (root / "settings.py").write_text("DEBUG = True\nAPI_KEY = \"abcd1234efgh5678\"\nNAME = 'x'\n")
     (root / "secrets").mkdir()
     (root / "secrets" / "notes.txt").write_text("x\n")
     (tmp / "outside.txt").write_text("outside\n")

@@ -37,6 +37,16 @@
           "line": 1
         }
       ]
+    },
+    {
+      "from": "api",
+      "to": "stripe",
+      "label": "create checkout"
+    },
+    {
+      "from": "api",
+      "to": "mail",
+      "label": "send email"
     }
   ],
   "steps": [

@@ -31,6 +31,16 @@
       "from": "api",
       "to": "db",
       "label": "write"
+    },
+    {
+      "from": "api",
+      "to": "stripe",
+      "label": "create checkout"
+    },
+    {
+      "from": "api",
+      "to": "mail",
+      "label": "send email"
     }
   ],
   "steps": [
