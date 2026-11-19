@@ -1,0 +1,66 @@
+{
+  "kind": "workflow",
+  "title": "Three branches",
+  "nodes": [
+    {
+      "id": "start",
+      "label": "Request arrives",
+      "shape": "start"
+    },
+    {
+      "id": "kind",
+      "label": "Which kind of request is it?",
+      "shape": "decision"
+    },
+    {
+      "id": "bug",
+      "label": "Open a bug ticket"
+    },
+    {
+      "id": "feat",
+      "label": "Add to the roadmap"
+    },
+    {
+      "id": "ask",
+      "label": "Answer from the docs"
+    },
+    {
+      "id": "done",
+      "label": "Close the request",
+      "shape": "end"
+    }
+  ],
+  "links": [
+    {
+      "from": "start",
+      "to": "kind"
+    },
+    {
+      "from": "kind",
+      "to": "bug",
+      "label": "Bug"
+    },
+    {
+      "from": "kind",
+      "to": "feat",
+      "label": "Feature"
+    },
+    {
+      "from": "kind",
+      "to": "ask",
+      "label": "Question"
+    },
+    {
+      "from": "bug",
+      "to": "done"
+    },
+    {
+      "from": "feat",
+      "to": "done"
+    },
+    {
+      "from": "ask",
+      "to": "done"
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "kind": "workflow",
+  "title": "Loop past a sibling",
+  "nodes": [
+    {
+      "id": "s",
+      "label": "Begin",
+      "shape": "start"
+    },
+    {
+      "id": "a",
+      "label": "Fetch"
+    },
+    {
+      "id": "b",
+      "label": "Parse"
+    },
+    {
+      "id": "c",
+      "label": "Index"
+    },
+    {
+      "id": "side",
+      "label": "Side task"
+    },
+    {
+      "id": "d",
+      "label": "Publish"
+    },
+    {
+      "id": "e",
+      "label": "Check result",
+      "shape": "decision"
+    },
+    {
+      "id": "end",
+      "label": "Done",
+      "shape": "end"
+    }
+  ],
+  "links": [
+    {
+      "from": "s",
+      "to": "a"
+    },
+    {
+      "from": "a",
+      "to": "b"
+    },
+    {
+      "from": "a",
+      "to": "side"
+    },
+    {
+      "from": "b",
+      "to": "c"
+    },
+    {
+      "from": "side",
+      "to": "d"
+    },
+    {
+      "from": "c",
+      "to": "d"
+    },
+    {
+      "from": "d",
+      "to": "e"
+    },
+    {
+      "from": "e",
+      "to": "end",
+      "label": "Good"
+    },
+    {
+      "from": "e",
+      "to": "a",
+      "label": "Retry"
+    },
+    {
+      "from": "e",
+      "to": "b",
+      "label": "Reparse"
+    }
+  ]
+}
