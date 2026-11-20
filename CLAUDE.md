@@ -1,48 +1,81 @@
 # coding-playbook: which model does which job in Claude Code, and the skills and scripts that go with it
 
+## Where things live
+One row per job. `maint/check.py` fails when a file under `rules/`, `hooks/`, `tools/` or `maint/` is named here neither by its path nor by a folder above it: add a row when you add one.
+
+| Job | Path |
+|---|---|
+| Write a builder's task contract (its own worktree, or the main checkout) | `tools/dispatch.py` |
+| Check an intent (`clarify`), a plan against its branch (`converge`), a repo's map (`map`) | `tools/sdlc-check.py` |
+| Start, hold, pass, fail, ask, stop or resume a one-prompt run | `tools/loop.py` |
+| Move or comment on a Plane ticket | `tools/plane.py` |
+| Draw a plan's progress diagram | `tools/progress-diagram.py` |
+| Read the owner time log | `tools/hil-report.py` |
+| Install into `~/.claude`, or check the install (`--check`) | `maint/install.py` |
+| Verify this repo: frontmatter, pins, every self-test, this table | `maint/check.py` |
+| How this copy is kept in step with the maintainer's internal one, and its review records | `maint/sync-public.py`, `.sync-source.json` |
+| Switch a role's model | `maint/switch-model.py` |
+| Test a candidate model before a switch (runner, cases, runs, release-day list) | `maint/switch-test/` |
+| Set the GitHub rulesets and CODEOWNERS | `maint/github-boundary.py`, `maint/github-boundary.json` |
+| The cost report and its prices | `maint/cost-report.py`, `maint/model-prices.json` |
+| The builder and reviewer guard and an autonomous run's settings, copied from ambysto/1prompt and pinned | `hooks/1prompt/` (installed in `~/.claude/hooks/1prompt/`) |
+| The session gates: branch names, trees under review, lesson recall | `hooks/gates/` (`~/.claude/hooks/gates/`) |
+| The owner-token guard | `hooks/owner-token-guard/` (`~/.claude/hooks/owner-token-guard/`) |
+| The save-it hooks: brief at session start, save the tail before compaction | `hooks/saveit/` (`~/.claude/hooks/saveit/`) |
+| The session graph hook | `hooks/graph/` (`~/.claude/hooks/graph/`) |
+| The one-prompt Stop hook and the wake timer | `hooks/loop/` (`~/.claude/hooks/loop/`) |
+| The global block and the settings defaults; its Codex and Gemini versions (`AGENTS.md`, `GEMINI.md`, kept here by hand) | `rules/global/` (into `~/.claude/CLAUDE.md` and `settings.json`) |
+| The four subagents | `rules/agents/` (`~/.claude/agents/`) |
+| The skills | `skills/<name>/` (`~/.claude/skills/`) |
+| The design systems (CSS libraries the mockup skill reads) | `design-systems/` |
+| This repo's map | `docs/map/` |
+| How the scripts work inside, and their known gaps | `docs/internals.md` |
+| Intents and plans | `intent/` |
+
+
 ## What it does
-The four subagents (builder, reviewer, hard-reviewer, transcriber), the global instructions, thirteen skills (`starter-kit`, `handoff`, `sdlc`, `teardown`, `orca-worktree-setup`, `agent-team`, `create-skill`, `secrets`, `whats-next`, `system-map`, and `mockup`, `graph` and `userflow`, which live only in this public copy), the builder dispatch and sdlc check scripts, a one-command model switch and the switch test kit, the agent-guard hooks, the owner-token guard and the save-it hooks, the Plane and progress-diagram scripts, the one-prompt loop (`loop/loop.py` and its Stop hook), the session graph hook, the session gates, the owner time log report, the cost report, plus a check script and an installer. Standard library Python only. Every session on every machine follows these files, so a wrong rule rates HARD work as EASY or lets an unreviewed change through.
+The four subagents (builder, reviewer, hard-reviewer, transcriber), the global instructions, thirteen skills (`starter-kit`, `handoff`, `sdlc`, `teardown`, `orca-worktree-setup`, `agent-team`, `create-skill`, `secrets`, `whats-next`, `system-map`, and `mockup`, `graph` and `userflow`, which live only in this public copy), the builder dispatch and sdlc check scripts, a one-command model switch and the switch test kit, the agent-guard hooks, the owner-token guard and the save-it hooks, the Plane and progress-diagram scripts, the one-prompt loop (`tools/loop.py` and its Stop hook), the session graph hook, the session gates, the owner time log report, the cost report, plus a check script and an installer. Standard library Python only. Every session on every machine follows these files, so a wrong rule rates HARD work as EASY or lets an unreviewed change through.
 
 ## Verify
-- `python3 scripts/check.py`: agent frontmatter and pinned models, `hard-reviewer` body equal to `reviewer` body, `rores/global/CLAUDE.md` matches the pins, the starter-kit template's sections, skill frontmatter, `settings-defaults.json`, and the self-tests of `dispatch.py`, `sdlc-check.py`, `switch-model.py`, `saveit/saveit-hook.py`, `plane.py`, `progress-diagram.py`, `graph/graph-hook.py` (a fake `ambysto-graph` and `systemd-run` on a scratch repo: refresh, skip with no change, lock, failing or killed jobs keeping the old graph, the start lines), `loop/loop.py` and `loop/loop-stop.py` (the run file and the Stop hook on scratch repos and plans: gaps and failing checks block, reviewer verdicts recorded and required, done, two fails, three check rounds, idle, the time limit, the ticket comment, never trapping a session), `scripts/cost-report.py` and `scripts/sync-public.py` (scratch transcripts and scratch repos), `loop/loop-wake.py --self-test` (a fake `claude`, `systemd-run`, `systemctl` and `plane.py` in a scratch HOME: a dead quiet run woken once and bound to the fork, every reason not to wake, each cap closing the run, the spend ledger, the timer install), plus `install.py --settings` registering the session hooks once each and a refusal writing nothing (scratch HOMEs).
-- `HOME=$(mktemp -d) python3 scripts/install.py --settings` then `--check` under the same `HOME`: installs and reports no drift (exit 0), without touching `~/.claude`. Without `--settings` the install skips the session hook entries in `settings.json`, and `--check` reports them as drift (exit 1).
+- `python3 maint/check.py`: agent frontmatter and pinned models, `hard-reviewer` body equal to `reviewer` body, `rules/global/CLAUDE.md` matches the pins, the starter-kit template's sections, skill frontmatter, `settings-defaults.json`, and the self-tests of `dispatch.py`, `sdlc-check.py`, `switch-model.py`, `hooks/saveit/saveit-hook.py`, `plane.py`, `progress-diagram.py`, `hooks/graph/graph-hook.py` (a fake `ambysto-graph` and `systemd-run` on a scratch repo: refresh, skip with no change, lock, failing or killed jobs keeping the old graph, the start lines), `tools/loop.py` and `hooks/loop/loop-stop.py` (the run file and the Stop hook on scratch repos and plans: gaps and failing checks block, reviewer verdicts recorded and required, done, two fails, three check rounds, idle, the time limit, the ticket comment, never trapping a session), `maint/cost-report.py` and `maint/sync-public.py` (scratch transcripts and scratch repos), `hooks/loop/loop-wake.py --self-test` (a fake `claude`, `systemd-run`, `systemctl` and `plane.py` in a scratch HOME: a dead quiet run woken once and bound to the fork, every reason not to wake, each cap closing the run, the spend ledger, the timer install), plus `install.py --settings` registering the session hooks once each and a refusal writing nothing (scratch HOMEs).
+- `HOME=$(mktemp -d) python3 maint/install.py --settings` then `--check` under the same `HOME`: installs and reports no drift (exit 0), without touching `~/.claude`. Without `--settings` the install skips the session hook entries in `settings.json`, and `--check` reports them as drift (exit 1).
 - A change to an agent's behaviour: start a new session, run the agent once on a known diff, and record what it returned in the PR.
 - A change to a skill's steps: run it once in a fresh agent on a scratch repo, given only the skill, and record where it had to guess.
 
 ## HARD: the main session does it directly, then hard-reviewer
 Rated by undo cost (global "Task rating", owner decision 2026-11-11): HARD here is what no revert undoes (a guard that let something through, money spent, something published, a setting the installer spread to every machine) and any change of a rule (what the global block, a skill's steps or an agent's instructions tell a session to do or not do). Read an item's section in `docs/internals.md` before changing it.
-- The model choice and switching: the "Current choice" line, any agent's `model:` or `effort:`, `scripts/switch-model.py`.
+- The model choice and switching: the "Current choice" line, any agent's `model:` or `effort:`, `maint/switch-model.py`.
 - Task rating (EASY / MEDIUM / HARD), the review loop, who may commit or merge, the honesty rules.
 - The reviewers' checklist and their PASS/FAIL rule.
-- `scripts/dispatch.py`: the task contract a builder works to, which `hooks/agent-guard.py` enforces, and the task parser in `scripts/sdlc-check.py` that `--task` reads it from (`converge` also prints `floor:` notes for added suppressions, skipped/deleted tests and removed assertions).
-- `loop/loop.py` and `loop/loop-stop.py`: the one-prompt run, its evidence-based done and verdicts per task.
-- `loop/loop-wake.py`: waking a dead run under spend caps.
-- `gates/session-gates.py` and `.claude/branch-name.json`: the session gates (branch names, no push to `main`, trees a running subagent read, lesson recall); a gate that wrongly allows lets the slip through, one that wrongly refuses stalls every session.
-- The installer's writes to `~/.claude` (backups, the marker block, which also takes over a block left by an earlier `coding-playbook` or `claudecode-guide` install, skill folders, `hooks/saveit`, `hooks/loop`, `hooks/graph` and `hooks/gates`, and with `--settings` the entries of `rores/global/settings-defaults.json` and the session hook entries in `settings.json` (PreToolUse, SessionStart, PreCompact, Stop, SubagentStop, SessionEnd; an entry already there is brought to this repo's timeout), each appended once beside any other hooks; it never sets the model and never deletes).
+- `tools/dispatch.py`: the task contract a builder works to, which `hooks/1prompt/agent-guard.py` enforces, and the task parser in `tools/sdlc-check.py` that `--task` reads it from (`converge` also prints `floor:` notes for added suppressions, skipped/deleted tests and removed assertions).
+- `tools/loop.py` and `hooks/loop/loop-stop.py`: the one-prompt run, its evidence-based done and verdicts per task.
+- `hooks/loop/loop-wake.py`: waking a dead run under spend caps.
+- `hooks/gates/session-gates.py` and `.claude/branch-name.json`: the session gates (branch names, no push to `main`, trees a running subagent read, lesson recall); a gate that wrongly allows lets the slip through, one that wrongly refuses stalls every session.
+- The installer's writes to `~/.claude` (backups, the marker block, which also takes over a block left by an earlier `coding-playbook` or `claudecode-guide` install, skill folders, `hooks/saveit`, `hooks/loop`, `hooks/graph` and `hooks/gates`, and with `--settings` the entries of `rules/global/settings-defaults.json` and the session hook entries in `settings.json` (PreToolUse, SessionStart, PreCompact, Stop, SubagentStop, SessionEnd; an entry already there is brought to this repo's timeout), each appended once beside any other hooks; it never sets the model and never deletes).
 
 ## MEDIUM: builder builds, reviewer reviews
-- Builder and transcriber wording that changes what they do or when they stop; the template's sections; a skill's steps or stop points; `scripts/check.py`; `scripts/sdlc-check.py`.
-- Shortening or rewording `rores/global/CLAUDE.md` or a skill without changing a rule: the reviewer compares the old and new text rule by rule; a rule found changed makes the change HARD.
-- `graph/graph-hook.py` (the session graph): it must never block or break a session (exit 0, `|| true`) and writes only under `<git dir>/progress-diagram/`.
-- `docs/internals.md`, `scripts/plane.py`, `scripts/progress-diagram.py`, `scripts/hil-report.py`, `scripts/cost-report.py`.
+- Builder and transcriber wording that changes what they do or when they stop; the template's sections; a skill's steps or stop points; `maint/check.py`; `tools/sdlc-check.py`.
+- Shortening or rewording `rules/global/CLAUDE.md` or a skill without changing a rule: the reviewer compares the old and new text rule by rule; a rule found changed makes the change HARD.
+- `hooks/graph/graph-hook.py` (the session graph): it must never block or break a session (exit 0, `|| true`) and writes only under `<git dir>/progress-diagram/`.
+- `docs/internals.md`, `tools/plane.py`, `tools/progress-diagram.py`, `tools/hil-report.py`, `maint/cost-report.py`.
 
 ## EASY: transcriber or builder, no review
 - README wording, typos, examples that do not change a rule, intent and plan status lines that record work done.
 
 ## Rules
-- Models are pinned to full model IDs (`claude-opus-5-5`), never aliases. A model change edits every agent file, the "Current choice" line and the README in one PR (`scripts/switch-model.py` does it in one command).
+- Models are pinned to full model IDs (`claude-opus-5-5`), never aliases. A model change edits every agent file, the "Current choice" line and the README in one PR (`maint/switch-model.py` does it in one command).
 - The body of `hard-reviewer.md` is the body of `reviewer.md`: edit `reviewer.md`, then copy its body; `check.py` fails otherwise.
-- Universal only: no project's paths, commands or names in `rores/agents/`, `rores/global/` or `skills/`. Three exceptions: `rores/global/CLAUDE.md` names this repo's own folder (`~/work/0xdonniechu/coding-playbook`) where it points at `dispatch.py`, `hil-report.py`, `loop/loop.py`, `progress-diagram.py`, `plane.py` and the switch-test kit; its Tools section names the owner's local tools (`ambysto-saveit`, `ambysto-graph`, Plane) because every session needs to know them (owner instruction 2026-11-10: load the existing tools, one step at a time); it tells a session to skip a tool that is not installed; and "The loop" names `ambysto-memory` and `ambysto-1prompt` as the repos where GitHub keeps merges with the owner.
+- Universal only: no project's paths, commands or names in `rules/agents/`, `rules/global/` or `skills/`. Three exceptions: `rules/global/CLAUDE.md` names this repo's own folder (`~/work/0xdonniechu/coding-playbook`) where it points at `dispatch.py`, `hil-report.py`, `tools/loop.py`, `progress-diagram.py`, `plane.py` and the switch-test kit; its Tools section names the owner's local tools (`ambysto-saveit`, `ambysto-graph`, Plane) because every session needs to know them (owner instruction 2026-11-10: load the existing tools, one step at a time); it tells a session to skip a tool that is not installed; and "The loop" names `ambysto-memory` and `ambysto-1prompt` as the repos where GitHub keeps merges with the owner.
 - Nothing secret: no keys, tokens, hosts or ids.
-- Synced from the internal copy (owner decision 2026-11-11): every file except this `CLAUDE.md`, `README.md`, `.claude/branch-name.json`, `.sync-source.json` and the Codex and Gemini files (`AGENTS.md`, `GEMINI.md`, `rores/global/AGENTS.md`, `rores/global/GEMINI.md`, `skills/starter-kit/project-AGENTS.md`, `skills/starter-kit/project-GEMINI.md`, which live only here and are changed here) and the graph, mockup and userflow skills' files (`intent/2026-11-19-graph-flow-diagrams.md`, its `.plan.md`, and the folders `skills/graph/`, `skills/mockup/` and `skills/userflow/`, written here and changed here; the internal `public-sync.json` lists them public-only, a folder entry covering every file under it) comes from the maintainer's internal repo through `scripts/sync-public.py`, on a `feat/` branch, after a leak check and a read of the whole diff. Change those files there, not here: a change made only here is overwritten by the next sync. This repo's own files are brought in step by hand when the sync reports them; the Codex and Gemini files must stay universal like `rores/global/CLAUDE.md` (no machine section, hosts, ids or emails) and follow its rules when they change.
-- The builder's task contract is enforced by `hooks/agent-guard.py`. The main session still reruns the contract's checks and runs `sdlc-check.py converge` before review.
-- `hooks/agent-guard.py` and `hooks/autonomous-settings.json` are copied from `ambysto/1prompt` at the commit `hooks/pin.json` names: change them there, copy them here, update the pin.
+- Synced from the internal copy (owner decision 2026-11-11): every file except this `CLAUDE.md`, `README.md`, `.claude/branch-name.json`, `.sync-source.json` and the Codex and Gemini files (`AGENTS.md`, `GEMINI.md`, `rules/global/AGENTS.md`, `rules/global/GEMINI.md`, `skills/starter-kit/project-AGENTS.md`, `skills/starter-kit/project-GEMINI.md`, which live only here and are changed here) and the graph, mockup and userflow skills' files (`intent/2026-11-19-graph-flow-diagrams.md`, its `.plan.md`, and the folders `skills/graph/`, `skills/mockup/` and `skills/userflow/`, written here and changed here; the internal `maint/public-sync.json` lists them public-only, a folder entry covering every file under it) comes from the maintainer's internal repo through `maint/sync-public.py`, on a `feat/` branch, after a leak check and a read of the whole diff. Change those files there, not here: a change made only here is overwritten by the next sync. This repo's own files are brought in step by hand when the sync reports them; the Codex and Gemini files must stay universal like `rules/global/CLAUDE.md` (no machine section, hosts, ids or emails) and follow its rules when they change.
+- The builder's task contract is enforced by `hooks/1prompt/agent-guard.py`. The main session still reruns the contract's checks and runs `sdlc-check.py converge` before review.
+- `hooks/1prompt/agent-guard.py` and `hooks/1prompt/autonomous-settings.json` are copied from `ambysto/1prompt` at the commit `hooks/1prompt/pin.json` names: change them there, copy them here, update the pin.
 - Git: English only; the `0xdonniechu` account (check with `gh api user --jq .login` before the first PR of a session; do not switch accounts); branches `feat/...` or `fix/...`, never a push to `main`; only the main session commits, pushes, opens and merges PRs: this repo is public, so a merge publishes to its readers; it merges on its own under the global rule (owner decision 2026-11-11: the public copy is kept in step without asking) once the whole Verify passed on the branch and the review passed (a change of model, rating or review rule needs the owner's approval first), then deletes the branch and its worktree (owner decision 2026-11-11).
 
 ## Read when
 - Changing a hook or script in the HARD list: its section in `docs/internals.md` first (how it works inside, its limits).
-- Changing the switch script: `scripts/switch-model.py --self-test` runs it on a scratch copy of this repo.
-- Adding a skill: add its name to `SKILLS` in `scripts/check.py`. A skill that lives only here (today `graph`, `mockup` and `userflow`) is listed in `PUBLIC_ONLY_SKILLS` there instead, and its folder as public-only in the internal sync config; both are changed in the internal copy.
+- Changing the switch script: `maint/switch-model.py --self-test` runs it on a scratch copy of this repo.
+- Adding a skill: add its name to `SKILLS` in `maint/check.py`. A skill that lives only here (today `graph`, `mockup` and `userflow`) is listed in `PUBLIC_ONLY_SKILLS` there instead, and its folder as public-only in the internal sync config; both are changed in the internal copy.
 
 ## Session state
 `HANDOFF.md` (gitignored) holds only where the current goal stands. Plans, decisions and dead ends go in files, not in the chat.

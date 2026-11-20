@@ -1,17 +1,17 @@
 {
-  "internal_commit": "e5fbd01",
+  "internal_commit": "b15fa73",
   "reviewed": {
     ".claude/branch-name.json": "79964f2",
     "AGENTS.md": "b7862bd",
-    "CLAUDE.md": "e5fbd01",
+    "CLAUDE.md": "b15fa73",
     "GEMINI.md": "b7862bd",
-    "README.md": "e5fbd01",
+    "README.md": "b15fa73",
     "intent/2026-11-19-graph-flow-diagrams.md": "5ef1bfd",
     "intent/2026-11-19-graph-flow-diagrams.plan.md": "1821bc9",
     "intent/2026-11-20-design-systems-library.md": "e5fbd01",
     "intent/2026-11-20-design-systems-library.plan.md": "e5fbd01",
-    "rores/global/AGENTS.md": "b7862bd",
-    "rores/global/GEMINI.md": "b7862bd",
+    "rules/global/AGENTS.md": "b15fa73",
+    "rules/global/GEMINI.md": "b15fa73",
     "skills/starter-kit/project-AGENTS.md": "b7862bd",
     "skills/starter-kit/project-GEMINI.md": "b7862bd"
   }

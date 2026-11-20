@@ -16,7 +16,7 @@ Every system folder holds exactly:
   LICENSE           the upstream licence text
 ```
 
-`scripts/check.py` fails when a file is missing, a manifest is invalid, or a class named in `components[]` does not
+`maint/check.py` fails when a file is missing, a manifest is invalid, or a class named in `components[]` does not
 appear in a `class="..."` attribute in `reference.html`.
 
 ## The five systems
@@ -53,4 +53,4 @@ playful landing-adjacent app, Fluent for a Microsoft-shaped product.
 1. Copy the five-file shape from an existing folder.
 2. Record `source`, `version` and `date` in `manifest.json`; copy the upstream LICENSE.
 3. Curate tokens first, then components; every class in `components[]` must appear in `reference.html`.
-4. Run `python3 scripts/check.py` and open `reference.html` at 1440 and 390.
+4. Run `python3 maint/check.py` and open `reference.html` at 1440 and 390.

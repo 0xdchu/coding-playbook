@@ -1,5 +1,5 @@
 ---
-status: approved # draft → approved → planned → building → verified → shipped (PR #n) (approved by the owner, 2026-11-20: "approve")
+status: shipped (PR #91) # draft → approved → planned → building → verified → shipped (PR #n) (approved by the owner, 2026-11-20: "approve")
 ---
 # Layout by role: rules/, hooks/, tools/, maint/, so an agent finds each file by its job
 
