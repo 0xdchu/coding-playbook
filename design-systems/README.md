@@ -24,8 +24,8 @@ appear in a `class="..."` attribute in `reference.html`.
 | Folder | Source | Use it for | Dark | Licence |
 |---|---|---|---|---|
 | `shadcn/` | shadcn/ui default theme | modern SaaS, dashboards, marketing-adjacent product UI | yes | MIT |
-| `radix/` | Radix Colors 3.x | apps that want the Radix Themes look (soft accents, 6px radius) | yes | MIT |
-| `open-props/` | Open Props 1.7.23 | playful, young products; token-first, rounded, soft shadows | no | MIT |
+| `radix/` | Radix Colors 3.x + Themes patterns | apps that want the Radix Themes look (soft accents, 6px radius) | yes | MIT |
+| `open-props/` | Open Props 1.7.23 | playful, young products; tokens only, components are recipes | no | MIT |
 | `fluent/` | Microsoft Fluent 2 tokens | Microsoft-style productivity apps, dense forms | yes | MIT |
 | `carbon/` | IBM Carbon 11 | enterprise, data-dense consoles; square, accessible | yes | Apache-2.0 |
 
@@ -42,7 +42,9 @@ playful landing-adjacent app, Fluent for a Microsoft-shaped product.
   nothing is bundled.
 - **Name the source and date in the manifest.** The library is a snapshot; re-read the upstream before trusting a
   value months later.
-- **No invented components.** If upstream does not ship it, the library does not either.
+- **Only upstream components, or a documented recipe.** Open Props and Radix Colors ship tokens, not
+  components; their folders say `kind: tokens-only` / `tokens+recipes`, and the recipes are built from the official
+  tokens. Everything else follows a pattern the upstream system ships.
 
 ## Add a system
 

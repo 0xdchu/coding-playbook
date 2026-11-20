@@ -1,5 +1,5 @@
 ---
-status: building
+status: verified
 planned: 2026-11-20 (owner, "đủ 5 bộ CSS thuần")
 ---
 # Plan — five modern design systems (shadcn, Radix, Open Props, Fluent, Carbon)
@@ -65,3 +65,5 @@ planned: 2026-11-20 (owner, "đủ 5 bộ CSS thuần")
 2. PASS — all five `reference.html` at 1440×900 and 390×844: 0 console errors, 0 horizontal overflow; screenshots inspected (light and dark panels).
 3. PASS — `converge`: 0 gap.
 4. PASS — `skills/mockup/SKILL.md` step 2 names shadcn, Radix, Open Props, Fluent and Carbon and the copy rule; `template/README.md` repeats it; 1,015 lines of CSS+HTML total, largest system 277 lines (Radix), under the 900 limit.
+
+Review: independent reviewer FAIL on the first pass; all five MAJOR and three MINOR issues were fixed before this result — shadcn dark heading colour, exact-five folder check, Carbon g90 on-colour/interactive tokens and focus ring, tokens-only labelling for Open Props and Radix, destructive hover, missing-file guard, Carbon token drift (green, layer-3, blue-hover, danger, focus-inset).

@@ -26,5 +26,7 @@
     "radix-callout--success",
     "radix-table",
     "radix-separator"
-  ]
+  ],
+  "kind": "tokens+recipes",
+  "components_source": "https://github.com/radix-ui/themes"
 }

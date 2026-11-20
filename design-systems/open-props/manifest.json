@@ -20,5 +20,7 @@
     "openprops-alert--yellow",
     "openprops-table",
     "openprops-separator"
-  ]
+  ],
+  "kind": "tokens-only",
+  "components_source": "recipes built from Open Props tokens"
 }

@@ -17,6 +17,7 @@
 .shadcn-btn--ghost { background: transparent; color: hsl(var(--shadcn-foreground)); }
 .shadcn-btn--ghost:hover { background: hsl(var(--shadcn-accent)); }
 .shadcn-btn--destructive { background: hsl(var(--shadcn-destructive)); color: hsl(var(--shadcn-destructive-foreground)); }
+.shadcn-btn--destructive:hover { background: color-mix(in srgb, hsl(var(--shadcn-destructive)) 88%, #000); }
 
 .shadcn-label { display: block; margin-bottom: 6px; font: 500 14px/1 var(--shadcn-font); color: hsl(var(--shadcn-foreground)); }
 .shadcn-input, .shadcn-textarea {

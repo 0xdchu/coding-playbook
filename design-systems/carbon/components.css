@@ -3,16 +3,16 @@
 .carbon-btn {
   display: inline-flex; align-items: center; justify-content: space-between; gap: 32px;
   height: 48px; padding: 0 16px; border: 1px solid transparent; border-radius: var(--carbon-radius);
-  background: var(--carbon-blue); color: var(--carbon-text-inverse);
+  background: var(--carbon-blue); color: var(--carbon-on-color);
   font: 400 var(--carbon-type-2)/1.2857 var(--carbon-font); cursor: pointer;
   transition: background .15s ease, color .15s ease, border-color .15s ease;
 }
 .carbon-btn:hover { background: var(--carbon-blue-hover); }
-.carbon-btn:focus-visible { outline: 2px solid var(--carbon-focus); outline-offset: -2px; }
+.carbon-btn:focus-visible { outline: 2px solid var(--carbon-focus); outline-offset: 2px; }
 .carbon-btn:disabled { background: var(--carbon-layer-1); color: var(--carbon-text-3); cursor: not-allowed; }
-.carbon-btn--tertiary { background: transparent; border-color: var(--carbon-blue); color: var(--carbon-blue); }
-.carbon-btn--tertiary:hover { background: var(--carbon-blue); color: var(--carbon-text-inverse); }
-.carbon-btn--ghost { background: transparent; color: var(--carbon-blue); padding: 0 8px; }
+.carbon-btn--tertiary { background: transparent; border-color: var(--carbon-interactive); color: var(--carbon-interactive); }
+.carbon-btn--tertiary:hover { background: var(--carbon-blue); color: var(--carbon-on-color); }
+.carbon-btn--ghost { background: transparent; color: var(--carbon-interactive); padding: 0 8px; }
 .carbon-btn--ghost:hover { background: var(--carbon-layer-1); }
 .carbon-btn--danger { background: var(--carbon-red); }
 .carbon-btn--danger:hover { background: var(--carbon-red-hover); }

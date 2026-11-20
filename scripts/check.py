@@ -552,10 +552,14 @@ def check_design_systems():
         fail("design-systems/: no system folders")
     for d in folders:
         rel = f"design-systems/{d.name}"
+        missing = False
         for name in ("manifest.json", "tokens.css", "components.css", "reference.html", "LICENSE"):
             path = d / name
             if not path.is_file() or not path.read_text(encoding="utf-8", errors="replace").strip():
                 fail(f"{rel}/{name}: missing or empty")
+                missing = True
+        if missing:
+            continue
         try:
             manifest = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
@@ -578,8 +582,8 @@ def check_design_systems():
         if "--" not in (d / "tokens.css").read_text(encoding="utf-8", errors="replace"):
             fail(f"{rel}/tokens.css: no CSS variables")
     required = {"shadcn", "radix", "open-props", "fluent", "carbon"}
-    if {d.name for d in folders} < required:
-        fail(f"design-systems/: expected {', '.join(sorted(required))}")
+    if {d.name for d in folders} != required:
+        fail(f"design-systems/: expected exactly {', '.join(sorted(required))}; found {', '.join(d.name for d in folders)}")
 
 
 check_design_systems()
