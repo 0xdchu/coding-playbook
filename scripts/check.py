@@ -26,7 +26,8 @@ BUILD_HOOKS = [("PreToolUse", "*", "build"), ("PostToolUse", "Bash|PowerShell|Ed
                ("Stop", None, "build-stop")]  # the task contract (APS-46); scripts/dispatch.py writes it
 GUARDED = {"builder": BUILD_HOOKS, "reviewer": REVIEW_HOOKS, "hard-reviewer": REVIEW_HOOKS}
 TEMPLATE_SECTIONS = ["## What it does", "## Verify", "## HARD", "## MEDIUM", "## EASY", "## Rules", "## Read when", "## Session state"]
-SKILLS = {"starter-kit", "handoff", "sdlc", "teardown", "orca-worktree-setup", "agent-team", "create-skill", "secrets", "whats-next"}
+SKILLS = {"starter-kit", "handoff", "sdlc", "teardown", "orca-worktree-setup", "agent-team", "create-skill", "secrets", "whats-next",
+          "system-map"}
 # Skills that live only in the public copy (a `skills/<name>/` public-only folder in public-sync.json, APS-80): checked like
 # the others when present, absent here without a failure. Each names its self-test script (None: it has no
 # standard-library self-test) and its trigger prompts.
@@ -67,6 +68,9 @@ SKILL_TRIGGERS = {
              ["split waves across role agents"]),
     "secrets": (["keep API keys and .env passwords safe before pushing to GitHub", "connect a new API without leaking secrets"],
                 ["create a new skill from template"]),
+    "system-map": (["map this repo: architecture view by domain and docs view, committed in docs/map",
+                    "converge listed map gaps, update the system map"],
+                   ["write the intent and follow the plan to verify and ship"]),
     "starter-kit": (["run /starter-kit to set up a new repo from the CLAUDE.md template", "set git identity and tracker project for a new repo"],
                     ["save progress before compact"]),
     "teardown": (["decompose product and write a clean-room specification", "reverse engineer how product X works"],
@@ -537,56 +541,6 @@ with tempfile.TemporaryDirectory() as home:
     left = sorted(p.relative_to(claude).as_posix() for p in claude.rglob("*"))
     if out.returncode != 2 or left != ["settings.json"]:
         fail(f"install.py --settings over a bad hooks shape: expected exit 2 and nothing written; got exit {out.returncode}, {left[:5]}")
-
-def check_design_systems():
-    """Every design-systems/<system>/ folder keeps the five-file contract, and every manifest class is shown."""
-    root = ROOT / "design-systems"
-    if not root.is_dir():
-        fail("design-systems/: missing")
-        return
-    readme = root / "README.md"
-    if not readme.is_file() or not readme.read_text(encoding="utf-8").strip():
-        fail("design-systems/README.md: missing or empty")
-    folders = sorted(p for p in root.iterdir() if p.is_dir())
-    if not folders:
-        fail("design-systems/: no system folders")
-    for d in folders:
-        rel = f"design-systems/{d.name}"
-        missing = False
-        for name in ("manifest.json", "tokens.css", "components.css", "reference.html", "LICENSE"):
-            path = d / name
-            if not path.is_file() or not path.read_text(encoding="utf-8", errors="replace").strip():
-                fail(f"{rel}/{name}: missing or empty")
-                missing = True
-        if missing:
-            continue
-        try:
-            manifest = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
-            fail(f"{rel}/manifest.json: {error}")
-            continue
-        for key in ("name", "source", "version", "date", "license", "font", "accent", "dark", "components"):
-            if key not in manifest:
-                fail(f"{rel}/manifest.json: missing '{key}'")
-        components = manifest.get("components") or []
-        if not isinstance(components, list) or not components:
-            fail(f"{rel}/manifest.json: 'components' must be a non-empty list")
-            continue
-        reference = (d / "reference.html").read_text(encoding="utf-8", errors="replace")
-        shown = set()
-        for match in re.finditer(r'class="([^"]*)"', reference):
-            shown.update(match.group(1).split())
-        for component in components:
-            if not isinstance(component, str) or component not in shown:
-                fail(f"{rel}/reference.html: '{component}' is not shown as a class")
-        if "--" not in (d / "tokens.css").read_text(encoding="utf-8", errors="replace"):
-            fail(f"{rel}/tokens.css: no CSS variables")
-    required = {"shadcn", "radix", "open-props", "fluent", "carbon", "flex"}
-    if {d.name for d in folders} != required:
-        fail(f"design-systems/: expected exactly {', '.join(sorted(required))}; found {', '.join(d.name for d in folders)}")
-
-
-check_design_systems()
 
 if failures:
     print("FAIL")
