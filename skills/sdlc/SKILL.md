@@ -65,10 +65,10 @@ None.
 Mark every open point where it stands in the text as `[NEEDS CLARIFICATION: <question>]`, and list it under `## Open questions`. That section begins with `None` when nothing is open. Run
 
 ```
-python3 <coding-playbook>/scripts/sdlc-check.py clarify intent/<yyyy-mm-dd>-<slug>.md
+python3 <coding-playbook>/tools/sdlc-check.py clarify intent/<yyyy-mm-dd>-<slug>.md
 ```
 
-(`scripts/sdlc-check.py` in the coding-playbook repo) before the intent goes to `approved`, and again before the plan is written. It fails while any marker remains, `## Open questions` does not begin with `None`, a Coverage bullet is missing or empty, the `Flow:` line is missing or wrong, or a flow fails validation or its `.flow.html` is not a fresh render. With no flow tool installed it says the flows were not checked; say so too.
+(`tools/sdlc-check.py` in the coding-playbook repo) before the intent goes to `approved`, and again before the plan is written. It fails while any marker remains, `## Open questions` does not begin with `None`, a Coverage bullet is missing or empty, the `Flow:` line is missing or wrong, or a flow fails validation or its `.flow.html` is not a fresh render. With no flow tool installed it says the flows were not checked; say so too.
 
 **Fresh reader.** Before you ask the owner to approve, run one fresh agent, with none of this chat, on the model your builder agent uses, read-only. Give it this prompt, with the paths filled in:
 
@@ -159,7 +159,7 @@ The repo's normal rules apply (one logical unit at a time; a worktree if tasks r
 Run exactly the **Proof** items in the plan, and fill `## Result`: one numbered item per Proof item, beginning `PASS`, `FAIL` or `not run: <reason>`. Then run
 
 ```
-python3 <coding-playbook>/scripts/sdlc-check.py converge intent/<yyyy-mm-dd>-<slug>.plan.md
+python3 <coding-playbook>/tools/sdlc-check.py converge intent/<yyyy-mm-dd>-<slug>.plan.md
 ```
 
 It lists each gap between the plan and the branch's diff: a changed path no task allows, a task never touched (and not marked `not needed`), a Proof item with no Result, plus `floor:` notes for any added linter/type suppression, skipped or deleted test, or net removed assertion. When the intent has `## Coverage`, it also fails when an Outcome item is named by no Proof item, or a Proof item names an Outcome item that does not exist. In a repo with a map (`docs/map/`, the system-map skill), when the branch changes anything besides the plan and its intent, it also runs `sdlc-check.py map` and each item is a `map:` gap: update the map on the same branch, so the task that changes code also allows `docs/map/**`. It fails while any gap remains. A plan without `## Tasks`, or an intent without `## Coverage`, is reported and passes, so older plans stay valid.

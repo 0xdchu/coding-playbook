@@ -9,7 +9,7 @@ A map is a picture of a whole repo that a reader can trust. It lives in the repo
 
 ## What you need
 - **`ambysto-graph`** on `PATH`. It draws the Architecture and Docs views, and every check needs it. Without it, go to "Without ambysto-graph" below.
-- **The check:** `python3 <coding-playbook>/scripts/sdlc-check.py map <repo>`, from the coding-playbook repo your global instructions name.
+- **The check:** `python3 <coding-playbook>/tools/sdlc-check.py map <repo>`, from the coding-playbook repo your global instructions name.
   - Exit 0: nothing listed.
   - Exit 1: it lists items to fix.
   - Exit 2: nothing was checked (no `ambysto-graph`).
