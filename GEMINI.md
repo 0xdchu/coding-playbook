@@ -5,7 +5,7 @@ The subagent roles (decision-gate, builder, reviewer, hard-reviewer, transcriber
 
 ## Verify
 - `python3 scripts/check.py`: agent frontmatter and pinned models, `hard-reviewer` body equal to `reviewer` body, `rores/global/CLAUDE.md` matches the pins, the starter-kit template's sections, skill frontmatter, `settings-defaults.json`, and the self-tests of `dispatch.py`, `sdlc-check.py`, `switch-model.py`, `saveit/saveit-hook.py`, `plane.py`, `progress-diagram.py`, `graph/graph-hook.py`, `loop/loop.py` and `loop/loop-stop.py`, `scripts/cost-report.py` and `scripts/sync-public.py`, `loop/loop-wake.py --self-test`, plus `install.py --settings`.
-- `HOME=$(mktemp -d) python3 scripts/install.py` then `--check` under the same `HOME`: installs and reports no drift, without touching `~/.claude`.
+- `HOME=$(mktemp -d) python3 scripts/install.py --settings` then `--check` under the same `HOME`: installs and reports no drift (exit 0), without touching `~/.claude`. Without `--settings` the install skips the session hook entries in `settings.json`, and `--check` reports them as drift (exit 1).
 
 ## Gemini Decision 1 (`gemini-decision-1`) Gate & Triage
 - **PreToolUse Command Gate (`~/.antigravity/hooks/gd1_hook.py`)**:
