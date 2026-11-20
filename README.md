@@ -32,6 +32,7 @@ Skills are separate from the roles: each folder is one skill, invoked by name or
 | `skills/orca-worktree-setup/` | `~/.claude/skills/` | Setup scripts so every new Orca worktree gets the gitignored local files it needs |
 | `skills/sdlc/` | `~/.claude/skills/` | The artifact chain intent, plan, build, verify, ship; an intent has a Coverage list and, when the work branches, flows drawn with the `graph` skill and checked by `clarify`; a fresh-reader agent reads the intent before approval; a plan's `## Tasks` section feeds the builder's contract and its Proof items name the Outcome items they prove |
 | `skills/mockup/` | `~/.claude/skills/` | Build a clickable end-user mockup from a user flow: a gallery of every screen, web/mobile, light/dark, hover and loading states, with a Playwright check and a static deploy |
+| `skills/userflow/` | `~/.claude/skills/` | Design and review a software user flow to ISO 9241 / ISO/IEC 25010 / WCAG 2.2: one actor and goal, entry/exit, flow spec, failure/recovery, accessibility and metrics |
 
 ## Tooling, hooks and history
 

@@ -14,6 +14,8 @@ Scripts: `python3 ~/.claude/skills/graph/scripts/graph.py` (below: `graph.py`). 
 - **workflow**: one actor moves through steps and decisions (onboarding, a pipeline, a review loop).
 If the request covers both, draw two files.
 
+If the job is to design or review a product user flow to ISO/WCAG, use `userflow` first; use this skill to render the checked flow as an offline HTML diagram.
+
 ## 2. Gather the facts before drawing
 - In a repo: find each interaction in the code and note `path` and `line` for it. Do not draw a call you cannot point to unless an external party (a person, a third-party service) makes it.
 - From a description only: draw what was said; mark people and outside services `external: true`; cite nothing.
