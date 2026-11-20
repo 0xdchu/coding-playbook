@@ -30,7 +30,7 @@ Skills are separate from the roles: each folder is one skill, invoked by name or
 | `skills/graph/` | `~/.claude/skills/` | Draw how a system works as one offline HTML page: numbered sequence diagrams (frames, webhooks, replies) and flowcharts (decisions, loops), each step checked against declared links and cited code lines |
 | `skills/teardown/` | `~/.claude/skills/` | Decompose an existing product, write a clean-room spec, then build from the spec only |
 | `skills/orca-worktree-setup/` | `~/.claude/skills/` | Setup scripts so every new Orca worktree gets the gitignored local files it needs |
-| `skills/sdlc/` | `~/.claude/skills/` | The artifact chain intent, plan, build, verify, ship; a plan's `## Tasks` section feeds the builder's contract |
+| `skills/sdlc/` | `~/.claude/skills/` | The artifact chain intent, plan, build, verify, ship; an intent has a Coverage list and, when the work branches, flows drawn with the `graph` skill and checked by `clarify`; a fresh-reader agent reads the intent before approval; a plan's `## Tasks` section feeds the builder's contract and its Proof items name the Outcome items they prove |
 | `skills/mockup/` | `~/.claude/skills/` | Build a clickable end-user mockup from a user flow: a gallery of every screen, web/mobile, light/dark, hover and loading states, with a Playwright check and a static deploy |
 
 ## Tooling, hooks and history
@@ -40,7 +40,7 @@ Run from the repo, or installed as hooks. None of it assigns a role.
 | File | Installs to | What it is |
 |---|---|---|
 | `scripts/dispatch.py` | run from the repo | Writes a builder's worktree and task contract (`new`, `contract`, `show`, `done`) |
-| `scripts/sdlc-check.py` | run from the repo | `clarify` fails while an intent has an open point; `converge` lists changed files outside the plan's tasks, tasks left untouched, Proof items without a result, and `floor:` notes for added suppressions, skipped/deleted tests or removed assertions; `converge --checks` also runs each task's `check:` commands once nothing else is missing (the one-prompt loop's judge) |
+| `scripts/sdlc-check.py` | run from the repo | `clarify` fails while an intent has an open point, a missing or empty Coverage bullet, a wrong `Flow:` line, or a flow that fails validation or whose `.flow.html` is not a fresh render; `converge` lists changed files outside the plan's tasks, tasks left untouched, Proof items without a result, Outcome items no Proof item names `(On)` (intents with Coverage), and `floor:` notes for added suppressions, skipped/deleted tests or removed assertions; `converge --checks` also runs each task's `check:` commands once nothing else is missing (the one-prompt loop's judge) |
 | `hooks/agent-guard.py`, `hooks/autonomous-settings.json`, `hooks/pin.json` | `~/.claude/hooks/1prompt/` | The hooks the builder and the reviewers run: a builder edits only inside its contract, the reviewers cannot change a tree. Copied from `ambysto/1prompt` at the commit `pin.json` names; never edited here |
 | `guard/owner-token-guard.py` | `~/.claude/hooks/owner-token-guard/` | A PreToolUse hook for every session: denies a command that would take the owner's GitHub token or switch an account |
 | `saveit/saveit-hook.py` | `~/.claude/hooks/saveit/`, registered with `--settings` | Save-it hooks for every session: at SessionStart the `ambysto-saveit resume` brief when the repo root has a `HANDOFF.md`; at PreCompact `ambysto-saveit tail --write` into an existing, git-ignored `HANDOFF.md`. Never blocks a session |

@@ -1,11 +1,11 @@
 {
-  "internal_commit": "1821bc9",
+  "internal_commit": "98c9820",
   "reviewed": {
     ".claude/branch-name.json": "79964f2",
     "AGENTS.md": "b7862bd",
     "CLAUDE.md": "1821bc9",
     "GEMINI.md": "b7862bd",
-    "README.md": "0b30f5f",
+    "README.md": "98c9820",
     "intent/2026-11-19-graph-flow-diagrams.md": "5ef1bfd",
     "intent/2026-11-19-graph-flow-diagrams.plan.md": "1821bc9",
     "rores/global/AGENTS.md": "b7862bd",

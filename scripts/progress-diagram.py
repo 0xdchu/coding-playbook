@@ -54,7 +54,7 @@ def git(top, *args):
 
 
 def progress_ir(plan_path, top, base):
-    """The workflow diagram (ambysto-graph's typed IR) of a plan's tasks and proof items."""
+    """The diagram (ambysto-graph's architecture IR) of a plan's tasks and proof items."""
     s = sdlc()
     try:
         text = plan_path.read_text(encoding="utf-8")
@@ -101,7 +101,7 @@ def progress_ir(plan_path, top, base):
     live = sum(1 for t in tasks if not t["not_needed"])
     passed = sum(1 for n in proof if result.get(n, "").startswith("PASS"))
     return {
-        "mode": "workflow",
+        "mode": "architecture",  # the old `mode: workflow` is refused since the flow IR (APS-83)
         "title": f"Progress: {plan_path.name}",
         "subtitle": f"status: {status} · {started}/{live} tasks started · {passed}/{len(proof)} proof items PASS · "
                     f"{len(paths)} path(s) changed since {base}",
