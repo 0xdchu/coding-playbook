@@ -26,14 +26,19 @@ BUILD_HOOKS = [("PreToolUse", "*", "build"), ("PostToolUse", "Bash|PowerShell|Ed
                ("Stop", None, "build-stop")]  # the task contract (APS-46); scripts/dispatch.py writes it
 GUARDED = {"builder": BUILD_HOOKS, "reviewer": REVIEW_HOOKS, "hard-reviewer": REVIEW_HOOKS}
 TEMPLATE_SECTIONS = ["## What it does", "## Verify", "## HARD", "## MEDIUM", "## EASY", "## Rules", "## Read when", "## Session state"]
-SKILLS = {"starter-kit", "handoff", "sdlc", "teardown", "orca-worktree-setup", "agent-team", "create-skill", "secrets", "whats-next", "mockup"}
+SKILLS = {"starter-kit", "handoff", "sdlc", "teardown", "orca-worktree-setup", "agent-team", "create-skill", "secrets", "whats-next"}
 # Skills that live only in the public copy (a `skills/<name>/` public-only folder in public-sync.json, APS-80): checked like
-# the others when present, absent here without a failure. Each names its self-test script and its trigger prompts.
+# the others when present, absent here without a failure. Each names its self-test script (None: it has no
+# standard-library self-test) and its trigger prompts.
 PUBLIC_ONLY_SKILLS = {
     "graph": ("skills/graph/scripts/graph.py",
               (["draw a sequence diagram of the purchase flow with numbered steps and a webhook",
                 "flowchart of the onboarding flow with a decision and a loop"],
                ["save progress to HANDOFF.md before clear"])),
+    # mockup's own check is a Playwright script (template/check.mjs), outside standard-library Python (APS-85)
+    "mockup": (None,
+               (["build a clickable mockup from the user flow", "turn this flow into app screens with a gallery"],
+                ["draw a sequence diagram of the checkout flow", "write the intent and plan first"])),
 }
 HAND_INVOKED = {"orca-worktree-setup", "agent-team", "create-skill"}  # own skills that settings-defaults.json may set to user-invocable-only
 DEFAULT_KEYS = {"enabledPlugins", "skillOverrides"}
@@ -51,8 +56,6 @@ SKILL_TRIGGERS = {
                      ["set up a new repo with starter-kit"]),
     "handoff": (["save progress to HANDOFF.md before clear", "pick up where we left off and resume"],
                 ["what next in this session"]),
-    "mockup": (["build a clickable mockup from the user flow", "turn this flow into app screens with a gallery"],
-               ["draw a sequence diagram of the checkout flow", "write the intent and plan first"]),
     "orca-worktree-setup": (["configure Orca setup script so new worktrees get local files", "orca worktree config for gitignored .env"],
                             ["save progress to HANDOFF.md"]),
     "sdlc": (["write the intent and follow the plan to verify and ship", "start a new feature with the artifact chain"],
@@ -371,6 +374,8 @@ if set(skills) != expected_skills or not SKILLS <= set(skills):
     fail(f"skills/: expected {sorted(SKILLS)} (plus any of the public-only {sorted(PUBLIC_ONLY_SKILLS)}), found {skills}")
 for name in sorted(public_skills):
     script = PUBLIC_ONLY_SKILLS[name][0]
+    if script is None:
+        continue
     if not (ROOT / script).is_file():
         fail(f"skills/{name}: public-only skill without its self-test script {script}")
     elif not IN_SWITCH_COPY:

@@ -23,7 +23,7 @@ Spec first, code after; verify layer by layer instead of reading every line.
 
 ## Phase 1: Intent (why + what)
 
-When you describe a feature or a problem, the agent asks a few sharp questions (3 to 6) until the scope is clear: technical constraints, the systems affected, what is **not** done. Attach your best guess (the default or recommendation from the codebase) to each question so the owner can confirm in one word. Then it writes `intent/<yyyy-mm-dd>-<slug>.md`:
+When you describe a feature or a problem, the agent asks a few sharp questions (3 to 6) until the scope is clear: technical constraints, the systems affected, what is **not** done. Attach your best guess (the default or recommendation from the codebase) to each question so the owner can confirm in one word. Write each answer into the intent where it applies (an Outcome item, a Coverage bullet, a constraint); a point still unanswered is a marker (below). Then it writes `intent/<yyyy-mm-dd>-<slug>.md`:
 
 ```markdown
 ---
@@ -33,14 +33,34 @@ status: draft   # draft → approved → planned → building → verified → s
 ## Problem
 What hurts now, in your words.
 ## Outcome
-What exists when this is done; the success criteria (measurable).
+1. What exists when this is done; each numbered item a success criterion (measurable).
 ## Constraints
 Tech, budget, policy (lean, no new dependency, …).
+## Coverage
+- Who: the people, roles and systems involved.
+- Trigger: what starts each use.
+- Main path: the steps when all goes well.
+- Branches and failures: wrong input, denied or expired, an outside service down, nothing found, a repeat or a race.
+- Data and states: what is stored or changes state.
+- Limits: size, time, cost, quotas.
+
+Flow: <each `<yyyy-mm-dd>-<slug>.<name>.flow.json` in backticks, or `not needed: <reason>`>
 ## Out of scope
 What this work deliberately does NOT do.
 ## Open questions
 None.
 ```
+
+**Write WHAT, never HOW.** Function names, file layouts and algorithms belong in the plan. Every line should change a decision or a test; cut the rest.
+
+**Coverage.** Each of the six bullets has text, or `N/A: <reason>`. A bare `N/A`, `TBD` or `?` counts as empty; an open point is a marker (below). Sub-bullets go indented under their bullet.
+
+**Flow.** Draw the work as a flow when it has a branch point (a place where it takes one of several paths with different outcomes: yes or no, success or failure) or three or more parties that act on each other (people, roles, your own systems, outside services). A forgotten path shows up as a validation error: a decision with one exit, a node nothing reaches, a step with no declared link.
+- A path through steps and decisions (a user flow) is a `workflow`: draw one when the work branches. Who calls whom, in order (a processing flow), is a `sequence`: draw one when three or more parties act on each other. When both hold, draw both, one file each.
+- Name each `<yyyy-mm-dd>-<slug>.<name>.flow.json`, beside the intent, and name every one on the intent's single `Flow:` line.
+- Draw from the intent alone, with the flow tool your global instructions name, or the `graph` skill: no `sources`, no `--repo-root`, and in a `sequence` people and outside services as `external` participants. Render each one with only `-o <…>.flow.html` (no theme or other option) beside it, with the same tool `clarify` will use, and commit both.
+- Say, when handing it over, that the flow was not checked against code.
+- Otherwise write `Flow: not needed: <reason>`.
 
 Mark every open point where it stands in the text as `[NEEDS CLARIFICATION: <question>]`, and list it under `## Open questions`. That section begins with `None` when nothing is open. Run
 
@@ -48,7 +68,23 @@ Mark every open point where it stands in the text as `[NEEDS CLARIFICATION: <que
 python3 <coding-playbook>/scripts/sdlc-check.py clarify intent/<yyyy-mm-dd>-<slug>.md
 ```
 
-(`scripts/sdlc-check.py` in the coding-playbook repo) before the intent goes to `approved`, and again before the plan is written. It fails while any marker remains or `## Open questions` does not begin with `None`.
+(`scripts/sdlc-check.py` in the coding-playbook repo) before the intent goes to `approved`, and again before the plan is written. It fails while any marker remains, `## Open questions` does not begin with `None`, a Coverage bullet is missing or empty, the `Flow:` line is missing or wrong, or a flow fails validation or its `.flow.html` is not a fresh render. With no flow tool installed it says the flows were not checked; say so too.
+
+**Fresh reader.** Before you ask the owner to approve, run one fresh agent, with none of this chat, on the model your builder agent uses, read-only. Give it this prompt, with the paths filled in:
+
+```text
+You are a fresh reader of a spec. Read ONLY these files and nothing else (no other file, no search, no web):
+- <intent path>
+- <each flow .json path>
+
+Imagine you must plan, build and test this work from these files alone. Return three numbered lists, at most 300 words in all:
+A. Guesses: each point you would have to guess to build or test it (quote the line, say what is unclear, give the two readings).
+B. Cuts: each line that changes no decision and no test, so it could be removed.
+C. HOW: each implementation detail that belongs in a plan rather than in this intent.
+Write "none" for an empty list. Do not invent problems to fill a list; do not suggest new scope.
+```
+
+Each item ends as a question to the owner, a clearer line, or a cut (HOW moves to the plan). Run `clarify` again, and once more the reader after a large change. Record the lists and what became of each item in the intent's PR body; an intent always goes up as its own PR.
 
 You edit it → `status: approved`, commit. **Do not write the plan before the intent is approved.**
 
@@ -63,7 +99,7 @@ Feed only the intent file into plan mode. For large or architectural work, split
 - **Files**: every file that will be touched, in the order of work.
 - **Risks**: what could break, and the check that would catch it.
 - **Tasks**: one entry per builder dispatch, or per step the main session does itself.
-- **Proof**: the commands or evidence that show it is done (test, build, screenshot, curl). "Done" is defined here, before any code is typed.
+- **Proof**: the commands or evidence that show it is done (test, build, screenshot, curl). "Done" is defined here, before any code is typed. An item names the intent's Outcome items it proves, as `(O1, O3)` on its line, and an item that proves none on its own (a whole-suite run) names none; every Outcome item is named at least once.
 - **Result**: an empty heading for now, filled in Phase 4.
 
 The plan starts with its own status line, `status: draft # draft → planned → building → verified`.
@@ -87,7 +123,7 @@ The plan starts with its own status line, `status: draft # draft → planned →
 - Heading: `### T<n> (builder|main[, parallel]) <title>`. `builder` is dispatched to a builder; `main` is done by the main session. `parallel` means it may run beside another task, so it gets its own worktree.
 - `- allow:` and `- forbid:` are globs in backticks, relative to the repo. `- check:` is one command in backticks per bullet, at least one per task.
 - `- not needed: <reason>` marks a task dropped during the build.
-- The plan and its intent need no `allow`: converge counts them as part of the plan.
+- The plan, its intent and the intent's `*.flow.json` and `*.flow.html` need no `allow`: converge counts them as part of the plan.
 
 A builder task is dispatched with `dispatch.py new <repo> <branch> --task <plan> <id>` (or `dispatch.py contract <tree> --task <plan> <id>`), so the contract comes from the accepted plan and not from flags typed by hand.
 
@@ -96,8 +132,8 @@ A builder task is dispatched with `dispatch.py new <repo> <branch> --task <plan>
 ```markdown
 ## Proof
 
-1. `make test` passes.
-2. `curl localhost:8080/health` returns 200.
+1. `make test` passes. (O1, O2)
+2. `curl localhost:8080/health` returns 200. (O3)
 
 ## Result
 
@@ -126,7 +162,7 @@ Run exactly the **Proof** items in the plan, and fill `## Result`: one numbered 
 python3 <coding-playbook>/scripts/sdlc-check.py converge intent/<yyyy-mm-dd>-<slug>.plan.md
 ```
 
-It lists each gap between the plan and the branch's diff: a changed path no task allows, a task never touched (and not marked `not needed`), a Proof item with no Result, plus `floor:` notes for any added linter/type suppression, skipped or deleted test, or net removed assertion. It fails while any gap remains. A plan without `## Tasks` is reported and passes, so older plans stay valid.
+It lists each gap between the plan and the branch's diff: a changed path no task allows, a task never touched (and not marked `not needed`), a Proof item with no Result, plus `floor:` notes for any added linter/type suppression, skipped or deleted test, or net removed assertion. When the intent has `## Coverage`, it also fails when an Outcome item is named by no Proof item, or a Proof item names an Outcome item that does not exist. It fails while any gap remains. A plan without `## Tasks`, or an intent without `## Coverage`, is reported and passes, so older plans stay valid.
 
 The author does **not** approve their own work: it passes an independent review (`code-reviewer` or another review agent) with the intent and the plan as the contract. Give the reviewer converge's output together with the diff. Proof green → `status: verified`.
 

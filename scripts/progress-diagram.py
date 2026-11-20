@@ -54,7 +54,7 @@ def git(top, *args):
 
 
 def progress_ir(plan_path, top, base):
-    """The workflow diagram (ambysto-graph's typed IR) of a plan's tasks and proof items."""
+    """The diagram (ambysto-graph's architecture IR) of a plan's tasks and proof items."""
     s = sdlc()
     try:
         text = plan_path.read_text(encoding="utf-8")
@@ -70,31 +70,25 @@ def progress_ir(plan_path, top, base):
         raise Stop(2, f"{plan_path.name} has no `## Tasks` section; nothing to draw")
     status = next((m[1].strip() for m in (re.match(r"^status:\s*([^#]*)", l) for l in text.splitlines()) if m), "not set")
     in_contract = s.guard().in_contract
-    nodes, links, started = [], [], 0
-    nodes.append({"id": "plan", "label": "Plan", "shape": "start", "detail": status,
-                  "note": f"{len(paths)} path(s) changed since {base}"})
+    nodes, edges, started = [], [], 0
     for i, t in enumerate(tasks):
         mine = [] if t["not_needed"] else [p for p in paths if in_contract(p, {"allow": t["allow"], "forbid": t["forbid"]})]
         if t["not_needed"]:
-            badge = "not needed"
+            badge, delta = "not needed", None
         elif mine:
-            badge = f"started: {len(mine)} file(s) changed"
+            badge, delta = f"started: {len(mine)} file(s) changed", "modified"
             started += 1
         else:
-            badge = "not started"
-        node = {"id": t["id"].lower(), "label": f"{t['id']} {t['title']}"[:70],
-                "detail": f"{t['who']}{', parallel' if t['parallel'] else ''} · {badge}"[:120]}
-        if mine:
-            node["note"] = (", ".join(mine[:6]) + (f" … +{len(mine) - 6}" if len(mine) > 6 else ""))[:200]
+            badge, delta = "not started", "unchanged"
+        node = {"id": t["id"].lower(), "label": f"{t['id']} {t['title']}"[:70], "boundary": "tasks", "row": i, "col": 0,
+                "sublabel": t["who"] + (", parallel" if t["parallel"] else ""), "badges": [badge],
+                "items": [{"name": p} for p in mine[:6]] + ([{"name": f"… {len(mine) - 6} more"}] if len(mine) > 6 else [])}
+        if delta:
+            node["delta"] = delta
         nodes.append(node)
-        if i == 0 or t["parallel"]:  # a parallel task starts beside the plan, not after the task before it
-            links.append({"from": "plan", "to": t["id"].lower()})
-        else:
-            links.append({"from": tasks[i - 1]["id"].lower(), "to": t["id"].lower()})
-    live = sum(1 for t in tasks if not t["not_needed"])
-    passed = sum(1 for n in proof if result.get(n, "").startswith("PASS"))
-    verdicts = []
-    for n in sorted(proof):
+        if i and not t["parallel"]:  # a parallel task does not wait for the one before it
+            edges.append({"from": tasks[i - 1]["id"].lower(), "to": t["id"].lower(), "kind": "next"})
+    for j, n in enumerate(sorted(proof)):
         r = result.get(n, "")
         if not r:
             verdict = "no result yet"
@@ -102,23 +96,18 @@ def progress_ir(plan_path, top, base):
             verdict = "result not in the format"
         else:
             verdict = next(v for v in ("PASS", "FAIL", "not run") if r.startswith(v))
-        verdicts.append((n, verdict, r))
-    if verdicts:
-        nodes.append({"id": "proof", "label": "Proof", "detail": f"{passed}/{len(proof)} PASS"})
-        links.append({"from": "plan", "to": "proof"})
-        for n, verdict, r in verdicts:
-            node = {"id": f"proof{n}", "label": f"Proof {n}: {proof[n]}"[:70], "detail": verdict}
-            if r:
-                node["note"] = r[:200]
-            nodes.append(node)
-            links.append({"from": "proof", "to": f"proof{n}"})
+        nodes.append({"id": f"proof{n}", "label": f"Proof {n}: {proof[n]}"[:70], "boundary": "proof", "row": j, "col": 1,
+                      "badges": [verdict], "items": [{"name": r[:120]}] if r else []})
+    live = sum(1 for t in tasks if not t["not_needed"])
+    passed = sum(1 for n in proof if result.get(n, "").startswith("PASS"))
     return {
-        "kind": "workflow",
+        "mode": "architecture",  # the old `mode: workflow` is refused since the flow IR (APS-83)
         "title": f"Progress: {plan_path.name}",
         "subtitle": f"status: {status} · {started}/{live} tasks started · {passed}/{len(proof)} proof items PASS · "
                     f"{len(paths)} path(s) changed since {base}",
+        "boundaries": [{"id": "tasks", "label": "Tasks"}, {"id": "proof", "label": "Proof"}],
         "nodes": nodes,
-        "links": links,
+        "edges": edges,
     }
 
 
@@ -216,16 +205,13 @@ def self_test():
             if not f.is_file() or not f.read_text(encoding="utf-8", errors="replace").lstrip().lower().startswith("<!doctype html"):
                 failures.append(f"{name} not written as HTML")
         ir = json.loads((gitdir / "progress.json").read_text(encoding="utf-8")) if (gitdir / "progress.json").is_file() else {}
-        badges = {n["id"]: n["detail"].split(" · ")[-1] for n in ir.get("nodes", [])
-                  if re.fullmatch(r"(t\d+|proof\d+)", n["id"])}
+        badges = {n["id"]: n["badges"][0] for n in ir.get("nodes", [])}
         want = {"t1": "started: 1 file(s) changed", "t2": "not started", "t3": "not needed", "proof1": "PASS", "proof2": "no result yet",
                 "proof3": "result not in the format"}
         if badges != want:
             failures.append(f"badges {badges}, expected {want}")
-        links = [(e["from"], e["to"]) for e in ir.get("links", [])]
-        if links != [("plan", "t1"), ("plan", "t2"), ("t2", "t3"), ("plan", "proof"),
-                     ("proof", "proof1"), ("proof", "proof2"), ("proof", "proof3")]:
-            failures.append(f"links {links}: T1 starts the chain, T2 is parallel beside the plan, T3 waits for T2, proof hangs off the plan")
+        if [(e["from"], e["to"]) for e in ir.get("edges", [])] != [("t2", "t3")]:
+            failures.append(f"edges {ir.get('edges')}: T2 is parallel, so only T2 -> T3 is expected")
         if "status: building · 1/2 tasks started · 1/3 proof items PASS" not in ir.get("subtitle", ""):
             failures.append(f"subtitle {ir.get('subtitle')!r}")
         status = sorted(l.strip() for l in run("status", "--porcelain", "-uall").stdout.splitlines())
