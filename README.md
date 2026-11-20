@@ -31,6 +31,7 @@ Skills are separate from the roles: each folder is one skill, invoked by name or
 | `skills/teardown/` | `~/.claude/skills/` | Decompose an existing product, write a clean-room spec, then build from the spec only |
 | `skills/orca-worktree-setup/` | `~/.claude/skills/` | Setup scripts so every new Orca worktree gets the gitignored local files it needs |
 | `skills/sdlc/` | `~/.claude/skills/` | The artifact chain intent, plan, build, verify, ship; a plan's `## Tasks` section feeds the builder's contract |
+| `skills/mockup/` | `~/.claude/skills/` | Build a clickable end-user mockup from a user flow: a gallery of every screen, web/mobile, light/dark, hover and loading states, with a Playwright check and a static deploy |
 
 ## Tooling, hooks and history
 
