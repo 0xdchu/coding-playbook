@@ -25,6 +25,18 @@
     "flex-tag",
     "flex-stat",
     "flex-rule",
-    "flex-container"
+    "flex-container",
+    "flex-app-shell",
+    "flex-sidebar",
+    "flex-workspace",
+    "flex-avatar",
+    "flex-nav-item",
+    "flex-nav-item--active",
+    "flex-app-main",
+    "flex-app-title",
+    "flex-app-card",
+    "flex-pill",
+    "flex-pill-btn",
+    "flex-balance"
   ]
 }

@@ -65,10 +65,11 @@ planned: 2026-11-20 (owner, "đủ 5 bộ CSS thuần")
 1. PASS — `python3 scripts/check.py` exits 0: the six folders validated (five files, manifest keys, manifest↔reference classes), `govuk`/`primer` absent, 12 skills valid.
 2. PASS — all six `reference.html` at 1440×900 and 390×844: 0 console errors, 0 horizontal overflow; screenshots inspected (light and dark panels, and the Flex hero/cream/dark sections).
 3. PASS — `converge`: 0 gap.
-4. PASS — `skills/mockup/SKILL.md` step 2 names shadcn, Radix, Open Props, Fluent, Carbon and Flex and the copy rule; `template/README.md` repeats it; 1,199 lines of CSS+HTML total, largest system 277 lines (Radix), under the 900 limit.
+4. PASS — `skills/mockup/SKILL.md` step 2 names shadcn, Radix, Open Props, Fluent, Carbon and Flex and the copy rule; `template/README.md` repeats it; 1268 lines of CSS+HTML total, largest system 277 lines (Radix), under the 900 limit.
 
 Review: the five-system pass drew an independent reviewer FAIL; all five MAJOR and three MINOR issues were fixed before this result — shadcn dark heading colour, exact-five folder check, Carbon g90 on-colour/interactive tokens and focus ring, tokens-only labelling for Open Props and Radix, destructive hover, missing-file guard, Carbon token drift (green, layer-3, blue-hover, danger, focus-inset).
 
 The `flex/` system was added after that review as an original interpretation of flex.one: no site HTML, CSS, fonts
-or images are used, the LICENSE says so, and the same file/class checks cover it; its reference was inspected at
-1440 and 390.
+or images are used, the LICENSE says so, and the same file/class checks cover it. After the logged-in dashboard was
+inspected in the owner's Orca browser, the marketing layer (square, serif) gained a product layer (rounded Mantine-shaped
+shell, sidebar, dark green cards, pill buttons); its reference was inspected at 1440 and 390.

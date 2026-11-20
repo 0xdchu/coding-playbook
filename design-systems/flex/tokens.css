@@ -30,6 +30,10 @@
   --flex-space-6: 64px;
   --flex-space-7: 96px;
   --flex-radius: 0;
+  --flex-radius-card: 24px;
+  --flex-radius-btn: 12px;
+  --flex-card-green: #1e3a2c;
+  --flex-app-h1: 40px;
   --flex-max: 1320px;
   --flex-ease: cubic-bezier(.2,.7,.2,1);
 }
