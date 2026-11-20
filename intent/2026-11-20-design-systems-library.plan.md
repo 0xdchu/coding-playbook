@@ -55,7 +55,7 @@ planned: 2026-11-20 (owner, "đủ 5 bộ CSS thuần")
 
 ## Proof
 
-1. `python3 scripts/check.py` PASS, six systems validated, `govuk`/`primer` absent. (O1, O2)
+1. `python3 scripts/check.py` PASS, six systems validated, `govuk`/`primer` absent. (O1, O2, O6)
 2. Headless render all six `reference.html` at 1440×900 and 390×844: 0 console errors, no horizontal overflow. (O3)
 3. `python3 scripts/sdlc-check.py converge intent/2026-11-20-design-systems-library.plan.md` 0 gap.
 4. `skills/mockup/SKILL.md` step 2 names shadcn/Radix/Open Props/Fluent/Carbon/Flex; `wc -l` per system ≤900. (O4, O5)
