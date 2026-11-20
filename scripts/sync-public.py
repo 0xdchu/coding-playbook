@@ -6,7 +6,13 @@ The public repo (for students) holds every file of this repo's merged main, with
 (its own CLAUDE.md, README.md and branch rule, written for that audience, and files only the public repo holds). Those are never written; each file
 entry is reported until it has been brought in step by hand after its internal counterpart changed (`--reviewed`). An entry
 ending in '/' is a folder only the public repo holds: every file under it is kept, nothing is reviewed, and the report lists
-it only when this repo holds a file under it (not published; remove it here or ask the owner).
+it only when this repo holds a file under it (not published; remove it here or ask the owner). Paths listed
+"internal_only" (same path rules; an entry ending in '/' is a folder) are this repo's own: never published, never
+reviewed, never leak-scanned, and a public file under one is deleted. An entry inside or equal to a public-only one
+(or the other way round), or a key the config does not know, refuses the config. The script refuses to run when its
+own file differs from its copy at the source ref, or is missing there: run it from a checkout whose script equals the
+source ref's (pull first), so a copy that is behind or edited never reads a config it does not know. A copy older than
+this check cannot refuse that way (see docs/internals.md, the sync-public.py section).
 
   python3 scripts/sync-public.py            report what differs between internal and public main
                                             (exit 0 in step, 1 out of step, 2 refused or failed)
@@ -18,13 +24,14 @@ it only when this repo holds a file under it (not published; remove it here or a
 
 Both sides are read from refs, never a work tree or index: the source is this repo's origin/main (fetched
 first; the config too is read there), the comparison is against "public_ref" of the public repo (default
-origin/main, fetched first). A failed fetch makes a report exit 2 instead of "in step", and refuses a write. So a run from a feature branch or worktree publishes only what is merged, and "in step" means the
+origin/main, fetched first). A failed fetch makes a report exit 2 instead of "in step", and refuses a write. So a run publishes only what is merged (and from a branch whose script differs from main's it is refused), and "in step" means the
 published repo, not an unmerged branch. `--write` refuses, writing nothing, when the public tree has uncommitted
 changes, a directory to replace by a file still holds files that stay, is on main, master or a detached HEAD, does not contain public_ref, has a symlink where a file goes, or a
 file to publish matches a leak pattern (secret shapes and internal names). It never commits, pushes or merges: the
 main session reads the diff and does that. State lives in the public repo's `.sync-source.json`.
 """
 import argparse
+import importlib.util
 import fnmatch
 import json
 import os
@@ -37,6 +44,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = "public-sync.json"
+CONFIG_KEYS = {"target", "public_ref", "source_ref", "replace", "public_only", "internal_only", "leak_patterns"}
 STATE = ".sync-source.json"
 
 
@@ -87,30 +95,47 @@ def merged_config(src, ref, notes):
         cfg = json.loads(git(src, "show", f"{ref}:{CONFIG}"))
     except ValueError as e:
         raise Refused(f"{CONFIG} at {ref}: not JSON ({e})")
+    if not isinstance(cfg, dict):
+        raise Refused(f"{CONFIG} at {ref}: not an object")
     for key in ("target", "replace", "public_only", "leak_patterns"):
         if key not in cfg:
             raise Refused(f"{CONFIG} at {ref}: missing '{key}'")
+    unknown = sorted(set(cfg) - CONFIG_KEYS)
+    if unknown:
+        raise Refused(f"{CONFIG} at {ref}: unknown key '{unknown[0]}'")
     check_public_only(cfg["public_only"], ref)
+    cfg.setdefault("internal_only", [])
+    check_public_only(cfg["internal_only"], ref, "internal-only")
+    covers = lambda e, p: p == e or (e.endswith("/") and p.startswith(e))
+    both = sorted(i for i in cfg["internal_only"] for o in cfg["public_only"] if covers(o, i) or covers(i, o))
+    if both:
+        raise Refused(f"{CONFIG} at {ref}: {both[0]} is both internal-only and inside or around a public-only entry")
     cfg["source_ref"] = ref
     cfg.setdefault("public_ref", "origin/main")
     return cfg
 
 
-def check_public_only(entries, ref="the config"):
-    """A public-only entry is a repo-relative path; one ending in '/' is a folder and covers every file under it."""
+def check_public_only(entries, ref="the config", kind="public-only"):
+    """A public-only (or internal-only) entry is a repo-relative path; one ending in '/' is a folder and covers
+    every file under it."""
     if not isinstance(entries, list):
-        raise Refused(f"{CONFIG} at {ref}: public_only is not a list")
+        raise Refused(f"{CONFIG} at {ref}: {kind.replace('-', '_')} is not a list")
     for e in entries:
         if not isinstance(e, str):
-            raise Refused(f"{CONFIG} at {ref}: public-only entry {e!r} is not a string")
+            raise Refused(f"{CONFIG} at {ref}: {kind} entry {e!r} is not a string")
         body = e[:-1] if e.endswith("/") else e
         if not body or e.startswith("/") or any(x in ("", ".", "..") for x in body.split("/")):
-            raise Refused(f"{CONFIG} at {ref}: public-only entry {e!r} is not a repo-relative path")
+            raise Refused(f"{CONFIG} at {ref}: {kind} entry {e!r} is not a repo-relative path")
 
 
-def public_only(path, cfg):
+def public_only(path, cfg, key="public_only"):
     """True when path is listed public-only, or lies under a listed folder (an entry ending in '/')."""
-    return any(path == e or (e.endswith("/") and path.startswith(e)) for e in cfg["public_only"])
+    return any(path == e or (e.endswith("/") and path.startswith(e)) for e in cfg.get(key, []))
+
+
+def internal_only(path, cfg):
+    """True when path is listed internal-only (or lies under such a folder): never published, never reviewed."""
+    return public_only(path, cfg, "internal_only")
 
 
 def load_state(text):
@@ -142,7 +167,7 @@ def desired(src, cfg):
     """{path: (mode, bytes)} the public repo should hold, public-only files and the config left out."""
     return {p: (mode, rewrite(p, blob(src, sha), cfg))
             for p, (mode, sha) in tree(src, cfg["source_ref"]).items()
-            if p not in (CONFIG, STATE) and not public_only(p, cfg)}
+            if p not in (CONFIG, STATE) and not public_only(p, cfg) and not internal_only(p, cfg)}
 
 
 def compare(want, have_files, read):
@@ -189,6 +214,13 @@ def leaks(want, paths, cfg):
 def run(src, override=None, write=False, reviewed=None, out=print, source_ref="origin/main"):
     notes = []
     cfg = merged_config(src, source_ref, notes)
+    me = Path(__file__).resolve()
+    self_path = me.relative_to(ROOT).as_posix()  # follows the script if it moves
+    at_ref = tree(src, source_ref).get(self_path)
+    if at_ref is None and Path(src).resolve() == ROOT:
+        raise Refused(f"{self_path} is not at {source_ref}; run the script from a checkout of {source_ref}")
+    if at_ref and blob(src, at_ref[1]) != me.read_bytes():
+        raise Refused(f"this {self_path} differs from the one at {source_ref}; run the script from a checkout of {source_ref}")
     dst = Path(os.path.expanduser(override or cfg["target"])).resolve()
     if not (dst / ".git").exists():
         raise Refused(f"public repo not found at {dst}")
@@ -324,6 +356,7 @@ def self_test():
                "replace": [{"from": "~/work/in/repo", "to": "~/work/pub/repo", "paths": ["rores/*"]},
                            {"from": "secret-name", "to": "a name", "paths": ["intent/*.md"]}],
                "public_only": ["CLAUDE.md", "README.md", "RULES.md", "PUB.md", "pubdir/"],
+               "internal_only": ["mapdir/"],
                "leak_patterns": ["gh" + "p_[A-Za-z0-9]{20}", "secret-" + "name"]}
         (src / CONFIG).write_text(json.dumps(cfg))
         (src / "rores").mkdir()
@@ -439,6 +472,104 @@ def self_test():
         rc, text = report()
         if rc != 0:
             problems.append(f"not in step after the internal file under the folder left: {text!r}")
+        (src / "mapdir").mkdir()
+        (src / "mapdir" / "view.html").write_text("embeds secret-name from an internal file\n")
+        sh(src, "add", "mapdir")
+        sh(src, "commit", "-qm", "an internal-only folder", "--", "mapdir")
+        rc, text = report()
+        if rc != 0 or "mapdir" in text:
+            problems.append(f"an internal-only folder was published, reviewed or leak-scanned: {text!r}")
+        n_odd = 0
+        for bad_key in ({"internal_only": ["../x"]}, {"internal_only": "mapdir/"}, {"internal_only": ["pubdir/"]},
+                        {"internal_only": ["pubdir/x/"]}, {"internal_only": ["PUB.md"]}, {"public_only": cfg["public_only"] + ["mapdir/a/"]},
+                        {"internal-only": ["mapdir/"]}):
+            odd = tmp / f"odd-config-{n_odd}"
+            n_odd += 1
+            init(odd)
+            (odd / CONFIG).write_text(json.dumps(cfg | bad_key))
+            sh(odd, "add", "-A")
+            sh(odd, "commit", "-qm", "odd")
+            try:
+                merged_config(odd, "main", [])
+                problems.append(f"a config with {bad_key!r} loaded")
+            except Refused:
+                pass
+        src2, dst2 = tmp / "internal2", tmp / "public2"
+        init(src2)
+        init(dst2)
+        cfg2 = {"target": str(dst2), "public_ref": "main", "replace": [], "public_only": [],
+                "internal_only": ["mapdir/"], "leak_patterns": ["secret-" + "name"]}
+        (src2 / CONFIG).write_text(json.dumps(cfg2))
+        (src2 / "a.md").write_text("published\n")
+        (src2 / "mapdir").mkdir()
+        (src2 / "mapdir" / "v.html").write_text("embeds secret-name\n")
+        sh(src2, "add", "-A")
+        sh(src2, "commit", "-qm", "one")
+        (dst2 / "mapdir").mkdir()
+        (dst2 / "mapdir" / "old.html").write_text("a copy that should never have been published\n")
+        sh(dst2, "add", "-A")
+        sh(dst2, "commit", "-qm", "pub")
+        sh(dst2, "checkout", "-q", "-b", "sync")
+        lines2 = []
+        run(src2, None, out=lines2.append, source_ref="main")
+        if not any(l.startswith("delete  mapdir/old.html") for l in lines2) or any("mapdir/v.html" in l for l in lines2):
+            problems.append(f"internal-only report: the public copy under it not listed for deletion, or the internal file listed: {lines2!r}")
+        try:
+            rc = run(src2, None, write=True, out=quiet, source_ref="main")
+            if rc != 0 or not (dst2 / "a.md").exists() or (dst2 / "mapdir" / "v.html").exists() or (dst2 / "mapdir" / "old.html").exists():
+                problems.append(f"internal-only write: rc {rc}, or a file under it published or kept in public")
+        except Refused as e:
+            problems.append(f"internal-only write refused (published and leak-scanned?): {e}")
+        sh(dst2, "checkout", "-q", "--", ".")
+        sh(dst2, "clean", "-qfd")
+        me = Path(__file__).resolve()
+        mine = src2 / me.relative_to(ROOT)
+        mine.parent.mkdir(parents=True, exist_ok=True)
+        mine.write_bytes(me.read_bytes())
+        sh(src2, "add", "-A")
+        sh(src2, "commit", "-qm", "the same copy, on a branch")
+        sh(src2, "checkout", "-qb", "same")
+        sh(src2, "checkout", "-q", "main")
+        mine.write_text("# an older copy\n")
+        sh(src2, "commit", "-qam", "another copy of the script on main")
+        sh(src2, "checkout", "-q", "same")  # HEAD holds the same copy; the source ref does not
+        for write in (False, True):
+            try:
+                run(src2, None, write=write, out=quiet, source_ref="main")
+                problems.append(f"ran (write={write}) although this script differs from the copy at the source ref")
+            except Refused as e:
+                if "differs from the one at main" not in str(e):
+                    problems.append(f"a differing copy refused for another reason: {e}")
+        sh(src2, "checkout", "-q", "main")  # HEAD and the ref both hold the other copy; the running file differs
+        try:
+            run(src2, None, out=quiet, source_ref="main")
+            problems.append("ran although the running file differs from the copy at the ref and at HEAD")
+        except Refused as e:
+            if "differs from the one at main" not in str(e):
+                problems.append(f"a differing running file refused for another reason: {e}")
+        mine.write_bytes(me.read_bytes())
+        sh(src2, "commit", "-qam", "the same copy")
+        src3 = tmp / "internal3"  # a checkout whose script is not committed at the source ref
+        init(src3)
+        (src3 / CONFIG).write_text(json.dumps(cfg2))
+        sh(src3, "add", "-A")
+        sh(src3, "commit", "-qm", "config only")
+        loose = src3 / me.relative_to(ROOT)
+        loose.parent.mkdir(parents=True)
+        loose.write_bytes(me.read_bytes())
+        spec = importlib.util.spec_from_file_location("sync_public_copy", loose)
+        copy = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(copy)
+        try:
+            copy.run(src3, None, out=quiet, source_ref="main")
+            problems.append("ran although this script is not at the source ref of its own repo")
+        except copy.Refused as e:
+            if "is not at main" not in str(e):
+                problems.append(f"a script missing at the ref refused for another reason: {e}")
+        try:
+            run(src2, None, out=quiet, source_ref="main")
+        except Refused as e:
+            problems.append(f"the same copy of the script refused: {e}")
         for bad in (["/"], [""], ["../x/"], ["a/../b"], ["/abs"], ["./x"], ["a//b"], ["a//"], [3], {"a": 1}):
             try:
                 check_public_only(bad)

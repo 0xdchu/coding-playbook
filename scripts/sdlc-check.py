@@ -3,6 +3,7 @@
 
     python3 scripts/sdlc-check.py clarify <intent.md>
     python3 scripts/sdlc-check.py converge <plan.md> [--base <ref>] [--checks]
+    python3 scripts/sdlc-check.py map <repo>
     python3 scripts/sdlc-check.py --self-test
 
 `clarify` fails while the intent still has a `[NEEDS CLARIFICATION: …]` marker, or its `## Open questions` section
@@ -39,11 +40,36 @@ are needed, through the shell at the work tree's top, in the plan's order (`SDLC
 group is killed) or no time left is the gap `check failed: …`. The one-prompt loop's Stop hook judges with it, so
 "done" means the checks passed just now, not that someone wrote PASS. A heavy check carries its own memory cap.
 
+`map` checks a repo's map in `docs/map/` (APS-88; the format is in the system-map skill) and lists each item:
+  - `map.json`: missing, not JSON, an unknown key or view, `views.architecture` not a file, `views.docs` not a file and
+    `views.runtime` not a non-empty list (or either not `{"not_needed": "<reason>"}` with a reason), a view name that is
+    not `<name>.json` beside it or is named twice, `left_out` not an object or an entry with no reason;
+  - each view: missing, not JSON, not an architecture IR (Architecture, Docs) or a `sequence` flow IR (runtime), no
+    `.html`, `ambysto-graph validate --repo-root <repo>` failing, the `.html` not equal to a fresh `render --repo-root
+    <repo>` (CRLF read as LF), a call over 60 s;
+  - citations: a node, a non-external participant or an edge with no source, a source with no `label` (or a blank
+    one), a source whose lines (`line` to `end_line`) no longer contain its label as text (a path outside the repo is
+    never read); a runtime step between two participants that matches no edge (by its `edge` id, its two ends, or
+    the reverse ends for a reply from an internal party; only a step to itself or between two external parties
+    needs none); a view whose nodes, steps or sources have the wrong type; a Docs node without exactly one of the
+    badges `source of truth`, `derived`, `internal`, `schema`;
+  - coverage, from the index `ambysto-graph overview` is built on (`index --json`, 600 s): a parsed code file neither
+    cited by the Architecture view nor in `left_out`; a `left_out` path that is not parsed code or is also cited; an
+    entrypoint whose line no Architecture source on its file covers (not required in a left-out file); an index the
+    tool cannot give, of a `schema_version` other than 1, or whose files marked parsed do not match its own count
+    (fails closed).
+  Exit 0: nothing listed; 1: an item, or no `docs/map/`; 2: no `ambysto-graph` on PATH, so nothing was checked.
+`converge`, in a repo with `docs/map/` and a branch that changes a path other than the plan, its intent and the
+intent's flows (paths under `docs/map/` count), runs the same check: each item is the gap `map: <item>`; with no
+`ambysto-graph` it notes `map not checked: no ambysto-graph` and does not fail for that; a branch that deletes
+`docs/map/` gets the note `map not checked: this branch deletes docs/map/`.
+
 The formats are in the sdlc skill (`skills/sdlc/SKILL.md`). `dispatch.py --task` reads tasks with `parse_tasks`
 here. Exit 0: pass; 1: a gap or a marker; 2: the file cannot be read as the format says (nothing is guessed).
 It never edits a file; with `--checks` the plan's commands run as written. Standard library only.
 """
 import importlib.util
+import json
 import os
 import re
 import shlex
@@ -324,6 +350,236 @@ def clarify_intent(path, tool=None, timeout=FLOW_TIMEOUT):
     return notes, clarify(text) + coverage(text) + flow_gaps + checked
 
 
+MAP_DIR = ("docs", "map")
+MAP_VIEW_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.json$")
+DOC_MARKS = ("source of truth", "derived", "internal", "schema")
+MAP_INDEX_TIMEOUT = 600
+MAP_INDEX_SCHEMA = 1  # the index format `map_index` reads; any other version fails closed
+
+
+def map_tool():
+    """`ambysto-graph` as a command list, or None: the map's views and checks need it (the `graph` skill draws flows only)."""
+    exe = shutil.which("ambysto-graph")
+    return [exe] if exe else None
+
+
+def output_tail(proc):
+    return " | ".join(l.strip() for l in (proc.stdout + proc.stderr).splitlines() if l.strip())[-300:]
+
+
+def map_index(top, tool, timeout):
+    """(parsed code files, entrypoints as (file, line, name)) from the index `overview` is built on.
+    Raises ValueError with the item to list when the tool fails or its index cannot be read as expected."""
+    r = subprocess.run([*tool, "index", "--json", str(top)], capture_output=True, text=True, timeout=timeout)
+    if r.returncode != 0:
+        raise ValueError(f"`ambysto-graph index` failed (exit {r.returncode}): {output_tail(r)}")
+    try:
+        entry = json.loads(r.stdout)[0]
+        graph = json.loads(Path(entry["index_path"]).read_text(encoding="utf-8"))
+        if graph.get("schema_version") != MAP_INDEX_SCHEMA:
+            raise ValueError(f"schema_version {graph.get('schema_version')!r}, not {MAP_INDEX_SCHEMA}")
+        files = {path for path, f in graph["files"].items()
+                 if (((f.get("file_graph") or {}).get("code") or {}).get("parsed")) is True}
+        count = graph["coverage"]["parsed_code_files"]
+        entrypoints = [(e["file"], int(e["entrypoint"]["line"]), e["entrypoint"]["name"]) for e in graph["entrypoints"]]
+    except (ValueError, KeyError, IndexError, TypeError, AttributeError, OSError) as e:
+        raise ValueError(f"cannot list the parsed code files: the index is not in the expected format ({type(e).__name__}: {e})")
+    if len(files) != count:
+        raise ValueError(f"cannot list the parsed code files: the index marks {len(files)} file(s) parsed, "
+                         f"but counts {count} parsed code file(s)")
+    return files, entrypoints
+
+
+def read_map_index(folder):
+    """(views as [(kind, name)], left_out, notes, items) from `docs/map/map.json`."""
+    items, notes, views, left = [], [], [], {}
+    index = folder / "map.json"
+    if not index.is_file():
+        return views, left, notes, ["docs/map/map.json is missing"]
+    try:
+        m = json.loads(index.read_text(encoding="utf-8"))
+    except (ValueError, UnicodeDecodeError, RecursionError) as e:
+        return views, left, notes, [f"docs/map/map.json is not JSON: {e}"]
+    if not isinstance(m, dict) or not isinstance(m.get("views"), dict):
+        return views, left, notes, ["docs/map/map.json needs a `views` object"]
+    items += [f"docs/map/map.json: unknown key `{k}`" for k in sorted(set(m) - {"views", "left_out"})]
+    v = m["views"]
+    items += [f"docs/map/map.json: unknown view `{k}`" for k in sorted(set(v) - {"architecture", "docs", "runtime"})]
+    if isinstance(v.get("architecture"), str):
+        views.append(("architecture", v["architecture"]))
+    else:
+        items.append("docs/map/map.json: `views.architecture` must name a file (the Architecture view is always drawn)")
+    for kind in ("docs", "runtime"):
+        x = v.get(kind)
+        if isinstance(x, dict):
+            reason = x.get("not_needed")
+            if set(x) != {"not_needed"} or not isinstance(reason, str) or not reason.strip():
+                items.append(f"docs/map/map.json: `views.{kind}` is `{{\"not_needed\": \"<reason>\"}}` with a reason, "
+                             f"and nothing else")
+            else:
+                notes.append(f"map: {kind} view not needed: {reason.strip()}")
+        elif kind == "docs" and isinstance(x, str):
+            views.append((kind, x))
+        elif kind == "runtime" and isinstance(x, list) and x and all(isinstance(n, str) for n in x):
+            views += [(kind, n) for n in x]
+        else:
+            items.append(f"docs/map/map.json: `views.{kind}` must be " +
+                         ("a file" if kind == "docs" else "a non-empty list of files") + ", or `{\"not_needed\": \"<reason>\"}`")
+    names = [n for _, n in views]
+    for kind, name in views:
+        if not MAP_VIEW_NAME.match(name) or name == "map.json":
+            items.append(f"docs/map/map.json: `{name}` ({kind}) is not a view file name beside map.json (`<name>.json`)")
+    items += [f"docs/map/map.json: `{n}` is named twice" for n in sorted({n for n in names if names.count(n) > 1})]
+    views = [(k, n) for k, n in views if MAP_VIEW_NAME.match(n) and n != "map.json"]
+    raw_left = m.get("left_out", {})
+    if not isinstance(raw_left, dict):
+        items.append("docs/map/map.json: `left_out` must be an object of path to reason")
+    else:
+        for p, reason in raw_left.items():
+            if not isinstance(reason, str) or not reason.strip():
+                items.append(f"docs/map/map.json: left_out `{p}` has no reason")
+            left[p] = reason
+    return views, left, notes, items
+
+
+def map_citations(top, name, kind, ir):
+    """(items, architecture ranges as (path, first, last)) for one view's sources, labels and Docs marks."""
+    items, ranges, owners = [], [], []
+    if kind in ("architecture", "docs"):
+        for node in ir.get("nodes") or []:
+            owners.append((f"node `{node.get('id')}`", node.get("sources") or []))
+            if kind == "docs":
+                marks = [b for b in node.get("badges") or [] if b in DOC_MARKS]
+                if len(marks) != 1:
+                    items.append(f"{name}: node `{node.get('id')}` needs exactly one of the badges "
+                                 f"{', '.join(repr(m) for m in DOC_MARKS)}; it has {len(marks)}")
+    else:
+        for part in ir.get("participants") or []:
+            if not part.get("external"):
+                owners.append((f"participant `{part.get('id')}`", part.get("sources") or []))
+        external = {part.get("id") for part in ir.get("participants") or [] if part.get("external")}
+        ids, forward, backward = set(), set(), set()
+        for edge in ir.get("edges") or []:
+            owners.append((f"edge `{edge.get('from')} -> {edge.get('to')}`", edge.get("sources") or []))
+            ids.add(edge.get("id"))
+            forward.add((edge.get("from"), edge.get("to")))
+            backward.add((edge.get("to"), edge.get("from")))
+        ids.discard(None)
+
+        def walk(steps):
+            for step in steps:
+                if "fragment" in step:
+                    walk(step.get("steps") or [])
+                    for branch in step.get("branches") or []:
+                        walk(branch.get("steps") or [])
+                    continue
+                frm, to = step.get("from"), step.get("to")
+                if frm == to or step.get("kind") == "self" or {frm, to} <= external:
+                    continue  # a step to itself, or between two outside parties: no code to cite
+                reply = (frm, to) in backward and not step.get("external") and frm not in external
+                if step.get("edge") in ids if step.get("edge") is not None else ((frm, to) in forward or reply):
+                    continue
+                items.append(f"{name}: step `{frm} -> {to}` matches no edge, so it cites nothing; "
+                             f"declare that edge with sources")
+        walk(ir.get("steps") or [])
+    for owner, sources in owners:
+        if not sources:
+            items.append(f"{name}: {owner} cites nothing")
+        for s in sources:
+            path, line, end, label = s.get("path"), s.get("line"), s.get("end_line"), s.get("label")
+            if not isinstance(path, str) or not isinstance(line, int):
+                continue  # validate reports a malformed source
+            if not isinstance(label, str) or not label.strip():
+                items.append(f"{name}: {owner} cites {path}:{line} with no label (the name of what it cites)")
+                continue
+            last = end if isinstance(end, int) else line
+            if kind == "architecture":
+                ranges.append((path, line, last))
+            try:
+                target = (top / path).resolve()
+                if not target.is_relative_to(top) or not target.is_file():
+                    continue  # validate reports a missing file; a path outside the repo is never read
+            except (ValueError, OSError):
+                continue  # a path no file system holds (a NUL byte): validate reports it
+            lines = target.read_text(encoding="utf-8", errors="replace").splitlines()
+            if 1 <= line <= last <= len(lines) and label not in "\n".join(lines[line - 1:last]):
+                items.append(f"{name}: {owner} cites `{label}` at {path}:{line}" + (f"-{last}" if last != line else "") +
+                             ", but those lines no longer contain it (the code moved)")
+    return items, ranges
+
+
+def check_map(top, tool, timeout=FLOW_TIMEOUT, index_timeout=MAP_INDEX_TIMEOUT):
+    """(notes, items) for the map in `<top>/docs/map/`: the index, each view's file, validation, fresh HTML,
+    citations and Docs marks, and coverage of the parsed code files and entrypoints."""
+    top = Path(top).resolve()
+    folder = top.joinpath(*MAP_DIR)
+    views, left, notes, items = read_map_index(folder)
+    ranges, arch_loaded = [], False
+    for kind, name in views:
+        path, html = folder / name, folder / (name[: -len(".json")] + ".html")
+        if not path.is_file() or path.is_symlink():
+            items.append(f"{name}: missing ({kind} view named in map.json)")
+            continue
+        try:
+            ir = json.loads(path.read_text(encoding="utf-8"))
+        except (ValueError, UnicodeDecodeError, RecursionError) as e:
+            items.append(f"{name}: not JSON: {e}")
+            continue
+        if not isinstance(ir, dict) or \
+                ((ir.get("kind") != "sequence") if kind == "runtime" else (ir.get("mode") != "architecture")):
+            items.append(f"{name}: a {kind} view must be " +
+                         ("a flow IR with `\"kind\": \"sequence\"`" if kind == "runtime" else "an IR with `\"mode\": \"architecture\"`"))
+            continue
+        if not html.is_file():
+            items.append(f"{name}: `{html.name}` is missing")
+        try:
+            more, got = map_citations(top, name, kind, ir)
+        except (TypeError, AttributeError, RecursionError) as e:
+            more, got = [f"{name}: cannot read its nodes, steps or sources ({type(e).__name__}: {e}); "
+                         f"validate names the field"], None
+        items += more
+        if kind == "architecture" and got is not None:
+            ranges, arch_loaded = got, True
+        again = f"render it again: `ambysto-graph render docs/map/{name} --repo-root . -o docs/map/{html.name}`"
+        try:
+            v = subprocess.run([*tool, "validate", "--repo-root", str(top), str(path)], capture_output=True, text=True,
+                               timeout=timeout)
+            if v.returncode != 0:
+                items.append(f"{name}: validate failed (exit {v.returncode}): {output_tail(v)}")
+                continue
+            with tempfile.TemporaryDirectory() as tmp:
+                out = Path(tmp) / "fresh.html"
+                r = subprocess.run([*tool, "render", str(path), "--repo-root", str(top), "-o", str(out)],
+                                   capture_output=True, text=True, timeout=timeout)
+                if r.returncode != 0 or not out.is_file():
+                    items.append(f"{name}: render failed (exit {r.returncode}): {output_tail(r)}")
+                elif html.is_file() and html.read_bytes().replace(b"\r\n", b"\n") != out.read_bytes().replace(b"\r\n", b"\n"):
+                    items.append(f"{name}: `{html.name}` is not a fresh render of it; {again}")
+        except subprocess.TimeoutExpired:
+            items.append(f"{name}: ambysto-graph took over {timeout} s")
+    if not arch_loaded:
+        return notes, items
+    try:
+        files, entrypoints = map_index(top, tool, index_timeout)
+    except subprocess.TimeoutExpired:
+        return notes, items + [f"`ambysto-graph index` took over {index_timeout} s"]
+    except ValueError as e:
+        return notes, items + [str(e)]
+    cited = {p for p, _, _ in ranges}
+    items += [f"code file `{f}` is neither cited by the Architecture view nor in left_out" for f in sorted(files - cited - set(left))]
+    for p in sorted(left):
+        if p not in files:
+            items.append(f"left_out `{p}` is not a parsed code file")
+        elif p in cited:
+            items.append(f"left_out `{p}` is also cited by the Architecture view")
+    for f, line, ep in entrypoints:
+        if f not in left and not any(p == f and a <= line <= b for p, a, b in ranges):
+            items.append(f"entrypoint `{ep}` ({f}:{line}) is not cited by the Architecture view")
+    notes.append(f"map: {len(views)} view(s); {len(files)} parsed code file(s), {len(left)} left out; "
+                 f"{len(entrypoints)} entrypoint(s)")
+    return notes, items
+
+
 def trace(plan_path, proof):
     """(notes, gaps): with an intent that has `## Coverage`, every top-level Outcome item is named by a Proof item."""
     if not plan_path.name.endswith(".plan.md"):
@@ -483,7 +739,7 @@ def run_checks(tasks, top):
     return notes, gaps
 
 
-def converge(plan_path, base=None, checks=False):
+def converge(plan_path, base=None, checks=False, find_map_tool=map_tool):
     """(notes, gaps) for a plan file in a git work tree."""
     plan_path = Path(plan_path).resolve()
     text = plan_path.read_text(encoding="utf-8")
@@ -531,6 +787,16 @@ def converge(plan_path, base=None, checks=False):
     more_notes, more_gaps = trace(plan_path, proof)
     notes += more_notes
     gaps += more_gaps
+    if not top.joinpath(*MAP_DIR).is_dir() and any(p.startswith("/".join(MAP_DIR) + "/") for p in paths):
+        notes.append("map not checked: this branch deletes docs/map/")
+    elif top.joinpath(*MAP_DIR).is_dir() and any(not (p in own or flow_of_intent(p)) for p in paths):
+        tool = find_map_tool()
+        if tool is None:
+            notes.append("map not checked: no ambysto-graph")
+        else:
+            more_notes, items = check_map(top, tool)
+            notes += more_notes
+            gaps += [f"map: {i}" for i in items]
     if checks and not gaps:  # only once nothing else is missing: the checks are the last, and the slow, step
         more_notes, gaps = run_checks(tasks, top)
         notes += more_notes
@@ -871,18 +1137,353 @@ def self_test():
         expect("floor notes silent when assertions increase and test restored",
                [n for n in converge(plan, base="floor-base")[0] if n.startswith("floor: ")], [])
 
+    failures += map_self_test()
     if failures:
         print("FAIL: sdlc-check self-test\n  " + "\n  ".join(failures))
         return 1
-    print("PASS: sdlc-check self-test (clarify with Coverage and flows, the task parser and its refusals, converge with tracing and --checks on a scratch repo)")
+    print("PASS: sdlc-check self-test (clarify with Coverage and flows, the task parser and its refusals, converge with tracing "
+          "and --checks on a scratch repo, the map check and converge on a repo with docs/map/)")
     return 0
+
+
+FAKE_GRAPH = r'''
+import json, os, sys, time
+from pathlib import Path
+cmd, args = sys.argv[1], sys.argv[2:]
+if cmd == "index":
+    spec = json.loads(Path(os.environ["SDLC_FAKE_INDEX"]).read_text())
+    if spec.get("slow"): time.sleep(5)
+    if spec.get("fail"): print("index: cannot walk"); sys.exit(3)
+    graph = Path(os.environ["SDLC_FAKE_INDEX"]).with_name("graph.json")
+    if spec.get("garbled"):
+        graph.write_text(json.dumps({"schema_version": 1, "files": spec["files"]}))
+    else:
+        files = {f: {"file_graph": {"code": {"parsed": True, "symbols": []}}} for f in spec["files"]}
+        files.update({f: {"file_graph": None} for f in spec.get("text", [])})
+        files.update({f: {"file_graph": {"code": {"parsed": False}}} for f in spec.get("unparsed", [])})
+        graph.write_text(json.dumps({"schema_version": spec.get("schema", 1), "files": files,
+                                     "coverage": {"parsed_code_files": spec.get("count", len(spec["files"]))},
+                                     "entrypoints": [{"file": f, "entrypoint": {"name": n, "line": l}} for f, l, n in spec["entrypoints"]]}))
+    print(json.dumps([{"index_path": str(graph)}]))
+    sys.exit(0)
+view = args[-1] if cmd == "validate" else args[0]
+text = Path(view).read_text()
+if "SLOW" in text: time.sleep(5)
+if "--repo-root" not in args: print("no --repo-root: sources not checked"); sys.exit(4)
+if cmd == "validate":
+    if "BAD" in text: print("error: source citation out of range"); sys.exit(1)
+    print("Validation VALID"); sys.exit(0)
+if "NORENDER" in text: print("render: layout error"); sys.exit(2)
+Path(args[args.index("-o") + 1]).write_text("HTML " + text)
+'''
+
+
+def map_self_test():
+    """The map check (`check_map`, the `map` command) and `converge` on a repo with `docs/map/`, with a fake
+    `ambysto-graph` whose index is described by a JSON file named in SDLC_FAKE_INDEX."""
+    failures = []
+
+    def expect(name, got, want):
+        if got != want:
+            failures.append(f"map {name}: got {got!r}, want {want!r}")
+
+    saved = os.environ.get("SDLC_FAKE_INDEX")
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            fake = d / "fake-graph.py"
+            fake.write_text(FAKE_GRAPH)
+            tool = [sys.executable, str(fake)]
+            spec_file = d / "index" / "spec.json"
+            spec_file.parent.mkdir()
+            os.environ["SDLC_FAKE_INDEX"] = str(spec_file)
+            repo = d / "repo"
+            (repo / "src").mkdir(parents=True)
+            (repo / "docs" / "map").mkdir(parents=True)
+            (repo / "src" / "a.py").write_text("def main():\n    helper()\n")
+            (repo / "src" / "b.py").write_text("def helper():\n    pass\n")
+            (repo / "docs" / "rules.md").write_text("# Rules\nOne gate.\n")
+            (d / "outside.txt").write_text("nothing here\n")
+            src = lambda path, line, label, end=None: {"path": path, "line": line, "label": label, **({"end_line": end} if end else {})}
+            arch = {"mode": "architecture", "title": "A", "nodes": [
+                {"id": "a", "sources": [src("src/a.py", 1, "main", 2)]},
+                {"id": "b", "sources": [src("src/b.py", 1, "helper")]}]}
+            docs = {"mode": "architecture", "title": "D", "nodes": [
+                {"id": "rules", "badges": ["source of truth"], "sources": [src("docs/rules.md", 1, "Rules")]}]}
+            run_view = {"kind": "sequence", "title": "R", "participants": [
+                {"id": "user", "label": "User", "external": True},
+                {"id": "a", "label": "A", "sources": [src("src/a.py", 1, "main")]},
+                {"id": "b", "label": "B", "sources": [src("src/b.py", 1, "helper")]}],
+                "edges": [{"from": "user", "to": "a", "sources": [src("src/a.py", 1, "main")]},
+                          {"from": "a", "to": "b", "id": "call", "sources": [src("src/a.py", 2, "helper")]}],
+                "steps": [{"from": "user", "to": "a", "label": "run"}, {"from": "a", "to": "b", "label": "call", "edge": "call"},
+                          {"fragment": "alt", "branches": [{"label": "ok", "steps": [{"from": "b", "to": "a", "label": "done"}]},
+                                                           {"label": "no", "steps": [{"from": "a", "to": "a", "label": "retry", "kind": "self"}]}]}]}
+            clean_index = {"views": {"architecture": "arch.json", "docs": "docs.json", "runtime": ["run.json"]}, "left_out": {}}
+            clean_spec = {"files": ["src/a.py", "src/b.py"], "entrypoints": [["src/a.py", 1, "main"]], "text": ["docs/rules.md"]}
+
+            def check(index=None, views=None, spec=None, raw_index=None, html=None, timeout=FLOW_TIMEOUT, index_timeout=60, link=()):
+                folder = repo / "docs" / "map"
+                for f in folder.iterdir():
+                    f.unlink()
+                if raw_index is not None:
+                    (folder / "map.json").write_text(raw_index)
+                elif index is not False:
+                    (folder / "map.json").write_text(json.dumps(clean_index if index is None else index))
+                written = {"arch.json": arch, "docs.json": docs, "run.json": run_view} if views is None else views
+                for name, body in written.items():
+                    text = body if isinstance(body, str) else json.dumps(body, indent=1)
+                    (folder / name).write_text(text)
+                    (folder / (name[:-5] + ".html")).write_text("HTML " + text)
+                for name, body in (html or {}).items():
+                    if body is None:
+                        (folder / name).unlink()
+                    else:
+                        (folder / name).write_text(body)
+                for name in link:  # a view that is a symlink is refused, even when its target is fine
+                    target = repo / "docs" / ("linked-" + name)
+                    target.write_bytes((folder / name).read_bytes())
+                    (folder / name).unlink()
+                    (folder / name).symlink_to(target)
+                spec_file.write_text(json.dumps(clean_spec if spec is None else spec))
+                return check_map(repo, tool, timeout, index_timeout)
+
+            notes, items = check()
+            expect("clean", items, [])
+            expect("clean note", notes[-1], "map: 3 view(s); 2 parsed code file(s), 0 left out; 1 entrypoint(s)")
+            # the index
+            expect("index missing", check(index=False)[1], ["docs/map/map.json is missing"])
+            expect("index not JSON", check(raw_index="{")[1][0][:35], "docs/map/map.json is not JSON: Expe")
+            expect("index without views", check(index={"left_out": {}})[1], ["docs/map/map.json needs a `views` object"])
+            expect("index unknown key and view", check(index={**clean_index, "extra": 1, "views": {**clean_index["views"], "data": "x.json"}})[1],
+                   ["docs/map/map.json: unknown key `extra`", "docs/map/map.json: unknown view `data`"])
+            expect("architecture not a file", check(index={"views": {**clean_index["views"], "architecture": {"not_needed": "x"}}})[1][:1],
+                   ["docs/map/map.json: `views.architecture` must name a file (the Architecture view is always drawn)"])
+            expect("docs view missing", check(index={"views": {"architecture": "arch.json", "runtime": ["run.json"]}})[1],
+                   ["docs/map/map.json: `views.docs` must be a file, or `{\"not_needed\": \"<reason>\"}`"])
+            expect("runtime list empty", check(index={"views": {**clean_index["views"], "runtime": []}})[1],
+                   ["docs/map/map.json: `views.runtime` must be a non-empty list of files, or `{\"not_needed\": \"<reason>\"}`"])
+            for bad in ({"not_needed": " "}, {"not_needed": "x", "why": "y"}, {"not_needed": 3}):
+                expect(f"not needed without a reason {bad}", check(index={"views": {**clean_index["views"], "docs": bad}})[1],
+                       ["docs/map/map.json: `views.docs` is `{\"not_needed\": \"<reason>\"}` with a reason, and nothing else"])
+            notes, items = check(index={"views": {**clean_index["views"], "runtime": {"not_needed": "a library"}}})
+            expect("not needed with a reason", (items, "map: runtime view not needed: a library" in notes), ([], True))
+            expect("view name outside the folder", check(index={"views": {**clean_index["views"], "docs": "../docs.json"}})[1],
+                   ["docs/map/map.json: `../docs.json` (docs) is not a view file name beside map.json (`<name>.json`)"])
+            expect("view named map.json", check(index={"views": {**clean_index["views"], "docs": "map.json"}})[1],
+                   ["docs/map/map.json: `map.json` (docs) is not a view file name beside map.json (`<name>.json`)"])
+            expect("view named twice", check(index={"views": {**clean_index["views"], "runtime": ["run.json", "run.json"]}})[1],
+                   ["docs/map/map.json: `run.json` is named twice"])
+            expect("left_out not an object", check(index={**clean_index, "left_out": ["src/b.py"]})[1][:1],
+                   ["docs/map/map.json: `left_out` must be an object of path to reason"])
+            # each view
+            expect("view missing", check(views={"arch.json": arch, "run.json": run_view})[1], ["docs.json: missing (docs view named in map.json)"])
+            expect("view not JSON", check(views={"arch.json": arch, "docs.json": "{", "run.json": run_view})[1][0][:20], "docs.json: not JSON:")
+            expect("runtime view not a sequence", check(views={"arch.json": arch, "docs.json": docs, "run.json": {**run_view, "kind": "workflow"}})[1],
+                   ["run.json: a runtime view must be a flow IR with `\"kind\": \"sequence\"`"])
+            expect("architecture view not architecture", check(views={"arch.json": {**arch, "mode": "delta"}, "docs.json": docs, "run.json": run_view})[1],
+                   ["arch.json: a architecture view must be an IR with `\"mode\": \"architecture\"`"])
+            expect("view a list", check(views={"arch.json": arch, "docs.json": [], "run.json": run_view})[1],
+                   ["docs.json: a docs view must be an IR with `\"mode\": \"architecture\"`"])
+            expect("html missing", check(html={"docs.html": None})[1], ["docs.json: `docs.html` is missing"])
+            expect("validate fails", check(views={"arch.json": arch, "docs.json": {**docs, "title": "BAD"}, "run.json": run_view})[1],
+                   ["docs.json: validate failed (exit 1): error: source citation out of range"])
+            expect("stale html", check(html={"docs.html": "HTML old"})[1],
+                   ["docs.json: `docs.html` is not a fresh render of it; render it again: "
+                    "`ambysto-graph render docs/map/docs.json --repo-root . -o docs/map/docs.html`"])
+            expect("crlf html is fresh", check(html={"docs.html": ("HTML " + json.dumps(docs, indent=1)).replace("\n", "\r\n")})[1], [])
+            expect("render fails", check(views={"arch.json": arch, "docs.json": {**docs, "title": "NORENDER"}, "run.json": run_view})[1],
+                   ["docs.json: render failed (exit 2): render: layout error"])
+            expect("a view over its time", check(views={"arch.json": arch, "docs.json": {**docs, "title": "SLOW"}, "run.json": run_view}, timeout=1)[1],
+                   ["docs.json: ambysto-graph took over 1 s"])
+            # citations and marks
+            bare = {**docs, "nodes": [{"id": "rules", "badges": ["derived"]}]}
+            expect("node cites nothing", check(views={"arch.json": arch, "docs.json": bare, "run.json": run_view})[1], ["docs.json: node `rules` cites nothing"])
+            nolabel = {**docs, "nodes": [{"id": "rules", "badges": ["derived"], "sources": [{"path": "docs/rules.md", "line": 1}]}]}
+            expect("source without a label", check(views={"arch.json": arch, "docs.json": nolabel, "run.json": run_view})[1],
+                   ["docs.json: node `rules` cites docs/rules.md:1 with no label (the name of what it cites)"])
+            moved = {**docs, "nodes": [{"id": "rules", "badges": ["derived"], "sources": [src("docs/rules.md", 2, "Rules")]}]}
+            expect("moved", check(views={"arch.json": arch, "docs.json": moved, "run.json": run_view})[1],
+                   ["docs.json: node `rules` cites `Rules` at docs/rules.md:2, but those lines no longer contain it (the code moved)"])
+            moved_range = {**arch, "nodes": [{"id": "a", "sources": [src("src/a.py", 2, "main", 2)]}, arch["nodes"][1]]}
+            items = check(views={"arch.json": moved_range, "docs.json": docs, "run.json": run_view})[1]
+            expect("moved in a range", items[0], "arch.json: node `a` cites `main` at src/a.py:2, but those lines no longer contain it (the code moved)")
+            ranged = {**arch, "nodes": [{"id": "a", "sources": [src("src/a.py", 1, "helper", 2)]}, arch["nodes"][1]]}
+            expect("a label on the range's last line", check(views={"arch.json": ranged, "docs.json": docs, "run.json": run_view})[1], [])
+            outside = {**docs, "nodes": [{"id": "rules", "badges": ["derived"], "sources": [src("../outside.txt", 1, "Rules")]}]}
+            expect("a path outside the repo is not read", check(views={"arch.json": arch, "docs.json": outside, "run.json": run_view})[1], [])
+            for marks, n in ((["canonical"], 0), (["derived", "internal"], 2)):
+                body = {**docs, "nodes": [{**docs["nodes"][0], "badges": marks}]}
+                expect(f"docs marks {marks}", check(views={"arch.json": arch, "docs.json": body, "run.json": run_view})[1],
+                       [f"docs.json: node `rules` needs exactly one of the badges 'source of truth', 'derived', 'internal', 'schema'; it has {n}"])
+            lone = {**run_view, "participants": run_view["participants"][:2] + [{"id": "b", "label": "B"}],
+                    "edges": [{"from": "a", "to": "b"}], "steps": []}
+            expect("runtime participant and edge cite nothing", check(views={"arch.json": arch, "docs.json": docs, "run.json": lone})[1],
+                   ["run.json: participant `b` cites nothing", "run.json: edge `a -> b` cites nothing"])
+            no_edges = {**run_view, "edges": [run_view["edges"][1]]}
+            expect("a step an outside party starts still needs an edge", check(views={"arch.json": arch, "docs.json": docs, "run.json": no_edges})[1],
+                   ["run.json: step `user -> a` matches no edge, so it cites nothing; declare that edge with sources"])
+            flagged = {**no_edges, "steps": [{**run_view["steps"][0], "external": True}] + run_view["steps"][1:]}
+            expect("an external step still needs an edge", check(views={"arch.json": arch, "docs.json": docs, "run.json": flagged})[1],
+                   ["run.json: step `user -> a` matches no edge, so it cites nothing; declare that edge with sources"])
+            wrong_id = {**run_view, "steps": [run_view["steps"][0], {**run_view["steps"][1], "edge": "nope"}]}
+            expect("a step naming an unknown edge", check(views={"arch.json": arch, "docs.json": docs, "run.json": wrong_id})[1],
+                   ["run.json: step `a -> b` matches no edge, so it cites nothing; declare that edge with sources"])
+            in_branch = {**run_view, "steps": run_view["steps"][:2] + [{"fragment": "alt", "branches": [
+                {"label": "ok", "steps": [{"from": "b", "to": "user", "label": "tell"}]}]}]}
+            expect("a step inside a branch needs an edge too", check(views={"arch.json": arch, "docs.json": docs, "run.json": in_branch})[1],
+                   ["run.json: step `b -> user` matches no edge, so it cites nothing; declare that edge with sources"])
+            in_loop = {**run_view, "steps": run_view["steps"][:2] + [{"fragment": "loop", "label": "again", "steps": [
+                {"from": "b", "to": "user", "label": "tell"}]}]}
+            expect("a step inside a loop needs an edge too", check(views={"arch.json": arch, "docs.json": docs, "run.json": in_loop})[1],
+                   ["run.json: step `b -> user` matches no edge, so it cites nothing; declare that edge with sources"])
+            back_only = {**run_view, "edges": [{"from": "a", "to": "user", "sources": [src("src/a.py", 1, "main")]}, run_view["edges"][1]]}
+            expect("an outside party's step does not borrow the edge the other way", check(views={"arch.json": arch, "docs.json": docs, "run.json": back_only})[1],
+                   ["run.json: step `user -> a` matches no edge, so it cites nothing; declare that edge with sources"])
+            marked = {**run_view, "edges": [{"from": "b", "to": "a", "sources": [src("src/b.py", 1, "helper")]}],
+                      "steps": [{"from": "a", "to": "b", "label": "call", "external": True}]}
+            expect("a step marked external does not borrow the edge the other way", check(views={"arch.json": arch, "docs.json": docs, "run.json": marked})[1],
+                   ["run.json: step `a -> b` matches no edge, so it cites nothing; declare that edge with sources"])
+            nul = {**docs, "nodes": [{"id": "rules", "badges": ["derived"], "sources": [src("docs/ru\x00les.md", 1, "Rules")]}]}
+            expect("a path with a NUL byte does not crash", check(views={"arch.json": arch, "docs.json": nul, "run.json": run_view})[1], [])
+            # written as text: building it with json.dumps would itself recurse too deep on some Pythons
+            deep = ('{"fragment": "opt", "steps": [' * 3000 + '{"from": "a", "to": "b", "label": "x", "edge": "call"}' + ']}' * 3000)
+            deep_view = json.dumps({**run_view, "steps": "@"}).replace('"steps": "@"', '"steps": [' + deep + ']')
+            items = check(views={"arch.json": arch, "docs.json": docs, "run.json": deep_view})[1]
+            expect("fragments nested too deep: one item, no crash", (len(items), bool(items) and items[0].startswith("run.json: ")
+                   and ("RecursionError" in items[0] or "not JSON" in items[0])), (1, True))
+            items = check(views={"arch.json": arch, "docs.json": docs, "run.json": "[" * 200000 + "]" * 200000})[1]
+            expect("a view nested too deep to parse", (len(items), bool(items) and items[0].startswith("run.json: ")), (1, True))
+            items = check(raw_index="[" * 200000 + "]" * 200000)[1]
+            expect("a map.json nested too deep", (len(items), bool(items) and items[0].startswith("docs/map/map.json")), (1, True))
+            items = check(views={"arch.json": {**arch, "nodes": 5}, "docs.json": docs, "run.json": run_view})[1]
+            expect("a malformed Architecture view: one item, no coverage", (len(items), bool(items) and items[0].startswith("arch.json: cannot read its nodes, steps or sources")), (1, True))
+            outsiders = {"kind": "sequence", "title": "O", "participants": [{"id": "x", "label": "X", "external": True},
+                                                                             {"id": "y", "label": "Y", "external": True}],
+                         "steps": [{"from": "x", "to": "y", "label": "talk"}]}
+            expect("a step between two outside parties cites nothing, rightly", check(views={"arch.json": arch, "docs.json": docs, "run.json": outsiders})[1], [])
+            blank = {**docs, "nodes": [{"id": "rules", "badges": ["derived"], "sources": [src("docs/rules.md", 1, " ")]}]}
+            expect("a blank label", check(views={"arch.json": arch, "docs.json": blank, "run.json": run_view})[1],
+                   ["docs.json: node `rules` cites docs/rules.md:1 with no label (the name of what it cites)"])
+            for bad in ({**docs, "nodes": 5}, {**docs, "nodes": ["x"]}, {**docs, "nodes": [{"id": "r", "badges": ["derived"], "sources": "abc"}]}):
+                items = check(views={"arch.json": arch, "docs.json": bad, "run.json": run_view})[1]
+                expect(f"a malformed view {json.dumps(bad['nodes'])}", (len(items), items[0][:45] if items else ""),
+                       (1, "docs.json: cannot read its nodes, steps or so"))
+            if os.name == "posix":
+                expect("a view that is a symlink", check(link=("docs.json",))[1], ["docs.json: missing (docs view named in map.json)"])
+            # coverage
+            only_a = {**arch, "nodes": arch["nodes"][:1]}
+            expect("uncited code file", check(views={"arch.json": only_a, "docs.json": docs, "run.json": run_view})[1],
+                   ["code file `src/b.py` is neither cited by the Architecture view nor in left_out"])
+            expect("left out with a reason", check(index={**clean_index, "left_out": {"src/b.py": "a helper"}},
+                                                   views={"arch.json": only_a, "docs.json": docs, "run.json": run_view})[1], [])
+            expect("left out with no reason", check(index={**clean_index, "left_out": {"src/b.py": " "}},
+                                                    views={"arch.json": only_a, "docs.json": docs, "run.json": run_view})[1],
+                   ["docs/map/map.json: left_out `src/b.py` has no reason"])
+            expect("left out but not parsed code", check(index={**clean_index, "left_out": {"docs/rules.md": "prose"}})[1],
+                   ["left_out `docs/rules.md` is not a parsed code file"])
+            expect("left out and cited", check(index={**clean_index, "left_out": {"src/b.py": "a helper"}})[1],
+                   ["left_out `src/b.py` is also cited by the Architecture view"])
+            ep_off = {**arch, "nodes": [{"id": "a", "sources": [src("src/a.py", 2, "helper")]}, arch["nodes"][1]]}
+            expect("entrypoint not cited", check(views={"arch.json": ep_off, "docs.json": docs, "run.json": run_view})[1],
+                   ["entrypoint `main` (src/a.py:1) is not cited by the Architecture view"])
+            only_b = {**arch, "nodes": arch["nodes"][1:]}
+            expect("entrypoint in a left-out file not required", check(index={**clean_index, "left_out": {"src/a.py": "a demo"}},
+                                                                       views={"arch.json": only_b, "docs.json": docs, "run.json": run_view})[1], [])
+            expect("index count differs", check(spec={**clean_spec, "count": 3})[1],
+                   ["cannot list the parsed code files: the index marks 2 file(s) parsed, but counts 3 parsed code file(s)"])
+            expect("an unparsed code file is not required", check(spec={**clean_spec, "unparsed": ["src/c.py"]})[1], [])
+            expect("index of another schema", check(spec={**clean_spec, "schema": 2})[1],
+                   ["cannot list the parsed code files: the index is not in the expected format (ValueError: schema_version 2, not 1)"])
+            two_eps = {**clean_spec, "entrypoints": [["src/a.py", 1, "main"], ["src/a.py", 2, "inner"]]}
+            line_one = {**arch, "nodes": [{"id": "a", "sources": [src("src/a.py", 1, "main")]}, arch["nodes"][1]]}
+            expect("entrypoint after the cited range", check(views={"arch.json": line_one, "docs.json": docs, "run.json": run_view}, spec=two_eps)[1],
+                   ["entrypoint `inner` (src/a.py:2) is not cited by the Architecture view"])
+            expect("index fails", check(spec={**clean_spec, "fail": True})[1], ["`ambysto-graph index` failed (exit 3): index: cannot walk"])
+            expect("index garbled", check(spec={**clean_spec, "garbled": True})[1][0][:90],
+                   "cannot list the parsed code files: the index is not in the expected format (AttributeError")
+            expect("index over its time", check(spec={**clean_spec, "slow": True}, index_timeout=1)[1], ["`ambysto-graph index` took over 1 s"])
+            expect("no architecture view: no coverage", check(views={"docs.json": docs, "run.json": run_view})[1],
+                   ["arch.json: missing (architecture view named in map.json)"])
+
+            # the `map` command: exit 2 with no tool, 0 when clean, 1 with an item or no docs/map/
+            check()
+            bin_dir, empty_dir = d / "bin", d / "empty"
+            bin_dir.mkdir()
+            empty_dir.mkdir()
+            wrapper = bin_dir / "ambysto-graph"
+            wrapper.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(fake))} \"$@\"\n")
+            wrapper.chmod(0o755)
+            cli = lambda path_dir, target: subprocess.run([sys.executable, __file__, "map", str(target)], capture_output=True,
+                                                          text=True, env={**os.environ, "PATH": str(path_dir)})
+            out = cli(empty_dir, repo)
+            expect("cli no tool", (out.returncode, out.stdout.strip()), (2, "map not checked: no ambysto-graph"))
+            if os.name == "posix":
+                out = cli(bin_dir, repo)
+                expect("cli clean", (out.returncode, out.stdout.splitlines()[-1]), (0, f"PASS: map {repo}, 0 gap(s)"))
+                (repo / "src" / "b.py").write_text("def renamed():\n    pass\n")
+                out = cli(bin_dir, repo)
+                expect("cli moved", (out.returncode, out.stdout.splitlines()[-1]), (1, f"FAIL: map {repo}, 2 gap(s)"))
+                (repo / "src" / "b.py").write_text("def helper():\n    pass\n")
+                out = cli(bin_dir, d / "index")
+                expect("cli no docs/map", (out.returncode, out.stdout.splitlines()[-2:]),
+                       (1, [f"gap: no docs/map/ in {d / 'index'}", f"FAIL: map {d / 'index'}, 1 gap(s)"]))
+
+            # converge: the map is checked only in a repo with docs/map/, and only when the branch changes more than the plan
+            git = lambda *a: subprocess.run(["git", "-C", str(repo), *a], check=True, capture_output=True)
+            git("init", "-q", "-b", "main")
+            git("config", "user.email", "t@example.com")
+            git("config", "user.name", "t")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            git("checkout", "-qb", "work")
+            (repo / "intent").mkdir()
+            plan = repo / "intent" / "x.plan.md"
+            plan.write_text("## Tasks\n### T1 (main) A\n- allow: `src/**` `docs/map/**`\n"
+                            "- check: `true`\n## Proof\n1. ok\n## Result\n1. PASS\n")
+            mapped = lambda gaps: [g for g in gaps if g.startswith("map:") or g.startswith("outside")]
+            (repo / "intent" / "x.md").write_text("i\n")
+            asked = []
+            finder = lambda: asked.append(1) or tool
+            (repo / "intent" / "x.demo.flow.json").write_text("{}\n")
+            notes, gaps = converge(plan, find_map_tool=finder)
+            expect("converge: plan, intent and its flow only, no map check", (mapped(gaps), asked), ([], []))
+            (repo / "src" / "b.py").write_text("def renamed():\n    pass\n")
+            notes, gaps = converge(plan, find_map_tool=finder)
+            expect("converge: a code change runs the check", (mapped(gaps), asked),
+                   (["map: arch.json: node `b` cites `helper` at src/b.py:1, but those lines no longer contain it (the code moved)",
+                     "map: run.json: participant `b` cites `helper` at src/b.py:1, but those lines no longer contain it (the code moved)"], [1]))
+            notes, gaps = converge(plan, find_map_tool=lambda: None)
+            expect("converge: no tool is a note and no gap", (gaps, "map not checked: no ambysto-graph" in notes), ([], True))
+            (repo / "src" / "b.py").write_text("def helper():\n    pass\n")
+            (repo / "docs" / "map" / "arch.html").write_text("HTML old")
+            expect("converge: a change under docs/map/ counts", mapped(converge(plan, find_map_tool=finder)[1]),
+                   ["map: arch.json: `arch.html` is not a fresh render of it; render it again: "
+                    "`ambysto-graph render docs/map/arch.json --repo-root . -o docs/map/arch.html`"])
+            git("checkout", "-q", "--", ".")
+            git("rm", "-rqf", "docs/map")
+            asked.clear()
+            notes, gaps = converge(plan, find_map_tool=finder)
+            expect("converge: a branch that deletes docs/map/ gets a note", (mapped(gaps), asked, "map not checked: this branch deletes docs/map/" in notes),
+                   ([], [], True))
+            git("commit", "-qm", "no map")
+            git("checkout", "-qb", "work2")
+            (repo / "src" / "b.py").write_text("def renamed():\n    pass\n")
+            asked.clear()
+            expect("converge: no docs/map/, no map check", (mapped(converge(plan, base="work", find_map_tool=finder)[1]), asked), ([], []))
+    finally:
+        if saved is None:
+            os.environ.pop("SDLC_FAKE_INDEX", None)
+        else:
+            os.environ["SDLC_FAKE_INDEX"] = saved
+    return failures
 
 
 def main(argv):
     if argv == ["--self-test"]:
         return self_test()
-    if len(argv) == 2 and argv[0] == "clarify":
-        cmd = "clarify"
+    if len(argv) == 2 and argv[0] in ("clarify", "map"):
+        cmd = argv[0]
     elif argv[:1] == ["converge"] and len(argv) >= 2 and not argv[1].startswith("--"):
         cmd, base, checks, rest = "converge", None, False, argv[2:]
         while rest:
@@ -899,6 +1500,15 @@ def main(argv):
     try:
         if cmd == "clarify":
             notes, gaps = clarify_intent(argv[1], flow_tool())
+        elif cmd == "map":
+            tool = map_tool()
+            if tool is None:
+                print("map not checked: no ambysto-graph")
+                return 2
+            if not Path(argv[1]).joinpath(*MAP_DIR).is_dir():
+                notes, gaps = [], [f"no docs/map/ in {argv[1]}"]
+            else:
+                notes, gaps = check_map(argv[1], tool)
         else:
             notes, gaps = converge(argv[1], base, checks)
     except (Malformed, OSError, UnicodeDecodeError) as e:
