@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>IBM Carbon — reference</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  body { margin: 0; background: var(--carbon-bg); color: var(--carbon-text); font-family: var(--carbon-font); }
+  .ref { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
+  .ref h1 { margin: 0 0 6px; font-size: 32px; font-weight: 400; }
+  .ref .note { margin: 0 0 22px; color: var(--carbon-text-2); font-size: 14px; }
+  .panel { padding: 20px; border: 1px solid var(--carbon-border); background: var(--carbon-bg); margin-bottom: 18px; }
+  .panel > h2 { margin: 0 0 14px; font-size: 16px; font-weight: 400; color: var(--carbon-text); }
+  .panel > h3 { margin: 18px 0 8px; font-size: 12px; color: var(--carbon-text-2); letter-spacing: .32px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  .dark-panel { background: var(--carbon-bg); }
+</style>
+</head>
+<body>
+<main class="ref">
+  <h1>IBM Carbon</h1>
+  <p class="note">Carbon 11 themes · Apache-2.0 · values read 2026-11-20 · white and g90.</p>
+
+  <section class="panel">
+    <h2>Buttons</h2>
+    <div class="row">
+      <button class="carbon-btn" type="button">Primary <span aria-hidden="true">→</span></button>
+      <button class="carbon-btn carbon-btn--tertiary" type="button">Tertiary</button>
+      <button class="carbon-btn carbon-btn--ghost" type="button">Ghost</button>
+      <button class="carbon-btn carbon-btn--danger" type="button">Delete</button>
+      <button class="carbon-btn" type="button" disabled>Disabled</button>
+    </div>
+
+    <h3>Form</h3>
+    <div class="grid2">
+      <div><label class="carbon-label" for="cb-name">Name</label><input class="carbon-input" id="cb-name" placeholder="Your name"></div>
+      <div><label class="carbon-label" for="cb-note">Note</label><textarea class="carbon-textarea" id="cb-note" placeholder="Write a note"></textarea></div>
+    </div>
+
+    <h3>Tile and tags</h3>
+    <div class="grid2">
+      <div class="carbon-tile"><h2>Create project</h2><p>Deploy your new project in one click.</p>
+        <div class="row" style="margin-top:12px"><button class="carbon-btn" type="button">Deploy</button><button class="carbon-btn carbon-btn--tertiary" type="button">Cancel</button></div></div>
+      <div class="row" style="align-items:flex-start"><span class="carbon-tag">New</span><span class="carbon-tag carbon-tag--gray">Draft</span><span class="carbon-tag carbon-tag--green">Ready</span><span class="carbon-tag carbon-tag--red">Failed</span></div>
+    </div>
+
+    <h3>Inline notifications</h3>
+    <div class="carbon-inline-notification"><div><b>Info</b>A new version is available.</div></div>
+    <div class="carbon-inline-notification carbon-inline-notification--success" style="margin-top:8px"><div><b>Success</b>Changes saved to main.</div></div>
+    <div class="carbon-inline-notification carbon-inline-notification--danger" style="margin-top:8px"><div><b>Error</b>Your session has expired.</div></div>
+
+    <hr class="carbon-separator">
+    <h3>Table</h3>
+    <table class="carbon-table"><thead><tr><th>Invoice</th><th>Status</th><th>Amount</th></tr></thead>
+      <tbody><tr><td>INV-001</td><td><span class="carbon-tag carbon-tag--green">Paid</span></td><td>$250.00</td></tr>
+      <tr><td>INV-002</td><td><span class="carbon-tag carbon-tag--gray">Pending</span></td><td>$150.00</td></tr></tbody></table>
+  </section>
+
+  <section class="panel dark-panel" data-theme="dark">
+    <h2>Dark (g90)</h2>
+    <div class="row"><button class="carbon-btn" type="button">Primary</button><button class="carbon-btn carbon-btn--tertiary" type="button">Tertiary</button><button class="carbon-btn carbon-btn--ghost" type="button">Ghost</button></div>
+    <div class="grid2" style="margin-top:12px"><div><label class="carbon-label" for="cb-d-name">Name</label><input class="carbon-input" id="cb-d-name" value="Carbon"></div>
+    <div><label class="carbon-label" for="cb-d-note">Note</label><textarea class="carbon-textarea" id="cb-d-note">g90 tokens swap on data-theme.</textarea></div></div>
+  </section>
+</main>
+</body>
+</html>

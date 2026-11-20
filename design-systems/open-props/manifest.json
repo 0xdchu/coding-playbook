@@ -1,0 +1,24 @@
+{
+  "name": "Open Props",
+  "source": "https://github.com/argyleink/open-props",
+  "version": "1.7.23",
+  "date": "2026-11-20",
+  "license": "MIT",
+  "font": "system UI stack",
+  "accent": "#1864ab",
+  "dark": false,
+  "components": [
+    "openprops-card",
+    "openprops-btn",
+    "openprops-btn--ghost",
+    "openprops-label",
+    "openprops-input",
+    "openprops-textarea",
+    "openprops-badge",
+    "openprops-badge--yellow",
+    "openprops-alert",
+    "openprops-alert--yellow",
+    "openprops-table",
+    "openprops-separator"
+  ]
+}

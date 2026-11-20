@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Fluent 2 — reference</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  body { margin: 0; background: var(--fluent-bg-2); color: var(--fluent-fg-1); font-family: var(--fluent-font); }
+  .ref { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
+  .ref h1 { margin: 0 0 6px; font-size: 32px; font-weight: 600; }
+  .ref .note { margin: 0 0 22px; color: var(--fluent-fg-2); font-size: 14px; }
+  .panel { padding: 20px; border: 1px solid var(--fluent-stroke-2); border-radius: var(--fluent-radius-lg); background: var(--fluent-bg-1); margin-bottom: 18px; box-shadow: var(--fluent-shadow); }
+  .panel > h2 { margin: 0 0 14px; font-size: 16px; font-weight: 600; color: var(--fluent-fg-1); }
+  .panel > h3 { margin: 18px 0 8px; font-size: 13px; color: var(--fluent-fg-2); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  .dark-panel { background: var(--fluent-bg-1); }
+</style>
+</head>
+<body>
+<main class="ref">
+  <h1>Fluent 2</h1>
+  <p class="note">Microsoft Fluent UI tokens · MIT · values read 2026-11-20 · light and dark.</p>
+
+  <section class="panel">
+    <h2>Buttons</h2>
+    <div class="row">
+      <button class="fluent-btn" type="button">Primary</button>
+      <button class="fluent-btn fluent-btn--subtle" type="button">Subtle</button>
+      <button class="fluent-btn fluent-btn--outline" type="button">Outline</button>
+      <button class="fluent-btn fluent-btn--danger" type="button">Delete</button>
+      <button class="fluent-btn" type="button" disabled>Disabled</button>
+    </div>
+
+    <h3>Form</h3>
+    <div class="grid2">
+      <div><label class="fluent-label" for="fl-name">Name</label><input class="fluent-input" id="fl-name" placeholder="Your name"></div>
+      <div><label class="fluent-label" for="fl-note">Note</label><textarea class="fluent-textarea" id="fl-note" placeholder="Write a note"></textarea></div>
+    </div>
+
+    <h3>Card and badges</h3>
+    <div class="grid2">
+      <div class="fluent-card"><h2>Create project</h2><p>Deploy your new project in one click.</p>
+        <div class="row" style="margin-top:12px"><button class="fluent-btn" type="button">Deploy</button><button class="fluent-btn fluent-btn--outline" type="button">Cancel</button></div></div>
+      <div class="row" style="align-items:flex-start"><span class="fluent-badge fluent-badge--brand">New</span><span class="fluent-badge">Draft</span><span class="fluent-badge fluent-badge--success">Ready</span><span class="fluent-badge fluent-badge--danger">Failed</span></div>
+    </div>
+
+    <h3>Message bars</h3>
+    <div class="fluent-messagebar">A new version is available.</div>
+    <div class="fluent-messagebar fluent-messagebar--success" style="margin-top:8px">Changes saved to main.</div>
+    <div class="fluent-messagebar fluent-messagebar--danger" style="margin-top:8px">Your session has expired.</div>
+
+    <hr class="fluent-separator">
+    <h3>Table</h3>
+    <table class="fluent-table"><thead><tr><th>Invoice</th><th>Status</th><th>Amount</th></tr></thead>
+      <tbody><tr><td>INV-001</td><td><span class="fluent-badge fluent-badge--success">Paid</span></td><td>$250.00</td></tr>
+      <tr><td>INV-002</td><td><span class="fluent-badge">Pending</span></td><td>$150.00</td></tr></tbody></table>
+  </section>
+
+  <section class="panel dark-panel" data-theme="dark">
+    <h2>Dark</h2>
+    <div class="row"><button class="fluent-btn" type="button">Primary</button><button class="fluent-btn fluent-btn--subtle" type="button">Subtle</button><button class="fluent-btn fluent-btn--outline" type="button">Outline</button></div>
+    <div class="grid2" style="margin-top:12px"><div><label class="fluent-label" for="fl-d-name">Name</label><input class="fluent-input" id="fl-d-name" value="Fluent"></div>
+    <div><label class="fluent-label" for="fl-d-note">Note</label><textarea class="fluent-textarea" id="fl-d-note">Dark tokens swap on data-theme.</textarea></div></div>
+  </section>
+</main>
+</body>
+</html>

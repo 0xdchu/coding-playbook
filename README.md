@@ -34,6 +34,13 @@ Skills are separate from the roles: each folder is one skill, invoked by name or
 | `skills/mockup/` | `~/.claude/skills/` | Build a clickable end-user mockup from a user flow: a gallery of every screen, web/mobile, light/dark, hover and loading states, with a Playwright check and a static deploy |
 | `skills/userflow/` | `~/.claude/skills/` | Design and review a software user flow to ISO 9241 / ISO/IEC 25010 / WCAG 2.2: one actor and goal, entry/exit, flow spec, failure/recovery, accessibility and metrics |
 
+## Design systems (`design-systems/`)
+
+Five modern snapshots the `mockup` skill can copy in one step: **shadcn/ui** for modern SaaS, **Radix Colors** for
+app UI, **Open Props** for playful products, **Microsoft Fluent 2** for productivity apps and **IBM Carbon 11** for
+enterprise consoles. Each folder is five files — a manifest, tokens, components, a reference page and the upstream
+LICENSE — and `scripts/check.py` fails when a file is missing or a manifest class is not shown in the reference.
+
 ## Tooling, hooks and history
 
 Run from the repo, or installed as hooks. None of it assigns a role.

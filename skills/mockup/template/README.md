@@ -25,6 +25,12 @@ vercel.json   noindex header
 7. Rewrite the screen ids and selectors in `check.mjs` for the real screens; keep each assertion's intent.
 8. Screens are full-bleed under the chrome. Wrap a screen in `.screen-wrap` if the product wants card margins.
 
+## Use a design system (optional)
+
+If the repo carries `design-systems/`, copy `<system>/tokens.css` and `<system>/components.css` next to this folder,
+link them before `styles.css` in `index.html`, and use their classes. The template's own tokens remain the fallback
+when no system is chosen. `design-systems/README.md` lists the five systems and which screens each fits.
+
 ## Run and check
 
 ```sh

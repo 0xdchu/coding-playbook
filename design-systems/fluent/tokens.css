@@ -1,0 +1,63 @@
+/* Fluent 2 (Fluent UI tokens 1.0.0-alpha.24) — curated tokens. Source: github.com/microsoft/fluentui (MIT).
+   Values read from webLightTheme / webDarkTheme on 2026-11-20. Light on :root, dark on [data-theme="dark"]. */
+:root {
+  --fluent-fg-1: #242424;
+  --fluent-fg-2: #424242;
+  --fluent-fg-3: #616161;
+  --fluent-bg-1: #ffffff;
+  --fluent-bg-2: #fafafa;
+  --fluent-bg-3: #f5f5f5;
+  --fluent-stroke-1: #d1d1d1;
+  --fluent-stroke-2: #e0e0e0;
+  --fluent-brand: #0f6cbd;
+  --fluent-brand-hover: #115ea3;
+  --fluent-brand-fg: #0f6cbd;
+  --fluent-on-brand: #ffffff;
+  --fluent-danger-bg: #fdf3f4;
+  --fluent-danger: #b10e1c;
+  --fluent-success-bg: #f1faf1;
+  --fluent-success: #0e700e;
+  --fluent-warning-bg: #fff9f5;
+  --fluent-warning: #bc4b09;
+  --fluent-font: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+  --fluent-type-100: 10px;
+  --fluent-type-200: 12px;
+  --fluent-type-300: 14px;
+  --fluent-type-400: 16px;
+  --fluent-type-500: 20px;
+  --fluent-type-600: 24px;
+  --fluent-type-700: 28px;
+  --fluent-type-800: 32px;
+  --fluent-space-1: 4px;
+  --fluent-space-2: 8px;
+  --fluent-space-3: 12px;
+  --fluent-space-4: 16px;
+  --fluent-space-5: 20px;
+  --fluent-space-6: 24px;
+  --fluent-space-7: 32px;
+  --fluent-radius: 4px;
+  --fluent-radius-lg: 6px;
+  --fluent-shadow: 0 2px 4px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --fluent-focus: #000000;
+}
+[data-theme="dark"] {
+  --fluent-fg-1: #ffffff;
+  --fluent-fg-2: #d6d6d6;
+  --fluent-fg-3: #adadad;
+  --fluent-bg-1: #292929;
+  --fluent-bg-2: #1f1f1f;
+  --fluent-bg-3: #141414;
+  --fluent-stroke-1: #666666;
+  --fluent-stroke-2: #525252;
+  --fluent-brand: #115ea3;
+  --fluent-brand-hover: #0f6cbd;
+  --fluent-brand-fg: #479ef5;
+  --fluent-on-brand: #ffffff;
+  --fluent-danger-bg: #3b0509;
+  --fluent-danger: #dc626d;
+  --fluent-success-bg: #052505;
+  --fluent-success: #54b054;
+  --fluent-warning-bg: #4a1e04;
+  --fluent-warning: #faa06b;
+  --fluent-focus: #ffffff;
+}

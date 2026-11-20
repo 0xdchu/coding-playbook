@@ -1,0 +1,29 @@
+{
+  "name": "Fluent 2",
+  "source": "https://github.com/microsoft/fluentui",
+  "version": "tokens 1.0.0-alpha.24",
+  "date": "2026-11-20",
+  "license": "MIT",
+  "font": "Segoe UI stack",
+  "accent": "#0f6cbd",
+  "dark": true,
+  "components": [
+    "fluent-btn",
+    "fluent-btn--subtle",
+    "fluent-btn--outline",
+    "fluent-btn--danger",
+    "fluent-label",
+    "fluent-input",
+    "fluent-textarea",
+    "fluent-card",
+    "fluent-badge",
+    "fluent-badge--brand",
+    "fluent-badge--danger",
+    "fluent-badge--success",
+    "fluent-messagebar",
+    "fluent-messagebar--success",
+    "fluent-messagebar--danger",
+    "fluent-table",
+    "fluent-separator"
+  ]
+}
