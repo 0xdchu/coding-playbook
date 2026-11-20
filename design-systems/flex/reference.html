@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Flex-style — reference</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  body { margin: 0; background: var(--flex-bg); color: var(--flex-fg); font-family: var(--flex-sans); }
+  .ref-note { max-width: var(--flex-max); margin: 0 auto; padding: 18px 48px 0; font-size: 12px; color: var(--flex-ink-3); }
+  @media (max-width: 720px) { .ref-note { padding: 14px 24px 0; } }
+  .ref-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+  .ref-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 32px; }
+  .ref-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .ref-hero-inner { max-width: var(--flex-max); margin: 0 auto; width: 100%; display: grid; gap: 32px; }
+  @media (max-width: 720px) { .ref-cards, .ref-stats { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="ref-note">Original interpretation of the visual language at flex.one — no site code, fonts or assets used. Not affiliated.</div>
+
+<section class="flex-hero">
+  <div class="flex-container">
+    <div class="ref-hero-inner">
+      <nav class="flex-nav"><a href="#">Business</a><a href="#">Personal</a><a href="#">Resources</a><a href="#" style="margin-left:auto">Log in</a></nav>
+      <p class="flex-eyebrow">Private banking for business owners</p>
+      <h1 class="flex-display">The financial home for business owners globally</h1>
+      <div class="ref-row" style="max-width:640px">
+        <input class="flex-input" aria-label="Email" placeholder="Enter your email" style="flex:1">
+        <button class="flex-btn" type="button">Get started</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="flex-section flex-section--cream">
+  <div class="flex-container">
+    <p class="flex-eyebrow">Products</p>
+    <h2 class="flex-h2">See what is available where you operate</h2>
+    <hr class="flex-rule">
+    <div class="ref-cards">
+      <article class="flex-card"><div><h3>Banking &amp; Treasury</h3><p>Local-currency accounts and cross-border payments.</p><div class="ref-row" style="margin-top:10px"><span class="flex-tag">Business</span><span class="flex-tag">Personal</span></div></div></article>
+      <article class="flex-card"><div><h3>Credit Card</h3><p>Business spend with no credit check.</p><div class="ref-row" style="margin-top:10px"><span class="flex-tag">Business</span></div></div></article>
+      <article class="flex-card"><div><h3>Global Expense Management</h3><p>Cards, receipts and approvals in one place.</p><div class="ref-row" style="margin-top:10px"><span class="flex-tag">Business</span><span class="flex-tag">Personal</span></div></div></article>
+      <article class="flex-card"><div><h3>Stablecoins</h3><p>A dollar account that moves in seconds.</p><div class="ref-row" style="margin-top:10px"><span class="flex-tag">Business</span></div></div></article>
+    </div>
+    <div class="ref-row" style="margin-top:28px"><button class="flex-btn flex-btn--outline" type="button">Compare products</button><a class="flex-link" href="#">Read the guide</a></div>
+  </div>
+</section>
+
+<section class="flex-section flex-section--dark">
+  <div class="flex-container">
+    <p class="flex-eyebrow">By the numbers</p>
+    <h2 class="flex-h2">Built for the business owner with boundless ambition</h2>
+    <div class="ref-stats">
+      <div class="flex-stat"><b>$2.4B</b><span>Processed</span></div>
+      <div class="flex-stat"><b>180+</b><span>Countries</span></div>
+      <div class="flex-stat"><b>24/7</b><span>Support</span></div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

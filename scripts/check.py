@@ -581,7 +581,7 @@ def check_design_systems():
                 fail(f"{rel}/reference.html: '{component}' is not shown as a class")
         if "--" not in (d / "tokens.css").read_text(encoding="utf-8", errors="replace"):
             fail(f"{rel}/tokens.css: no CSS variables")
-    required = {"shadcn", "radix", "open-props", "fluent", "carbon"}
+    required = {"shadcn", "radix", "open-props", "fluent", "carbon", "flex"}
     if {d.name for d in folders} != required:
         fail(f"design-systems/: expected exactly {', '.join(sorted(required))}; found {', '.join(d.name for d in folders)}")
 

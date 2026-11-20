@@ -1,8 +1,8 @@
 ---
 status: approved
-approved: 2026-11-20 (owner, "đủ 5 bộ CSS thuần")
+approved: 2026-11-20 (owner, "đủ 5 bộ CSS thuần"); 2026-11-21 (owner, "distill flex.one")
 ---
-# Design-system library: five modern systems the mockup skill can copy
+# Design-system library: six design systems the mockup skill can copy
 
 Ticket: Plane APS-87.
 
@@ -15,8 +15,8 @@ old ones.
 
 ## Outcome
 
-A `design-systems/` library with **five** modern systems — **shadcn/ui**, **Radix Colors**, **Open Props**,
-**Microsoft Fluent 2** and **IBM Carbon 11** — packaged for an LLM to read once and copy:
+A `design-systems/` library with **six** design systems — **shadcn/ui**, **Radix Colors**, **Open Props**,
+**Microsoft Fluent 2**, **IBM Carbon 11** and **Flex-style** — packaged for an LLM to read once and copy:
 
 ```
 design-systems/
@@ -26,6 +26,7 @@ design-systems/
   open-props/{...}
   fluent/{...}
   carbon/{...}
+  flex/{...}
 ```
 
 1. **Five systems, five files each.** Every folder carries a manifest, tokens, components, a reference page and the
@@ -40,6 +41,9 @@ design-systems/
    - Checked by: reading the two files in the PR.
 5. **Small enough to read once.** Each system ≤900 lines of CSS+HTML.
    - Checked by: `wc -l` per system.
+6. **A luxury editorial system, interpreted not copied.** `flex/` distils the palette, type pairing and quiet
+   components of flex.one into original CSS; no site HTML, CSS, fonts or images are used.
+   - Checked by: the folder's LICENSE and manifest (`kind: inspired-recipe`), plus the same file/class checks.
 
 ## Constraints
 
@@ -52,7 +56,9 @@ design-systems/
 - **Plain CSS variables and classes, no JS, no build, no npm.** A system is two stylesheets and one reference page.
 - **The library never enters a mockup by remote URL.** The skill copies the files, so a page keeps working offline and
   over `file://`.
-- **No invented components.** Only patterns the upstream system ships.
+- **No invented components.** Only patterns the upstream system ships, except `flex/`, which is an original
+  interpretation of a proprietary site: no HTML, CSS, fonts or images are copied, and the folder says it is not
+  affiliated.
 
 ## Decisions
 
@@ -64,6 +70,8 @@ design-systems/
 4. **The mockup copies, not links.** `tokens.css` + `components.css` are copied beside the mockup; its own `styles.css`
    keeps only layout and brand overrides.
 5. **Light first; dark where the upstream defines it.** All except Open Props ship a dark theme.
+6. **Flex is an original interpretation.** flex.one is proprietary; the library records the observed palette and
+   type pairing and rebuilds the components from scratch under MIT.
 
 ## Coverage
 
@@ -78,7 +86,7 @@ design-systems/
   - a proprietary font: the tokens use the system stack and the manifest names the substitution;
   - a copied class drifts from the reference: criterion 2 fails before a mockup uses it.
 - Data and states: five files per system; light and dark tokens where upstream defines them; no runtime state.
-- Limits: five systems; ≤900 lines of CSS+HTML each; MIT or Apache-2.0; no JS, build, npm or remote URL.
+- Limits: six systems; ≤900 lines of CSS+HTML each; MIT or Apache-2.0; no JS, build, npm or remote URL.
 
 Flow: not needed: this work adds static CSS/HTML files and a validation rule; there is no runtime branch or three-party interaction to draw.
 
@@ -88,6 +96,7 @@ Flow: not needed: this work adds static CSS/HTML files and a validation rule; th
 - React/Tailwind packaging of the real libraries.
 - Copying fonts or imagery.
 - An automated upstream sync; the library is a curated snapshot with a date.
+- Copying flex.one code, fonts or imagery; `flex/` is an original interpretation.
 
 ## Open questions
 

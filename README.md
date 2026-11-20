@@ -36,9 +36,10 @@ Skills are separate from the roles: each folder is one skill, invoked by name or
 
 ## Design systems (`design-systems/`)
 
-Five modern snapshots the `mockup` skill can copy in one step: **shadcn/ui** for modern SaaS, **Radix Colors** for
+Six design snapshots the `mockup` skill can copy in one step: **shadcn/ui** for modern SaaS, **Radix Colors** for
 app UI, **Open Props** for playful products, **Microsoft Fluent 2** for productivity apps and **IBM Carbon 11** for
-enterprise consoles. Each folder is five files — a manifest, tokens, components, a reference page and the upstream
+enterprise consoles, plus **Flex-style** for luxury private-banking editorial (an original interpretation
+of flex.one, no site code or assets copied). Each folder is five files — a manifest, tokens, components, a reference page and the upstream
 LICENSE — and `scripts/check.py` fails when a file is missing or a manifest class is not shown in the reference.
 
 ## Tooling, hooks and history

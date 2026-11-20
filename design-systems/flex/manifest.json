@@ -1,0 +1,30 @@
+{
+  "name": "Flex (visual reference)",
+  "source": "https://www.flex.one",
+  "version": "site snapshot 2026-11-21",
+  "date": "2026-11-21",
+  "license": "Original MIT (reference only; no site code or assets copied)",
+  "font": "Helvetica/Arial grotesk + Georgia serif (site fonts are licensed and not copied)",
+  "accent": "#437e5b",
+  "dark": true,
+  "kind": "inspired-recipe",
+  "components": [
+    "flex-section",
+    "flex-section--cream",
+    "flex-section--dark",
+    "flex-hero",
+    "flex-display",
+    "flex-h2",
+    "flex-eyebrow",
+    "flex-nav",
+    "flex-btn",
+    "flex-btn--outline",
+    "flex-link",
+    "flex-input",
+    "flex-card",
+    "flex-tag",
+    "flex-stat",
+    "flex-rule",
+    "flex-container"
+  ]
+}

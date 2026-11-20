@@ -28,6 +28,7 @@ appear in a `class="..."` attribute in `reference.html`.
 | `open-props/` | Open Props 1.7.23 | playful, young products; tokens only, components are recipes | no | MIT |
 | `fluent/` | Microsoft Fluent 2 tokens | Microsoft-style productivity apps, dense forms | yes | MIT |
 | `carbon/` | IBM Carbon 11 | enterprise, data-dense consoles; square, accessible | yes | Apache-2.0 |
+| `flex/` | flex.one (visual reference) | luxury, private banking, editorial | yes | Original MIT (no site code or assets copied) |
 
 Choose by the work, not by taste: shadcn for a modern SaaS, Carbon for an enterprise console, Open Props for a
 playful landing-adjacent app, Fluent for a Microsoft-shaped product.
@@ -44,7 +45,8 @@ playful landing-adjacent app, Fluent for a Microsoft-shaped product.
   value months later.
 - **Only upstream components, or a documented recipe.** Open Props and Radix Colors ship tokens, not
   components; their folders say `kind: tokens-only` / `tokens+recipes`, and the recipes are built from the official
-  tokens. Everything else follows a pattern the upstream system ships.
+  tokens. `flex/` is an original interpretation of a proprietary site (`kind: inspired-recipe`): no HTML, CSS, fonts
+  or images from it are copied, and the folder's LICENSE says so.
 
 ## Add a system
 

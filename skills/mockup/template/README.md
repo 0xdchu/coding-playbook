@@ -29,7 +29,7 @@ vercel.json   noindex header
 
 If the repo carries `design-systems/`, copy `<system>/tokens.css` and `<system>/components.css` next to this folder,
 link them before `styles.css` in `index.html`, and use their classes. The template's own tokens remain the fallback
-when no system is chosen. `design-systems/README.md` lists the five systems and which screens each fits.
+when no system is chosen. `design-systems/README.md` lists the systems and which screens each fits.
 
 ## Run and check
 
