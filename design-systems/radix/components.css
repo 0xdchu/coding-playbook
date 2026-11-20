@@ -1,0 +1,54 @@
+/* Radix Colors — curated components in the Radix Themes look. MIT, Modulz/WorkOS.
+   Radix Primitives are headless React; these are plain-CSS recipes using the official scales. */
+
+.radix-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 32px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--radix-radius);
+  background: var(--radix-accent); color: var(--radix-accent-text);
+  font: 500 14px/1 var(--radix-font); cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.radix-btn:hover { background: var(--radix-accent-hover); }
+.radix-btn:focus-visible { outline: 2px solid var(--blue-8); outline-offset: 2px; }
+.radix-btn:disabled { opacity: .5; cursor: not-allowed; }
+.radix-btn--soft { background: var(--blue-3); color: var(--blue-11); }
+.radix-btn--soft:hover { background: var(--blue-4); }
+.radix-btn--outline { background: var(--gray-1); border-color: var(--gray-7); color: var(--gray-12); }
+.radix-btn--outline:hover { background: var(--gray-3); }
+.radix-btn--ghost { background: transparent; color: var(--gray-12); }
+.radix-btn--ghost:hover { background: var(--gray-3); }
+.radix-btn--danger { background: var(--red-9); }
+.radix-btn--danger:hover { background: var(--red-10); }
+
+.radix-label { display: block; margin-bottom: 6px; font: 500 14px/1.2 var(--radix-font); color: var(--gray-12); }
+.radix-input, .radix-textarea {
+  box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px;
+  border: 1px solid var(--gray-7); border-radius: var(--radix-radius); background: var(--gray-1); color: var(--gray-12);
+  font: 400 14px/1.4 var(--radix-font);
+}
+.radix-textarea { height: auto; min-height: 72px; padding: 8px 10px; resize: vertical; }
+.radix-input:focus, .radix-textarea:focus { outline: none; border-color: var(--blue-8); box-shadow: 0 0 0 1px var(--blue-8); }
+.radix-input::placeholder, .radix-textarea::placeholder { color: var(--gray-9); }
+
+.radix-card { padding: 18px; border: 1px solid var(--gray-6); border-radius: calc(var(--radix-radius) + 2px);
+  background: var(--gray-1); box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.radix-card h2 { margin: 0 0 6px; font: 600 16px/1.3 var(--radix-font); color: var(--gray-12); }
+.radix-card p { margin: 0; color: var(--gray-11); font-size: 14px; }
+
+.radix-badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px;
+  background: var(--blue-3); color: var(--blue-11); font: 500 12px/20px var(--radix-font); }
+.radix-badge--gray { background: var(--gray-3); color: var(--gray-11); }
+.radix-badge--red { background: var(--red-3); color: var(--red-11); }
+.radix-badge--green { background: var(--green-3); color: var(--green-11); }
+
+.radix-callout { display: flex; gap: 10px; padding: 12px 14px; border: 1px solid var(--blue-6); border-radius: var(--radix-radius);
+  background: var(--blue-2); color: var(--gray-12); font-size: 14px; }
+.radix-callout--danger { border-color: var(--red-6); background: var(--red-2); }
+.radix-callout--success { border-color: var(--green-6); background: var(--green-2); }
+
+.radix-table { width: 100%; border-collapse: collapse; font: 400 14px/1.4 var(--radix-font); }
+.radix-table th, .radix-table td { padding: 8px 12px; border-bottom: 1px solid var(--gray-5); text-align: left; }
+.radix-table th { background: var(--gray-2); color: var(--gray-11); font-weight: 500; }
+.radix-table tr:last-child td { border-bottom: 0; }
+
+.radix-separator { height: 1px; border: 0; background: var(--gray-5); margin: 18px 0; }

@@ -1,0 +1,52 @@
+/* Flex-style — distilled tokens from the visual language of flex.one (read 2026-11-21).
+   Original implementation, MIT; the site is a visual reference only. Its fonts (PP Neue Montreal, Reflex)
+   are licensed and are replaced by Helvetica/Arial and Georgia. */
+:root {
+  --flex-bg: #f6f3ee;
+  --flex-fg: #071c14;
+  --flex-surface: #ffffff;
+  --flex-line: #d9d9d9;
+  --flex-ink: #071c14;
+  --flex-ink-2: #223f2e;
+  --flex-ink-3: #2f5840;
+  --flex-green: #437e5b;
+  --flex-sage: #ecf2ef;
+  --flex-muted: #a1bead;
+  --flex-tan: #e1d7c6;
+  --flex-brown: #282115;
+  --flex-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --flex-serif: Georgia, "Times New Roman", serif;
+  --flex-display: clamp(40px, 5vw, 64px);
+  --flex-h2: clamp(28px, 3vw, 36px);
+  --flex-h3: 24px;
+  --flex-body: 16px;
+  --flex-small: 14px;
+  --flex-label: 12px;
+  --flex-space-1: 8px;
+  --flex-space-2: 16px;
+  --flex-space-3: 24px;
+  --flex-space-4: 32px;
+  --flex-space-5: 48px;
+  --flex-space-6: 64px;
+  --flex-space-7: 96px;
+  --flex-radius: 0;
+  --flex-radius-card: 24px;
+  --flex-radius-btn: 12px;
+  --flex-card-green: #1e3a2c;
+  --flex-app-h1: 40px;
+  --flex-max: 1320px;
+  --flex-ease: cubic-bezier(.2,.7,.2,1);
+}
+[data-theme="dark"] {
+  --flex-bg: #071c14;
+  --flex-fg: #f6f3ee;
+  --flex-surface: #0d2a1e;
+  --flex-line: #2f5840;
+  --flex-ink: #f6f3ee;
+  --flex-ink-2: #d7e2dc;
+  --flex-ink-3: #a1bead;
+  --flex-green: #7fb08f;
+  --flex-sage: #123528;
+  --flex-muted: #7d9a8b;
+  --flex-brown: #f6f3ee;
+}

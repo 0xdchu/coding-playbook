@@ -1,0 +1,53 @@
+/* Fluent 2 — curated components. MIT, Microsoft. 4px radius, 32px controls, brand #0f6cbd, 2px focus. */
+
+.fluent-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 96px; height: 32px; padding: 0 12px; border: 1px solid var(--fluent-brand);
+  border-radius: var(--fluent-radius); background: var(--fluent-brand); color: var(--fluent-on-brand);
+  font: 600 var(--fluent-type-300)/20px var(--fluent-font); cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.fluent-btn:hover { background: var(--fluent-brand-hover); border-color: var(--fluent-brand-hover); }
+.fluent-btn:focus-visible { outline: 2px solid var(--fluent-focus); outline-offset: 1px; }
+.fluent-btn:disabled { background: var(--fluent-bg-3); border-color: var(--fluent-bg-3); color: var(--fluent-fg-3); cursor: not-allowed; }
+.fluent-btn--subtle { background: transparent; border-color: transparent; color: var(--fluent-fg-1); }
+.fluent-btn--subtle:hover { background: var(--fluent-bg-3); }
+.fluent-btn--outline { background: transparent; border-color: var(--fluent-stroke-1); color: var(--fluent-fg-1); }
+.fluent-btn--outline:hover { background: var(--fluent-bg-3); }
+.fluent-btn--danger { background: var(--fluent-danger); border-color: var(--fluent-danger); color: #fff; }
+
+.fluent-label { display: block; margin-bottom: 4px; font: 600 var(--fluent-type-300)/20px var(--fluent-font); color: var(--fluent-fg-1); }
+.fluent-input, .fluent-textarea {
+  box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px;
+  border: 1px solid var(--fluent-stroke-1); border-bottom: 2px solid var(--fluent-stroke-1);
+  border-radius: var(--fluent-radius); background: var(--fluent-bg-1); color: var(--fluent-fg-1);
+  font: 400 var(--fluent-type-300)/20px var(--fluent-font);
+}
+.fluent-textarea { height: auto; min-height: 76px; padding: 6px 10px; resize: vertical; }
+.fluent-input:hover, .fluent-textarea:hover { border-color: var(--fluent-fg-3); }
+.fluent-input:focus, .fluent-textarea:focus { outline: none; border-bottom-color: var(--fluent-brand); }
+.fluent-input::placeholder, .fluent-textarea::placeholder { color: var(--fluent-fg-3); }
+
+.fluent-card { padding: 16px; border: 1px solid var(--fluent-stroke-2); border-radius: var(--fluent-radius-lg);
+  background: var(--fluent-bg-1); box-shadow: var(--fluent-shadow); }
+.fluent-card h2 { margin: 0 0 4px; font: 600 var(--fluent-type-400)/22px var(--fluent-font); color: var(--fluent-fg-1); }
+.fluent-card p { margin: 0; color: var(--fluent-fg-2); font-size: var(--fluent-type-300); }
+
+.fluent-badge { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 999px;
+  background: var(--fluent-bg-3); color: var(--fluent-fg-2); font: 600 var(--fluent-type-200)/20px var(--fluent-font); }
+.fluent-badge--brand { background: var(--fluent-brand); color: var(--fluent-on-brand); }
+.fluent-badge--danger { background: var(--fluent-danger-bg); color: var(--fluent-danger); }
+.fluent-badge--success { background: var(--fluent-success-bg); color: var(--fluent-success); }
+
+.fluent-messagebar { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px;
+  border: 1px solid var(--fluent-stroke-1); border-radius: var(--fluent-radius); background: var(--fluent-bg-2);
+  color: var(--fluent-fg-1); font-size: var(--fluent-type-300); }
+.fluent-messagebar--success { background: var(--fluent-success-bg); border-color: color-mix(in srgb, var(--fluent-success) 35%, var(--fluent-stroke-1)); }
+.fluent-messagebar--danger { background: var(--fluent-danger-bg); border-color: color-mix(in srgb, var(--fluent-danger) 35%, var(--fluent-stroke-1)); }
+
+.fluent-table { width: 100%; border-collapse: collapse; font: 400 var(--fluent-type-300)/20px var(--fluent-font); }
+.fluent-table th, .fluent-table td { padding: 8px 12px; border-bottom: 1px solid var(--fluent-stroke-2); text-align: left; }
+.fluent-table th { font-weight: 600; color: var(--fluent-fg-2); background: var(--fluent-bg-2); }
+.fluent-table tr:last-child td { border-bottom: 0; }
+
+.fluent-separator { height: 0; border: 0; border-top: 1px solid var(--fluent-stroke-2); margin: 16px 0; }

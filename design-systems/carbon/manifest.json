@@ -1,0 +1,29 @@
+{
+  "name": "IBM Carbon",
+  "source": "https://github.com/carbon-design-system/carbon",
+  "version": "themes 11.86.0",
+  "date": "2026-11-20",
+  "license": "Apache-2.0",
+  "font": "IBM Plex Sans stack",
+  "accent": "#0f62fe",
+  "dark": true,
+  "components": [
+    "carbon-btn",
+    "carbon-btn--tertiary",
+    "carbon-btn--ghost",
+    "carbon-btn--danger",
+    "carbon-label",
+    "carbon-input",
+    "carbon-textarea",
+    "carbon-tile",
+    "carbon-tag",
+    "carbon-tag--gray",
+    "carbon-tag--red",
+    "carbon-tag--green",
+    "carbon-inline-notification",
+    "carbon-inline-notification--success",
+    "carbon-inline-notification--danger",
+    "carbon-table",
+    "carbon-separator"
+  ]
+}

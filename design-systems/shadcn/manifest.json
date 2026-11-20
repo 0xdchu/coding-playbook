@@ -1,0 +1,31 @@
+{
+  "name": "shadcn/ui",
+  "source": "https://github.com/shadcn-ui/ui",
+  "version": "default theme (2026-11)",
+  "date": "2026-11-20",
+  "license": "MIT",
+  "font": "system UI stack (Inter optional)",
+  "accent": "#18181b",
+  "dark": true,
+  "components": [
+    "shadcn-btn",
+    "shadcn-btn--secondary",
+    "shadcn-btn--outline",
+    "shadcn-btn--ghost",
+    "shadcn-btn--destructive",
+    "shadcn-label",
+    "shadcn-input",
+    "shadcn-textarea",
+    "shadcn-card",
+    "shadcn-badge",
+    "shadcn-badge--secondary",
+    "shadcn-badge--outline",
+    "shadcn-alert",
+    "shadcn-alert--destructive",
+    "shadcn-table",
+    "shadcn-separator",
+    "shadcn-tabs",
+    "shadcn-tab",
+    "shadcn-tab--active"
+  ]
+}

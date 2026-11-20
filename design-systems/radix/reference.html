@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Radix Colors — reference</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  body { margin: 0; background: var(--gray-2); color: var(--gray-12); font-family: var(--radix-font); }
+  .ref { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
+  .ref h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -.02em; }
+  .ref .note { margin: 0 0 22px; color: var(--gray-11); font-size: 14px; }
+  .panel { padding: 22px; border: 1px solid var(--gray-6); border-radius: 10px; background: var(--gray-1); margin-bottom: 18px; }
+  .panel > h2 { margin: 0 0 14px; font-size: 16px; color: var(--gray-12); }
+  .panel > h3 { margin: 18px 0 8px; font-size: 13px; color: var(--gray-11); font-weight: 500; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  .dark-panel { background: var(--gray-1); }
+</style>
+</head>
+<body>
+<main class="ref">
+  <h1>Radix Colors</h1>
+  <p class="note">Official 12-step scales · MIT · values read 2026-11-20 · light and dark.</p>
+
+  <section class="panel">
+    <h2>Buttons</h2>
+    <div class="row">
+      <button class="radix-btn" type="button">Solid</button>
+      <button class="radix-btn radix-btn--soft" type="button">Soft</button>
+      <button class="radix-btn radix-btn--outline" type="button">Outline</button>
+      <button class="radix-btn radix-btn--ghost" type="button">Ghost</button>
+      <button class="radix-btn radix-btn--danger" type="button">Danger</button>
+      <button class="radix-btn" type="button" disabled>Disabled</button>
+    </div>
+
+    <h3>Form</h3>
+    <div class="grid2">
+      <div><label class="radix-label" for="rx-name">Name</label><input class="radix-input" id="rx-name" placeholder="Your name"></div>
+      <div><label class="radix-label" for="rx-note">Note</label><textarea class="radix-textarea" id="rx-note" placeholder="Write a note"></textarea></div>
+    </div>
+
+    <h3>Card and badges</h3>
+    <div class="grid2">
+      <div class="radix-card"><h2>Create project</h2><p>Deploy your new project in one click.</p>
+        <div class="row" style="margin-top:12px"><button class="radix-btn" type="button">Deploy</button><button class="radix-btn radix-btn--outline" type="button">Cancel</button></div></div>
+      <div class="row" style="align-items:flex-start"><span class="radix-badge">Blue</span><span class="radix-badge radix-badge--gray">Gray</span><span class="radix-badge radix-badge--red">Failed</span><span class="radix-badge radix-badge--green">Ready</span></div>
+    </div>
+
+    <h3>Callouts</h3>
+    <div class="radix-callout">A new version is available.</div>
+    <div class="radix-callout radix-callout--danger" style="margin-top:8px">Your session has expired.</div>
+    <div class="radix-callout radix-callout--success" style="margin-top:8px">Changes saved to main.</div>
+
+    <hr class="radix-separator">
+    <h3>Table</h3>
+    <table class="radix-table"><thead><tr><th>Invoice</th><th>Status</th><th>Amount</th></tr></thead>
+      <tbody><tr><td>INV-001</td><td><span class="radix-badge radix-badge--green">Paid</span></td><td>$250.00</td></tr>
+      <tr><td>INV-002</td><td><span class="radix-badge radix-badge--gray">Pending</span></td><td>$150.00</td></tr></tbody></table>
+  </section>
+
+  <section class="panel dark-panel" data-theme="dark">
+    <h2>Dark</h2>
+    <div class="row"><button class="radix-btn" type="button">Solid</button><button class="radix-btn radix-btn--soft" type="button">Soft</button><button class="radix-btn radix-btn--outline" type="button">Outline</button></div>
+    <div class="grid2" style="margin-top:12px"><div><label class="radix-label" for="rx-d-name">Name</label><input class="radix-input" id="rx-d-name" value="Radix"></div>
+    <div><label class="radix-label" for="rx-d-note">Note</label><textarea class="radix-textarea" id="rx-d-note">Dark scales swap on data-theme.</textarea></div></div>
+  </section>
+</main>
+</body>
+</html>

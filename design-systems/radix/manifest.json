@@ -1,0 +1,32 @@
+{
+  "name": "Radix Colors",
+  "source": "https://github.com/radix-ui/colors",
+  "version": "3.x",
+  "date": "2026-11-20",
+  "license": "MIT",
+  "font": "system UI stack",
+  "accent": "#0090ff",
+  "dark": true,
+  "components": [
+    "radix-btn",
+    "radix-btn--soft",
+    "radix-btn--outline",
+    "radix-btn--ghost",
+    "radix-btn--danger",
+    "radix-label",
+    "radix-input",
+    "radix-textarea",
+    "radix-card",
+    "radix-badge",
+    "radix-badge--gray",
+    "radix-badge--red",
+    "radix-badge--green",
+    "radix-callout",
+    "radix-callout--danger",
+    "radix-callout--success",
+    "radix-table",
+    "radix-separator"
+  ],
+  "kind": "tokens+recipes",
+  "components_source": "https://github.com/radix-ui/themes"
+}

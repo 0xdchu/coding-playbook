@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>shadcn/ui — reference</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  body { margin: 0; background: hsl(var(--shadcn-background)); color: hsl(var(--shadcn-foreground)); font-family: var(--shadcn-font); }
+  .ref { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
+  .ref h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -.02em; }
+  .ref .note { margin: 0 0 22px; color: hsl(var(--shadcn-muted-foreground)); font-size: 14px; }
+  .panel { padding: 22px; border: 1px solid hsl(var(--shadcn-border)); border-radius: var(--shadcn-radius); margin-bottom: 18px; background: hsl(var(--shadcn-card)); }
+  .panel > h2 { margin: 0 0 14px; font-size: 16px; color: hsl(var(--shadcn-foreground)); }
+  .panel > h3 { margin: 18px 0 8px; font-size: 13px; color: hsl(var(--shadcn-muted-foreground)); font-weight: 500; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  .dark-panel { background: hsl(var(--shadcn-background)); }
+</style>
+</head>
+<body>
+<main class="ref">
+  <h1>shadcn/ui</h1>
+  <p class="note">Default theme · MIT · values read 2026-11-20 · light and dark.</p>
+
+  <section class="panel">
+    <h2>Buttons</h2>
+    <div class="row">
+      <button class="shadcn-btn" type="button">Default</button>
+      <button class="shadcn-btn shadcn-btn--secondary" type="button">Secondary</button>
+      <button class="shadcn-btn shadcn-btn--outline" type="button">Outline</button>
+      <button class="shadcn-btn shadcn-btn--ghost" type="button">Ghost</button>
+      <button class="shadcn-btn shadcn-btn--destructive" type="button">Destructive</button>
+      <button class="shadcn-btn" type="button" disabled>Disabled</button>
+    </div>
+
+    <h3>Form</h3>
+    <div class="grid2">
+      <div><label class="shadcn-label" for="sc-name">Name</label><input class="shadcn-input" id="sc-name" placeholder="Your name"></div>
+      <div><label class="shadcn-label" for="sc-note">Note</label><textarea class="shadcn-textarea" id="sc-note" placeholder="Write a note"></textarea></div>
+    </div>
+
+    <h3>Card, badges, alert</h3>
+    <div class="grid2">
+      <div class="shadcn-card">
+        <div class="shadcn-card__header"><h2 class="shadcn-card__title">Create project</h2></div>
+        <div class="shadcn-card__content">Deploy your new project in one click.</div>
+        <div class="shadcn-card__footer"><button class="shadcn-btn" type="button">Deploy</button><button class="shadcn-btn shadcn-btn--outline" type="button">Cancel</button></div>
+      </div>
+      <div>
+        <div class="row"><span class="shadcn-badge">Default</span><span class="shadcn-badge shadcn-badge--secondary">Secondary</span><span class="shadcn-badge shadcn-badge--outline">Outline</span></div>
+        <div class="shadcn-alert" style="margin-top:12px"><div><p class="shadcn-alert__title">Heads up</p><p style="margin:0;font-size:14px;color:hsl(var(--shadcn-muted-foreground))">You can add components to your app.</p></div></div>
+        <div class="shadcn-alert shadcn-alert--destructive" style="margin-top:10px"><div><p class="shadcn-alert__title">Error</p><p style="margin:0;font-size:14px">Your session has expired.</p></div></div>
+      </div>
+    </div>
+
+    <h3>Tabs</h3>
+    <div class="shadcn-tabs"><button class="shadcn-tab shadcn-tab--active">Account</button><button class="shadcn-tab">Password</button><button class="shadcn-tab">Billing</button></div>
+    <hr class="shadcn-separator">
+
+    <h3>Table</h3>
+    <table class="shadcn-table"><thead><tr><th>Invoice</th><th>Status</th><th>Amount</th></tr></thead>
+      <tbody><tr><td>INV-001</td><td><span class="shadcn-badge shadcn-badge--secondary">Paid</span></td><td>$250.00</td></tr>
+      <tr><td>INV-002</td><td><span class="shadcn-badge shadcn-badge--outline">Pending</span></td><td>$150.00</td></tr></tbody></table>
+  </section>
+
+  <section class="panel dark-panel" data-theme="dark">
+    <h2>Dark</h2>
+    <div class="row"><button class="shadcn-btn" type="button">Default</button><button class="shadcn-btn shadcn-btn--secondary" type="button">Secondary</button><button class="shadcn-btn shadcn-btn--outline" type="button">Outline</button></div>
+    <div class="grid2" style="margin-top:14px"><div><label class="shadcn-label" for="sc-d-name">Name</label><input class="shadcn-input" id="sc-d-name" value="shadcn"></div>
+    <div><label class="shadcn-label" for="sc-d-note">Note</label><textarea class="shadcn-textarea" id="sc-d-note">Dark tokens swap on data-theme.</textarea></div></div>
+  </section>
+</main>
+</body>
+</html>
