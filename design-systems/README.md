@@ -1,6 +1,6 @@
 # Design-system library
 
-Five modern systems, packaged so the `mockup` skill (or a person) can copy one in a single step and an LLM can
+Six modern systems, packaged so the `mockup` skill (or a person) can copy one in a single step and an LLM can
 read it once. Plain CSS variables and classes; no JS, no build, no npm.
 
 ## The five-file contract
@@ -19,7 +19,7 @@ Every system folder holds exactly:
 `maint/check.py` fails when a file is missing, a manifest is invalid, or a class named in `components[]` does not
 appear in a `class="..."` attribute in `reference.html`.
 
-## The five systems
+## The six systems
 
 | Folder | Source | Use it for | Dark | Licence |
 |---|---|---|---|---|
