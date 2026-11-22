@@ -9,8 +9,9 @@
 `clarify` fails while the intent still has a `[NEEDS CLARIFICATION: …]` marker, or its `## Open questions` section
 is missing or does not begin with `None`. Run it before the intent goes to `approved`, and again before the plan.
 It also fails (APS-82):
-  - when `## Coverage` lacks one of its six bullets (`- Who:`, `- Trigger:`, `- Main path:`, `- Branches and
-    failures:`, `- Data and states:`, `- Limits:`), gives one twice, or leaves one empty (blank, a bare `N/A`, `TBD`
+  - when `## Coverage` lacks one of its nine bullets (`- Who:`, `- Trigger:`, `- Main path:`, `- Branches and
+    failures:`, `- Business rules:`, `- Data and states:`, `- Security and privacy:`, `- UI states:`,
+    `- Limits:`), gives one twice, or leaves one empty (blank, a bare `N/A`, `TBD`
     or `?`, with or without a full stop, also as sub-bullets; `N/A: <reason>` is content);
   - when the intent has no `Flow:` line or more than one; when `Flow: not needed:` gives no reason or names a flow
     file; when a named `*.flow.json` is not `<intent stem>.<name>.flow.json` beside the intent (no slash or backslash;
@@ -89,7 +90,8 @@ SUPPRESSION = re.compile(r"(?:#\s*(?:noqa|type:\s*ignore)\b|//\s*@ts-(?:ignore|e
 TEST_SKIP = re.compile(r"(?:@(?:unittest\.|pytest\.mark\.)?skip(?:If|Unless|if)?\b|\b(?:it|test|describe)\.skip\s*\(|\bpytest\.skip\s*\()")
 ASSERT_LINE = re.compile(r"^\s*(?:assert\b|self\.assert\w+\s*\(|expect\s*\()")
 TEST_FILE = re.compile(r"(?:^|/)(?:test_[^/]+\.py|[^/]+_test\.(?:py|go)|[^/]+\.(?:test|spec)\.[jt]sx?)$")
-COVERAGE = ("Who", "Trigger", "Main path", "Branches and failures", "Data and states", "Limits")
+COVERAGE = ("Who", "Trigger", "Main path", "Branches and failures", "Business rules", "Data and states",
+            "Security and privacy", "UI states", "Limits")
 EMPTY_ROW = {"", "n/a", "tbd", "?"}
 FLOW_TIMEOUT = 60
 
@@ -204,7 +206,7 @@ def clarify(text):
 
 
 def coverage(text):
-    """Gaps in `## Coverage`: each of the six labels once, as `- <Label>: <text>`, with text or `N/A: <reason>`."""
+    """Gaps in `## Coverage`: each of the nine labels once, as `- <Label>: <text>`, with text or `N/A: <reason>`."""
     lines = section(text, "Coverage")
     if lines is None:
         return ["no `## Coverage` section"]
@@ -861,7 +863,8 @@ def self_test():
                         "open(sys.argv[4], 'w').write('HTML ' + text)\n")
         tool = [sys.executable, str(fake)]
         cov = ("## Coverage\n- Who: me\n- Trigger: a click\n- Main path: a, b\n- Branches and failures:\n  - none found: a note\n"
-               "- Data and states: N/A: no data\n- Limits: 1 s\n")
+               "- Business rules: N/A: none\n- Data and states: N/A: no data\n- Security and privacy: N/A: none\n"
+               "- UI states: N/A: no screen\n- Limits: 1 s\n")
         head = "# I\n## Outcome\n1. x\n" + cov + "## Open questions\nNone.\n"
         intent = d / "2026-01-01-x.md"
 
@@ -876,6 +879,10 @@ def self_test():
         expect("intent clean, no flow needed", run_clarify("Flow: not needed: one linear step\n"), ([], []))
         expect("coverage missing", run_clarify("Flow: not needed: x\n", text="## Open questions\nNone.\n")[1],
                ["no `## Coverage` section"])
+        for new in ("Business rules", "Security and privacy", "UI states"):
+            cut = "\n".join(l for l in head.split("\n") if not l.startswith(f"- {new}:"))
+            expect(f"coverage {new} missing", run_clarify("Flow: not needed: x\n", text=cut)[1],
+                   [f"`## Coverage` has no `- {new}:` bullet"])
         expect("coverage label missing", run_clarify("Flow: not needed: x\n", text=head.replace("- Limits: 1 s\n", ""))[1],
                ["`## Coverage` has no `- Limits:` bullet"])
         expect("coverage label twice", run_clarify("Flow: not needed: x\n", text=head.replace("- Limits: 1 s\n", "- Limits: 1 s\n- Who: you\n"))[1],

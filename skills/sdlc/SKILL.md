@@ -41,8 +41,11 @@ Tech, budget, policy (lean, no new dependency, …).
 - Trigger: what starts each use.
 - Main path: the steps when all goes well.
 - Branches and failures: wrong input, denied or expired, an outside service down, nothing found, a repeat or a race.
+- Business rules: what must always or never hold (uniqueness, limits on who may act, what is kept or backed up).
 - Data and states: what is stored or changes state.
-- Limits: size, time, cost, quotas.
+- Security and privacy: secrets, personal data, system permissions the software asks for, which outside hosts it talks to.
+- UI states: what the person sees while loading, when empty, on success and on error; for a command-line tool, its messages and exit codes (for a screen, sketch it with the mockup skill when it is installed).
+- Limits: size, time, cost, quotas, and the speed it must reach; each limit is a number.
 
 Flow: <each `<yyyy-mm-dd>-<slug>.<name>.flow.json` in backticks, or `not needed: <reason>`>
 ## Out of scope
@@ -53,7 +56,7 @@ None.
 
 **Write WHAT, never HOW.** Function names, file layouts and algorithms belong in the plan. Every line should change a decision or a test; cut the rest.
 
-**Coverage.** Each of the six bullets has text, or `N/A: <reason>`. A bare `N/A`, `TBD` or `?` counts as empty; an open point is a marker (below). Sub-bullets go indented under their bullet.
+**Coverage.** Each of the nine bullets has text, or `N/A: <reason>`. A bare `N/A`, `TBD` or `?` counts as empty; an open point is a marker (below). Sub-bullets go indented under their bullet. (Business rules, Security and privacy and UI states were added with APS-92: an intent approved before that and not yet planned gets them before its next `clarify`; a shipped intent is left as it is.)
 
 **Flow.** Draw the work as a flow when it has a branch point (a place where it takes one of several paths with different outcomes: yes or no, success or failure) or three or more parties that act on each other (people, roles, your own systems, outside services). A forgotten path shows up as a validation error: a decision with one exit, a node nothing reaches, a step with no declared link.
 - A path through steps and decisions (a user flow) is a `workflow`: draw one when the work branches. Who calls whom, in order (a processing flow), is a `sequence`: draw one when three or more parties act on each other. When both hold, draw both, one file each.
@@ -98,8 +101,9 @@ Feed only the intent file into plan mode. For large or architectural work, split
 
 - **Files**: every file that will be touched, in the order of work.
 - **Risks**: what could break, and the check that would catch it.
+- **Design** (when the work adds a component, stores data, talks to an outside service or starts a project; otherwise `Design: not needed: <reason>`): the parts and how they talk (a small text diagram), the stack chosen and why, the data model (entities, fields, keys, or the JSON shape), a table with one row per outside service (auth, the fields it needs, its limits), the permissions, environment variables (names only, never values) and hosts it needs, and for a new project the folder tree.
 - **Tasks**: one entry per builder dispatch, or per step the main session does itself.
-- **Proof**: the commands or evidence that show it is done (test, build, screenshot, curl). "Done" is defined here, before any code is typed. An item names the intent's Outcome items it proves, as `(O1, O3)` on its line, and an item that proves none on its own (a whole-suite run) names none; every Outcome item is named at least once.
+- **Proof**: the commands or evidence that show it is done (test, build, screenshot, curl). "Done" is defined here, before any code is typed. An item names the intent's Outcome items it proves, as `(O1, O3)` on its line, and an item that proves none on its own (a whole-suite run) names none; every Outcome item is named at least once. When the work changes how someone installs or uses it, one item checks that the README says so (read it and name the section).
 - **Result**: an empty heading for now, filled in Phase 4.
 
 The plan starts with its own status line, `status: draft # draft → planned → building → verified`.

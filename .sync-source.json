@@ -1,11 +1,11 @@
 {
-  "internal_commit": "b15fa73",
+  "internal_commit": "a427301",
   "reviewed": {
     ".claude/branch-name.json": "79964f2",
     "AGENTS.md": "b7862bd",
     "CLAUDE.md": "b15fa73",
     "GEMINI.md": "b7862bd",
-    "README.md": "b15fa73",
+    "README.md": "a427301",
     "intent/2026-11-19-graph-flow-diagrams.md": "5ef1bfd",
     "intent/2026-11-19-graph-flow-diagrams.plan.md": "1821bc9",
     "intent/2026-11-20-design-systems-library.md": "e5fbd01",
