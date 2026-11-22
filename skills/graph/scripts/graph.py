@@ -47,10 +47,11 @@ def _json_in_script(obj):
     return json.dumps(obj, sort_keys=True, ensure_ascii=True).replace("<", "\\u003c")
 
 
-def build_page(d, layout, theme):
+def build_page(d, layout, theme, checked=False):
     """The standalone HTML page for a validated diagram and its layout."""
     items, _ = graph_svg.walkthrough(layout, d)
-    stats = {"external": sum(1 for p in d.participants if p.external), "unproven": sum(1 for it in items if it["unproven"])}
+    stats = {"external": sum(1 for p in d.participants if p.external), "unproven": sum(1 for it in items if it["unproven"]),
+             "checked": checked}   # checked: a repo root was given, so cited sources and missing sources were examined
     data = {"title": d.title, "subtitle": d.subtitle or "", "kind": d.kind, "items": items, "stats": stats}
     fields = {"THEME": theme, "TITLE": graph_svg.esc(d.title), "SUBTITLE": graph_svg.esc(d.subtitle or ""),
               "SVG": graph_svg.to_svg(layout, d), "DATA": _json_in_script(data)}
@@ -138,7 +139,7 @@ def cmd_render(args):
         for x in gerr:
             print(_line(x))
         return 1
-    page = build_page(d, layout, args.theme or d.theme)
+    page = build_page(d, layout, args.theme or d.theme, checked=root is not None)
     try:
         write_atomic(args.output, page)
     except OSError as e:
@@ -307,7 +308,7 @@ def self_test():
                 for rid in re.findall(r'<g class="route[^"]* return"([^>]*)>', svg_text):
                     if "data-k=" not in rid:
                         problems.append(f"{tag}: a return arrow has no data-k, so the walkthrough would not highlight it")
-                if sorted(data.get("stats", {})) != ["external", "unproven"]:
+                if sorted(data.get("stats", {})) != ["checked", "external", "unproven"]:
                     problems.append(f"{tag}: panel data lacks the legend counts")
                 if "paint-order:stroke" not in svg_text:
                     problems.append(f"{tag}: svg text has no background halo")
