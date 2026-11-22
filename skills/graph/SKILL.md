@@ -38,10 +38,16 @@ Sequence:
 ```
 - `edges` is the model: declare each link your code makes once, with `sources`, including calls to outside services. A step must match an edge (either direction; the reverse is drawn as a reply) unless it starts at an `external` party (a click, a webhook arriving: nothing more to mark, even toward another external party) or is `kind: "self"`. A step an external party starts never matches an edge the other way: a webhook is not the reply to your call. Mark a step `external: true` only when your side makes it but no code of yours does (a person clicking in an admin page, a hosted form).
 - When two parties have several links (two different calls), give each edge an `id` and pick it on the step with `"edge": "<id>"`; otherwise a step takes the first matching edge.
-- Step `kind`: `call` (default), `call-return` (return drawn for you), `async` (dashed: events, webhooks, queues), `reply`, `self` (a party working on its own: from = to).
+- Step `kind`: `call` (default), `call-return` (return drawn for you, with no label), `async` (dashed: events, webhooks, queues), `reply`, `self` (a party working on its own: from = to). To give a return a label, write it as its own `reply` step (callee to caller, over the declared edge); it takes its own number.
 - Fragments: `opt`, `loop`, `break` take `label` and `steps`; `alt` and `par` take `branches` (two or more, each `label` and `steps`). Nest freely, but not `par` directly in `par`.
 - Numbers are given for you: `1, 2, 3`; inside fragment 3: `3.1, 3.2`. `number` overrides a shown number (no duplicates).
 - `note` (shown in the walkthrough panel) and `emphasis` (accent colour) on any step. Emphasise one or two steps at most.
+
+Drawing well (a full example: `examples/connect-exchange.json`):
+- Draw only what your system takes part in. A step between two external parties (a person acting on an exchange) is a long arrow across every lifeline between them; say it in `subtitle` as a precondition instead.
+- Order `participants` so the parties that talk most sit next to each other. An arrow crosses every lifeline between its ends, and the layout check only refuses routes through a box, not across lifelines.
+- Put a short failure exit in a `break` (not an `alt` that holds the whole happy path): the happy path then keeps flat numbers (5.1, 5.2, then 6, 7), where inside an `alt` it would be 5.3, 5.4.
+- Draw a background job (a timer, a poll) as a `loop` after the user's path, or in a file of its own.
 
 Workflow:
 ```json
@@ -71,6 +77,7 @@ graph.py render diagram.json -o diagram.html [--repo-root <repo>] [--theme dark|
 - With `--repo-root`, every cited `path:line` must exist inside that repo; secret-shaped files (`.env*`, keys, `secrets/`) are refused. In the code snippets, a line that may hold a secret (a token or key shape, or a line naming a password, token, secret, key or auth next to any value) is shown as `[line hidden: may hold a secret]`; the citation stays and is still checked. Harmless lines are hidden this way too; that is intended. A secret with neither a secret-like name nor a known shape (a password passed as a plain argument, `login("admin", "…")`) can still show: do not cite such a line. An edge from an internal party without sources is drawn grey dashed as unproven and warned about. Without `--repo-root` nothing is checked against code: there is no such warning, so say in the hand-over that nothing was verified.
 - `render` validates first and refuses a diagram with errors, including layout errors (a route through a box, labels on top of each other).
 - Fix every error. Fix warnings unless you can say why one stays, and say it.
+- The panel's count line reads "N unproven edges" only when a repo root was given. Without `--repo-root` it reads "not checked against code" and no step is drawn unproven: nothing was compared with the code.
 
 ## 5. Hand it over
 Give the path of the HTML file. In it: `←`/`→` walk the steps one by one with notes and code snippets, `T` switches dark/light, `E` exports the SVG. Say which steps are external or unproven, so the reader knows what was not checked against code.

@@ -97,7 +97,9 @@ svg.flow .active.node .sh{stroke:var(--c-accent);stroke-width:2.5}
     counts.appendChild(el("li", "", items.length + (seq ? " steps" : " nodes")));
     if (seq) {
       counts.appendChild(el("li", "", (st.external || 0) + " external participants"));
-      counts.appendChild(el("li", "", (st.unproven || 0) + " unproven edges"));
+      counts.appendChild(el("li", st.checked ? "" : "unchecked",
+        st.checked ? (st.unproven || 0) + " unproven edges"
+                   : "not checked against code (no --repo-root)"));
     }
     panel.appendChild(counts);
   }

@@ -1,0 +1,47 @@
+{
+  "kind": "sequence",
+  "title": "Connect an exchange account",
+  "subtitle": "Precondition: the trader has made a read-only, IP-restricted API key on the exchange",
+  "participants": [
+    {"id": "trader", "label": "Trader", "external": true},
+    {"id": "web", "label": "Web app"},
+    {"id": "sync", "label": "Sync worker"},
+    {"id": "exch", "label": "Exchange", "external": true},
+    {"id": "kms", "label": "Key service"},
+    {"id": "db", "label": "Database"},
+    {"id": "mail", "label": "Email service", "external": true}
+  ],
+  "edges": [
+    {"from": "trader", "to": "web", "label": "submit key"},
+    {"from": "web", "to": "sync", "label": "pass secret"},
+    {"from": "sync", "to": "exch", "label": "read API"},
+    {"from": "sync", "to": "kms", "label": "data key"},
+    {"from": "sync", "to": "db", "label": "store and read"},
+    {"from": "web", "to": "mail", "label": "send email"}
+  ],
+  "steps": [
+    {"from": "trader", "to": "web", "label": "paste account name, API key, secret"},
+    {"from": "web", "to": "sync", "label": "pass secret on internal channel, no logging"},
+    {"from": "sync", "to": "exch", "label": "read the key's permission list"},
+    {"from": "exch", "to": "sync", "label": "permission list", "kind": "reply"},
+    {"fragment": "break", "label": "wrong key, or trade / withdraw / transfer rights", "steps": [
+      {"from": "sync", "to": "web", "label": "reject with reason", "kind": "reply"},
+      {"from": "web", "to": "trader", "label": "show reason and how to recreate the key; store nothing", "kind": "reply"}
+    ]},
+    {"from": "sync", "to": "kms", "label": "request data key", "kind": "call-return"},
+    {"from": "sync", "to": "db", "label": "store encrypted secret"},
+    {"from": "sync", "to": "db", "label": "write one secret-access log row"},
+    {"from": "sync", "to": "web", "label": "connection ok", "kind": "reply"},
+    {"from": "web", "to": "trader", "label": "show only the last 4 characters of the key", "kind": "reply"},
+    {"from": "web", "to": "mail", "label": "send new-connection email"},
+    {"from": "mail", "to": "trader", "label": "email: you added an exchange account", "kind": "async"},
+    {"fragment": "loop", "label": "background, every 10 minutes per connection", "steps": [
+      {"from": "sync", "to": "db", "label": "read encrypted secret", "kind": "call-return"},
+      {"from": "sync", "to": "kms", "label": "unwrap data key", "kind": "call-return"},
+      {"from": "sync", "to": "sync", "label": "decrypt secret, keep in memory only", "kind": "self"},
+      {"from": "sync", "to": "exch", "label": "read fills, fees, funding, positions, balances, transfers"},
+      {"from": "exch", "to": "sync", "label": "raw data", "kind": "reply"},
+      {"from": "sync", "to": "db", "label": "store raw layer, then normalize into orders"}
+    ]}
+  ]
+}
