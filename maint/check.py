@@ -45,6 +45,12 @@ PUBLIC_ONLY_SKILLS = {
                    "review this user flow and add error branches and success metrics",
                    "write a flow spec with actors and entry and exit criteria"],
                   ["draw a sequence diagram of the checkout flow", "build a clickable mockup from this flow"])),
+    "static-mockup-visuals": (None,
+                              (["move the existing mascot beside the post cards in this static hero",
+                                "make the static landing hero fit a 9:16 mobile frame",
+                                "change only the calendar grid in this static mockup"],
+                               ["save progress to HANDOFF.md before clear",
+                                "write the intent and follow the plan to verify and ship"])),
 }
 HAND_INVOKED = {"orca-worktree-setup", "agent-team", "create-skill"}  # own skills that settings-defaults.json may set to user-invocable-only
 DEFAULT_KEYS = {"enabledPlugins", "skillOverrides"}
