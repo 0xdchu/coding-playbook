@@ -104,7 +104,7 @@
     {
       "id": "d_guard",
       "label": "hooks/1prompt/agent-guard.py",
-      "sublabel": "Copied from 0xdonniechu/1prompt at the pinned commit; never edited here",
+      "sublabel": "Copied from 0xdchu/1prompt at the pinned commit; never edited here",
       "boundary": "derived",
       "layer": "cloud",
       "sources": [

@@ -11,6 +11,7 @@
   "void_extra": [
     "~/.claude/hooks/1prompt/agent-guard.py",
     "ambysto-1prompt",
-    "0xdonniechu/1prompt"
+    "0xdonniechu/1prompt",
+    "0xdchu/1prompt"
   ]
 }

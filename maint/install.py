@@ -180,7 +180,7 @@ if problem and with_settings:
 
 # Hooks the agents' frontmatter runs (agent-guard.py; without them a guarded agent's Bash calls are all blocked),
 # and autonomous-settings.json, which an autonomous run passes with `claude --settings` (the boundary hook).
-# Their source is 0xdonniechu/1prompt; hooks/1prompt/pin.json names the commit and the files copied from it (check.py compares
+# Their source is 0xdchu/1prompt; hooks/1prompt/pin.json names the commit and the files copied from it (check.py compares
 # their hashes). They go where that repo's hooks and the agents' frontmatter expect them, before the agents, so a
 # failure here never leaves agents pointing at a hook that is not there.
 for name in sorted(json.loads((ROOT / "hooks" / "1prompt" / "pin.json").read_text(encoding="utf-8"))["files"]):

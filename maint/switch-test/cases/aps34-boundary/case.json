@@ -11,7 +11,8 @@
   "void_extra": [
     "~/.claude/hooks/1prompt/agent-guard.py",
     "ambysto-1prompt",
-    "0xdonniechu/1prompt"
+    "0xdonniechu/1prompt",
+    "0xdchu/1prompt"
   ],
   "prompt_edits": "Besides {repo} and {range}: the sentence on the beads binary at a /tmp path (gone) now says to use one only if it is on PATH, with the same DO_NOT_TRACK and HOME rule; the sentence pointing to the beads trial notes on branch aps-31-beads-trial is dropped (the clone holds no other branch)."
 }
