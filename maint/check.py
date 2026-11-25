@@ -236,12 +236,15 @@ if diagram and diagram.returncode == 0 and diagram.stdout.startswith("not run"):
 # This repo is public (APS-97): no tracked or new (not ignored) file may match a leak pattern (secret shapes, a machine's
 # home path; internal names from a machine-local list). maint/leak-patterns.json holds the patterns and is itself skipped.
 try:
-    leak_pats = [re.compile(p.encode()) for p in json.loads(read("maint/leak-patterns.json"))["patterns"]]
+    # (pattern, label): a repo pattern is shown as written; a local term only by its line, so a FAIL line pasted into a PR
+    # or ticket never repeats the private name it found
+    leak_pats = [(re.compile(p.encode()), repr(p)) for p in json.loads(read("maint/leak-patterns.json"))["patterns"]]
     if not leak_pats:
         raise ValueError("no patterns")
     local_terms = Path.home() / ".config" / "coding-playbook" / "leak-terms.txt"
     if local_terms.is_file():  # internal names, kept off the repo so the list publishes none
-        leak_pats += [re.compile(re.escape(t.strip().encode())) for t in local_terms.read_text(encoding="utf-8").splitlines()
+        leak_pats += [(re.compile(re.escape(t.strip().encode())), f"local term line {n}")
+                      for n, t in enumerate(local_terms.read_text(encoding="utf-8").splitlines(), 1)
                       if t.strip() and not t.lstrip().startswith("#")]
     else:
         print(f"note: no {local_terms}; internal names not checked")
@@ -256,9 +259,9 @@ try:
         if rel == "maint/leak-patterns.json" or not (ROOT / rel).is_file():
             continue
         data = (ROOT / rel).read_bytes()
-        hit = next((pat.pattern.decode() for pat in leak_pats if pat.search(data)), None)
+        hit = next((label for pat, label in leak_pats if pat.search(data)), None)
         if hit:
-            fail(f"{rel}: matches leak pattern {hit!r} (this repo is public; remove it or rewrite it)")
+            fail(f"{rel}: matches leak pattern {hit} (this repo is public; remove it or rewrite it)")
 except (OSError, ValueError, KeyError, TypeError, re.error) as error:
     fail(f"maint/leak-patterns.json: {type(error).__name__}: {error}")
 # The hooks are copied from 0xdonniechu/1prompt at the commit hooks/1prompt/pin.json names; never edited here. Their hashes must

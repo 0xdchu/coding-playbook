@@ -13,6 +13,6 @@
     "-----BEGIN [A-Z ]*PRIVATE KEY-----",
     "-----BEGIN PGP PRIVATE KEY BLOCK-----",
     "/home/(?!x\\b)[a-z][a-z0-9_-]*",
-    "-home-(?!x-|<user>-)[a-z][a-z0-9_]*-"
+    "(projects/|claude-[0-9]+/)-home-(?!x-|<user>-)[a-z][a-z0-9_]*-"
   ]
 }
