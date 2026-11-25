@@ -59,7 +59,6 @@ Ambysto repos share one owner-reviewed memory in `~/work/ambysto/ambysto-memory`
 - After any subagent has run, check the branch in the same command as a commit, amend or reset; agents share the working tree and can switch it.
 - Give each agent that runs at the same time its own worktree (`dispatch.py new` for builders). Never edit a worktree while an agent is running in it: it may stage everything there.
 - After stopping an agent, look for processes it started that outlive it.
-- Before a merge, run the project's whole Verify on that branch, not only the suite for the part that changed.
 - After a merge or rebase, check `git status` for unmerged paths before committing.
 - End every finished task, and every session, with the same short summary so the owner never has to ask "done?": what changed and its PR or commit, pushed or not, merged or not (and who merges), worktree clean or what is left uncommitted, ticket updated or not, checks run and "not run: <reason>" for the rest, and what waits for the owner (lesson 2026-10-23: about 12 of 22 owner status questions in one day were "done?", "what remains?", "anything uncommitted?").
 - An installer or update proof also installs over the previous build, not only on a clean machine.
@@ -77,9 +76,7 @@ Ambysto repos share one owner-reviewed memory in `~/work/ambysto/ambysto-memory`
 - **Waking a dead run** (`hooks/loop/loop-wake.py`, timer `1prompt-wake.timer`): a one-prompt run whose session died is forked headless under 1prompt's boundary settings after 30 quiet minutes and continues (at most 4 times, $20 a wake, $50 a day, each wake on its ticket); a run in a permission mode that asks is not woken. Closing a window does not end a run: `loop.py stop` does. `python3 ~/.claude/hooks/loop/loop-wake.py tick --dry-run` shows what it would do.
 
 ## Switching models (when a new model ships)
-1. Pick 2-3 past diffs whose review findings are on record (review logs, PR comments), including at least one HARD change. The prepared cases, runner and release-day checklist are in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`), `maint/switch-test/`.
-2. Run the candidate as reviewer on each diff, without the old findings. Count the known issues it catches, the new real issues it finds, the false alarms, and the cost.
-3. Switch only if it catches at least as many known issues at an acceptable cost. Then change `settings.json`, the effort entry and every agent file in one edit, and update the "Current choice" line with the date and the numbers (`maint/switch-model.py` in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`) makes the repo's part of that edit in one command).
+Run the switch test in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`): `maint/switch-test/README.md`, then its `RELEASE-DAY.md`. Switch only if the candidate catches at least as many known issues at an acceptable cost; `maint/switch-model.py` then makes the repo's part of the edit in one command, and `~/.claude/settings.json` is changed with it.
 
 ## Honesty
 - Never report a check as passing that was not run. Write "not run: <reason>" (wrong OS, owner-only step, missing credentials).
