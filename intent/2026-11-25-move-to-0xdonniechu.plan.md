@@ -1,4 +1,4 @@
-status: building # draft → planned → building → verified
+status: verified # draft → planned → building → verified
 
 # Plan: move coding-playbook and 1prompt to 0xdonniechu (APS-97)
 
@@ -96,7 +96,7 @@ Design: not needed: no new component, data store or outside service; one new pri
 
 1. PASS. Private `origin/main` (b7b3586, APS-98 included) against this branch: only-private are the six removed files (`maint/sync-public.py`, `maint/public-sync.json`, `maint/github-boundary.py`, `.json`, `docs/map/runtime-sync.json`, `.html`); only-here are the public files (AGENTS and GEMINI copies, `design-systems/` 31, `skills/graph/` 76, `skills/mockup/` 12, `skills/userflow/` 2, `skills/static-mockup-visuals/` 1, two public intents and plans), this plan and `maint/leak-patterns.json`; files in both differ only where this work edits them (CLAUDE.md, README.md, branch-name.json, internals, map, pin, check.py, install.py, the global block, this intent) and in `intent/2026-11-10-sdlc-tasks-converge-clarify.md`, which keeps the public wording without the upstream repo names.
 2. PASS. `check.py` on the branch: PASS (14 skills, leak check over every tracked file); the pin check ran against `../1prompt` (no "no clone" note). `git grep -nE '/home/[a-z]'` finds only the `/home/x/` test placeholders in `owner-token-guard.py`; product names appear only in existing public files (none describes how a product posts), none in this intent or plan. Internal names moved to a machine-local term list (review round 1).
-3. not run: T8 waits. A session (APS-101) is working in `~/work/ambysto/coding-playbook` and its worktree `coding-playbook-aps101`; Risk 4 holds the archive until no session runs there. That session was told the private repo is frozen.
+3. PASS. `gh api repos/ambysto/coding-playbook --jq .archived` prints `true` (archived after the APS-101 session finished; its private PR 97 closed with a pointer to public PR 28, CPB-2). `~/work/ambysto/coding-playbook` is on `main`, clean, kept read-only for the switch-test kit; its APS-101 worktree is removed.
 4. PASS. `gh api repos/ambysto/1prompt --jq .full_name` prints `0xdonniechu/1prompt`.
 5. PASS for 1prompt: `~/work/0xdonniechu/1prompt`, origin `github.com/0xdonniechu/1prompt`, `user.name` 0xdonniechu, `gh api user` 0xdonniechu; `~/work/ambysto/ambysto-1prompt` does not exist. This clone: origin `0xdonniechu/coding-playbook`, author 0xdonniechu.
 6. PASS. `install.py --global --settings` from this clone, then `install.py --check` exit 0; the old names count 0 in `~/.claude/CLAUDE.md`, `~/.local/bin/gh` and `loop-wake.py`; the global block names the new path 7 times; `pin.json` names `0xdonniechu/1prompt`. APS-100 (merged in the private copy after the snapshot) was missing from the first install for two minutes; it came in by PR #25 and was installed again, and the running APS-101 session was told.
@@ -107,3 +107,5 @@ Design: not needed: no new component, data store or outside service; one new pri
 11. PASS. `ambysto/ambysto-governance` is PRIVATE; `github-boundary.py --self-test` PASS; `--check` ran read-only (drift as before: rulesets applied only where GitHub allows); no boundary config here.
 12. PASS for the repos this work owns: marketing-team PR #10 and what-to-build PR #123 merged; the aipub landing PR is open in its new owner's repo (it moved out of Ambysto, PR 74); the `ambysto-memory` PR #55 waits for the owner. Left as history: intents and reviews here, the private clone and its worktree, gitignored HANDOFF files, brand asset file names in `ambysto-assets`.
 13. PASS. `README.md` section "Install" says how to install from this clone and names what came in from the private copy.
+
+After the build (owner, 2026-11-25): the GitHub account was renamed from 0xdonniechu to 0xdchu; this repo (PR 27), the Pages site (renamed to `0xdchu.github.io`) and every other repo that named the account followed, one PR each.
