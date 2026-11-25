@@ -1,0 +1,15 @@
+{
+  "views": {
+    "architecture": "architecture.json",
+    "docs": "docs.json",
+    "runtime": [
+      "runtime-dispatch.json",
+      "runtime-stop-hook.json",
+      "runtime-install.json"
+    ]
+  },
+  "left_out": {
+    "maint/switch-test/switch-test.py": "the model-switch test kit, run by hand on release day; not on any session's path",
+    "maint/cost-report.py": "a cost report the owner runs by hand; not on any session's path"
+  }
+}

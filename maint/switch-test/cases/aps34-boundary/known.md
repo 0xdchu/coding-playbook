@@ -28,6 +28,6 @@ Commands run (on an exported copy of 852a39a, never the checkout):
 - `python3 maint/check.py`: PASS.
 - `hooks/1prompt/agent-guard.py --self-test`: PASS, 132 command cases + 77 boundary cases.
 - Mutation checks: gate type compared to `gatex` → 2 failures; `--tags` removed from push flags → 1 failure; `docs/spec/*` removed → 3 failures. All detected.
-- Probe scripts in `/tmp/claude-1000/-home-dc-group-work-ambysto-ambysto-space/69e03d46-061c-4c31-941c-cd57f6f4f100/scratchpad/probe1.py` and `probe2.py` (real bd 1.3.1, scratch HOME, DO_NOT_TRACK=1).
+- Probe scripts in `/tmp/claude-1000/-home-<user>-work-ambysto-ambysto-space/69e03d46-061c-4c31-941c-cd57f6f4f100/scratchpad/probe1.py` and `probe2.py` (real bd 1.3.1, scratch HOME, DO_NOT_TRACK=1).
 
 Not run: `install.py --check` (branch not installed on this machine); a real `claude --settings` headless run (owner-level).

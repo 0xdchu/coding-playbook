@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-preset="classic">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install</title>
+<style>
+:root, [data-theme="dark"] {
+  --bg-canvas: #090d16;
+  --bg-surface: rgba(17, 24, 39, 0.88);
+  --bg-card: rgba(22, 31, 50, 0.94);
+  --bg-elevated: #1e293b;
+  --bg-code: #0b1120;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-subtle: rgba(148, 163, 184, 0.18);
+  --border-strong: rgba(148, 163, 184, 0.34);
+  --grid-dot: rgba(148, 163, 184, 0.14);
+  --shadow-card: 0 10px 28px -6px rgba(0, 0, 0, 0.55);
+  --edge-default: #94a3b8;
+  --edge-active: #38bdf8;
+  --layer-frontend: #06b6d4;
+  --layer-backend: #6366f1;
+  --layer-database: #10b981;
+  --layer-security: #f43f5e;
+  --layer-messagebus: #a855f7;
+  --layer-cloud: #0ea5e9;
+  --layer-external: #64748b;
+  --delta-added: #22c55e;
+  --delta-modified: #f59e0b;
+  --delta-removed: #ef4444;
+}
+[data-theme="light"] {
+  --bg-canvas: #f8fafc;
+  --bg-surface: rgba(255, 255, 255, 0.92);
+  --bg-card: rgba(255, 255, 255, 0.98);
+  --bg-elevated: #f1f5f9;
+  --bg-code: #0f172a;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --border-strong: rgba(15, 23, 42, 0.26);
+  --grid-dot: rgba(15, 23, 42, 0.12);
+  --shadow-card: 0 8px 22px -4px rgba(15, 23, 42, 0.10);
+  --edge-default: #475569;
+  --edge-active: #0284c7;
+  --layer-frontend: #0891b2;
+  --layer-backend: #4f46e5;
+  --layer-database: #059669;
+  --layer-security: #e11d48;
+  --layer-messagebus: #9333ea;
+  --layer-cloud: #0284c7;
+  --layer-external: #475569;
+}
+[data-preset="blueprint"] {
+  --bg-canvas: #07192f;
+  --bg-surface: rgba(10, 31, 58, 0.92);
+  --bg-card: rgba(12, 38, 70, 0.95);
+  --grid-dot: rgba(56, 189, 248, 0.20);
+  --border-subtle: rgba(56, 189, 248, 0.30);
+  --border-strong: rgba(56, 189, 248, 0.60);
+  --edge-default: #38bdf8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  user-select: none;
+}
+#app {
+  position: relative; width: 100vw; height: 100vh;
+  background-image: radial-gradient(var(--grid-dot) 1.25px, transparent 1.25px);
+  background-size: 24px 24px;
+}
+[data-preset="blueprint"] #app {
+  background-image:
+    linear-gradient(to right, var(--grid-dot) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-dot) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+/* Top Header & Toolbar */
+#topbar {
+  position: fixed; top: 14px; left: 16px; right: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; border-radius: 12px;
+  background: var(--bg-surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  z-index: 30;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+body.presentation #topbar,
+body.presentation #cards-dock,
+body.presentation #minimap-wrap {
+  opacity: 0; pointer-events: none; transform: translateY(-12px);
+}
+.brand-block { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.brand-title {
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.brand-subtitle {
+  font-size: 11.5px; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.toolbar-controls {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.ctrl-input, .ctrl-select, .ctrl-btn {
+  height: 32px; padding: 0 10px; border-radius: 7px;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-primary); background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  outline: none; cursor: pointer;
+}
+.ctrl-input { width: 180px; cursor: text; }
+.ctrl-input:focus, .ctrl-select:focus, .ctrl-btn:hover {
+  border-color: var(--edge-active);
+}
+.ctrl-btn.active {
+  background: var(--edge-active); color: #090d16; border-color: var(--edge-active); font-weight: 600;
+}
+.mode-pill {
+  padding: 3px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  background: rgba(99, 102, 241, 0.18); color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+/* Route Probe Bar */
+#probe-bar {
+  position: fixed; top: 76px; left: 16px;
+  display: none; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 10px;
+  background: var(--bg-surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-strong);
+  z-index: 29; font-size: 12px;
+}
+#probe-bar.open { display: flex; }
+/* Canvas Viewport */
+#viewport {
+  width: 100%; height: 100%; cursor: grab;
+}
+#viewport.dragging { cursor: grabbing; }
+/* SVG Styling */
+.boundary-box {
+  fill: rgba(30, 41, 59, 0.26);
+  stroke-width: 1.5; stroke-dasharray: 6 4;
+  rx: 14px; ry: 14px;
+}
+[data-theme="light"] .boundary-box {
+  fill: rgba(241, 245, 249, 0.55);
+}
+.boundary-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; fill: var(--text-secondary);
+}
+.node-group { cursor: pointer; transition: opacity 0.18s ease; }
+.node-card {
+  fill: var(--bg-card);
+  stroke: var(--border-subtle); stroke-width: 1.4;
+  rx: 10px; ry: 10px;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.30));
+}
+.node-group:hover .node-card,
+.node-group.selected .node-card {
+  stroke: var(--edge-active); stroke-width: 2.4;
+}
+.node-title {
+  font-size: 13.5px; font-weight: 700; fill: var(--text-primary);
+}
+.node-sub {
+  font-size: 11px; fill: var(--text-secondary);
+}
+.node-item-text {
+  font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  fill: var(--text-secondary);
+}
+.node-badge {
+  font-size: 9.5px; font-weight: 600; fill: var(--text-primary);
+}
+.edge-group { transition: opacity 0.18s ease; }
+.edge-path {
+  fill: none; stroke: var(--edge-default); stroke-width: 1.85;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.edge-path.heuristic { stroke-dasharray: 5 5; opacity: 0.82; }
+.edge-path.highlighted {
+  stroke: var(--edge-active); stroke-width: 2.8; opacity: 1 !important;
+}
+[data-preset="signal-flow"] .edge-path {
+  stroke-dasharray: 8 6;
+  animation: signalPulse 1.4s linear infinite;
+}
+@keyframes signalPulse {
+  to { stroke-dashoffset: -28; }
+}
+.edge-label-bg {
+  fill: var(--bg-surface); stroke: var(--border-subtle); stroke-width: 1;
+  rx: 5px; ry: 5px;
+}
+.edge-label-text {
+  font-size: 10.5px; font-weight: 600; fill: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.dimmed { opacity: 0.16 !important; }
+.lifeline {
+  stroke: var(--border-strong); stroke-width: 1.4; stroke-dasharray: 6 6;
+}
+/* Semantic Passport Sidebar */
+#passport {
+  position: fixed; top: 76px; right: 16px; bottom: 16px; width: 400px;
+  max-width: calc(100vw - 32px);
+  background: var(--bg-surface); backdrop-filter: blur(16px);
+  border: 1px solid var(--border-strong); border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column;
+  transform: translateX(440px); transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 35; user-select: text;
+}
+#passport.open { transform: translateX(0); }
+.passport-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+}
+.passport-body {
+  padding: 14px 16px; overflow-y: auto; flex: 1;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 6px;
+}
+.reach-list { display: flex; flex-direction: column; gap: 4px; }
+.reach-item {
+  padding: 6px 9px; border-radius: 6px; background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle); font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.reach-item:hover { border-color: var(--edge-active); }
+.source-card {
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border-subtle); background: var(--bg-code);
+}
+.source-header {
+  padding: 6px 10px; background: rgba(148, 163, 184, 0.10);
+  font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #38bdf8; display: flex; justify-content: space-between;
+}
+.source-pre {
+  padding: 8px 10px; font-size: 11px; line-height: 1.45;
+  color: #e2e8f0; overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+/* Summary Cards Dock */
+#cards-dock {
+  position: fixed; left: 16px; bottom: 16px;
+  display: flex; gap: 10px; max-width: calc(100vw - 240px);
+  overflow-x: auto; z-index: 25;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.summary-card {
+  min-width: 250px; max-width: 320px; padding: 10px 12px;
+  border-radius: 10px; background: var(--bg-surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle); box-shadow: var(--shadow-card);
+}
+.summary-card h4 { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.summary-card pre {
+  font-size: 11px; white-space: pre-wrap; color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.4;
+}
+/* Minimap */
+#minimap-wrap {
+  position: fixed; right: 16px; bottom: 16px;
+  width: 184px; height: 124px; border-radius: 10px;
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card); overflow: hidden; z-index: 26;
+}
+#minimap-wrap.hidden { display: none; }
+/* Flow mode (sequence and workflow): the server draws the SVG; the walkthrough panel sits beside it. */
+#flow-app { position: absolute; inset: 0; display: flex; flex-direction: column; min-height: 0; }
+#flow-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 16px; background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle);
+}
+#flow-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 360px; }
+#stage { padding: 12px; overflow: auto; min-height: 0; }
+#stage svg.flow { display: block; margin: 0 auto; max-width: none; }
+#flow-panel {
+  border-left: 1px solid var(--border-subtle); background: var(--bg-surface);
+  padding: 16px; overflow: auto; min-height: 0; user-select: text; font-size: 13px; line-height: 1.5;
+}
+#flow-panel h2 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+#flow-panel h3 {
+  margin: 14px 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-secondary);
+}
+#flow-panel p { margin: 0 0 8px; }
+#flow-panel .meta, #flow-panel .hint { color: var(--text-secondary); }
+#flow-panel .badge {
+  display: inline-block; margin: 0 6px 6px 0; padding: 1px 8px; border-radius: 10px; font-size: 12px;
+  border: 1px solid var(--edge-active); color: var(--edge-active);
+}
+#flow-panel .src { margin: 10px 0 2px; font-weight: 600; }
+#flow-panel code, #flow-panel pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+#flow-panel pre {
+  margin: 4px 0 8px; padding: 8px 10px; background: var(--bg-code); color: #e2e8f0; font-size: 12px;
+  border: 1px solid var(--border-subtle); border-radius: 6px; overflow: auto;
+}
+#flow-panel .legend, #flow-panel .counts { list-style: none; margin: 0; padding: 0; }
+#flow-panel .counts { color: var(--text-secondary); }
+#flow-panel .legend li { display: flex; align-items: center; margin: 0 0 6px; }
+#flow-panel .legend .sw {
+  flex: none; display: inline-block; position: relative; width: 38px; height: 0; margin-right: 12px;
+  border-top: 2px solid currentColor;
+}
+#flow-panel .legend .sw.dashed { border-top-style: dashed; }
+#flow-panel .legend .sw.filled::after {
+  content: ""; position: absolute; right: -2px; top: -6px;
+  border-left: 9px solid currentColor; border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+}
+#flow-panel .legend .sw.open::after {
+  content: ""; position: absolute; right: 0; top: -5px; width: 8px; height: 8px;
+  border-top: 2px solid currentColor; border-right: 2px solid currentColor; transform: rotate(45deg);
+}
+#flow-panel .legend .unproven { color: var(--text-muted); }
+#flow-panel .legend .accent { color: var(--edge-active); }
+#flow-panel kbd {
+  border: 1px solid var(--border-strong); border-radius: 4px; padding: 0 5px; font-size: 12px;
+  font-family: inherit;
+}
+svg.flow [data-k] { cursor: pointer; }
+svg.flow.walking [data-k] { opacity: 0.22; }
+svg.flow.walking [data-k].active { opacity: 1; }
+svg.flow .active.route path.line { stroke-width: 3; }
+svg.flow .active.node .sh { stroke: var(--c-accent); stroke-width: 2.5; }
+[data-preset="signal-flow"] svg.flow .active.route path.line {
+  stroke-dasharray: 8 6; animation: signalPulse 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-preset="signal-flow"] svg.flow .active.route path.line { animation: none; }
+}
+@media (max-width: 900px) {
+  html, body { overflow: auto; }
+  #flow-app { position: static; height: auto; }
+  #flow-main { display: block; }
+  #stage { height: 70vh; }
+  #flow-panel { border-left: 0; border-top: 1px solid var(--border-subtle); }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="flow-app">
+    <header id="flow-top">
+      <div class="brand-block">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="mode-pill" id="flow-kind"></span>
+          <span class="brand-subtitle" id="flow-keys">&#8592; &#8594; step &middot; Esc leave &middot; S preset &middot; T theme &middot; E export</span>
+        </div>
+      </div>
+      <div class="toolbar-controls">
+        <select id="flow-preset" class="ctrl-select" title="Style Preset (S)">
+          <option value="classic">Preset: Classic</option>
+          <option value="blueprint">Preset: Blueprint</option>
+          <option value="signal-flow">Preset: Signal Flow</option>
+        </select>
+        <button id="flow-theme" class="ctrl-btn" title="Toggle Theme (T)">Theme (T)</button>
+        <button id="flow-export" class="ctrl-btn" title="Export SVG (E)">Export SVG (E)</button>
+      </div>
+    </header>
+    <div id="flow-main">
+      <div id="stage"><svg class="flow" viewBox="0 0 886 410" width="886" height="410" role="img" aria-label="Install"><title>Install</title><style>.flow{--c-bg:var(--bg-canvas,#0b0d12);--c-fg:var(--text-primary,#e8ebf2);--c-muted:var(--text-secondary,#98a2b3);--c-border:var(--text-secondary,#d5dbe8);--c-box:var(--bg-card,#141925);--c-line:var(--edge-default,#c7cedb);--c-accent:var(--edge-active,#4da3ff);--c-unproven:var(--text-muted,#7d8798);--c-frame:var(--text-muted,#7a8499);--c-tab:var(--bg-elevated,#1b2130);--c-pill:var(--bg-elevated,#1a2233);--c-dec:var(--bg-elevated,#1d2436);font-family:-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;}.flow .bg{fill:var(--c-bg)}.flow .lblbg{fill:var(--c-bg)}.flow text{fill:var(--c-fg);font-size:13px;paint-order:stroke;stroke:var(--c-bg);stroke-width:6px;stroke-linejoin:round}.flow .title{font-size:22px;font-weight:700}.flow .subtitle{font-size:14px;fill:var(--c-muted)}.flow .actor rect{fill:var(--c-box);stroke:var(--c-border);stroke-width:1.5}.flow .actor text{font-size:14px;font-weight:700;stroke:var(--c-box)}.flow .lifeline{stroke:var(--c-frame);stroke-width:1;stroke-dasharray:4 4;fill:none}.flow .frame rect.box{fill:none;stroke:var(--c-frame);stroke-width:1;stroke-dasharray:1 3;stroke-linecap:round}.flow .frame rect.tab{fill:var(--c-tab);stroke:var(--c-frame);stroke-width:1}.flow .frame .divider{stroke:var(--c-frame);stroke-width:1;stroke-dasharray:6 4}.flow .frame .name{font-weight:700;stroke:var(--c-tab)}.flow .frame .cond,.flow .branch{fill:var(--c-muted)}.flow .route path.line{fill:none;stroke:var(--c-line);stroke-width:1.5;stroke-linejoin:round}.flow .route.dashed path.line{stroke-dasharray:6 4}.flow .route.unproven path.line{stroke:var(--c-unproven);stroke-dasharray:6 4}.flow .route.emphasis path.line{stroke:var(--c-accent);stroke-width:2.5}.flow .hit{fill:none;stroke:transparent;stroke-width:12;pointer-events:stroke}.flow .m-n{fill:var(--c-line);stroke:var(--c-line)}.flow .m-u{fill:var(--c-unproven);stroke:var(--c-unproven)}.flow .m-e{fill:var(--c-accent);stroke:var(--c-accent)}.flow .m-open{fill:none;stroke-width:1.5}.flow .lbl.emphasis{fill:var(--c-accent);font-weight:700}.flow .lbl.unproven{fill:var(--c-muted)}.flow .node .sh{fill:var(--c-box);stroke:var(--c-border);stroke-width:1.5}.flow .node.start .sh,.flow .node.end .sh{fill:var(--c-pill)}.flow .node.decision .sh{fill:var(--c-dec)}.flow .node text{stroke:var(--c-box)}.flow .node.start text,.flow .node.end text{stroke:var(--c-pill)}.flow .node.decision text{stroke:var(--c-dec)}.flow .node .t-b{font-weight:700}.flow .node .t-d{fill:var(--c-muted)}</style><rect class="bg" x="0" y="0" width="886" height="410"/><text class="title" x="40" y="40">Install</text><text class="subtitle" x="40" y="64">install.py --global --settings brings ~/.claude in step with this repo</text><g transform="translate(0 78)"><line class="lifeline" x1="100" y1="84" x2="100" y2="292" data-ref="owner"/><line class="lifeline" x1="449.5" y1="84" x2="449.5" y2="292" data-ref="install"/><line class="lifeline" x1="786" y1="84" x2="786" y2="292" data-ref="home"/><g class="actor" data-ref="owner"><rect x="40" y="40" width="120" height="44" rx="8"/><text x="100" y="67" text-anchor="middle">Owner</text></g><g class="actor" data-ref="install"><rect x="389.5" y="40" width="120" height="44" rx="8"/><text x="449.5" y="67" text-anchor="middle">install.py</text></g><g class="actor" data-ref="home"><rect x="726" y="40" width="120" height="44" rx="8"/><text x="786" y="67" text-anchor="middle">~/.claude</text></g><g class="route solid" data-ref="steps[0]" data-k="0"><path class="hit" d="M100 118 L449.5 118"/><path class="line" d="M100 118 L449.5 118"/><path class="head m-n" d="M449.5 118 L439.5 123 L439.5 113 z"/></g><g class="route solid" data-ref="steps[1]" data-k="1"><path class="hit" d="M449.5 166 L786 166"/><path class="line" d="M449.5 166 L786 166"/><path class="head m-n" d="M786 166 L776 171 L776 161 z"/></g><g class="route solid" data-ref="steps[2]" data-k="2"><path class="hit" d="M449.5 214 L786 214"/><path class="line" d="M449.5 214 L786 214"/><path class="head m-n" d="M786 214 L776 219 L776 209 z"/></g><g class="route solid" data-ref="steps[3]" data-k="3"><path class="hit" d="M100 262 L449.5 262"/><path class="line" d="M100 262 L449.5 262"/><path class="head m-n" d="M449.5 262 L439.5 267 L439.5 257 z"/></g><rect class="lblbg" x="177.5" y="98" width="194.5" height="14" rx="3"/><text class="lbl" x="275" y="109.5" text-anchor="middle" data-ref="steps[0]" data-k="0">1. install.py --global --settings</text><rect class="lblbg" x="490" y="146" width="255.5" height="14" rx="3"/><text class="lbl" x="618" y="157.5" text-anchor="middle" data-ref="steps[1]" data-k="1">2. agents, hooks, skills, the global block</text><rect class="lblbg" x="471.5" y="194" width="292.5" height="14" rx="3"/><text class="lbl" x="618" y="205.5" text-anchor="middle" data-ref="steps[2]" data-k="2">3. settings.json: the session hooks, once each</text><rect class="lblbg" x="122" y="242" width="305.5" height="14" rx="3"/><text class="lbl" x="275" y="253.5" text-anchor="middle" data-ref="steps[3]" data-k="3">4. install.py --check: exit 0 when nothing differs</text></g></svg></div>
+      <aside id="flow-panel" aria-live="polite"></aside>
+    </div>
+  </div>
+</div>
+
+<script id="ambysto-diagram-data" type="application/json">{"items":[{"external":true,"k":0,"kind":"call","label":"install.py --global --settings","note":null,"number":"1","ref":"steps[0]","route":"Owner -> install.py","sources":[{"end_line":39,"label":"--check","line":37,"path":"maint/install.py","snippet":"LEGACY = [(\"\u003c!-- roles-assign:begin -->\", \"\u003c!-- roles-assign:end -->\"),\n          (\"\u003c!-- claudecode-guide:begin -->\", \"\u003c!-- claudecode-guide:end -->\")]\ncheck_only = \"--check\" in sys.argv"}],"unproven":false},{"external":true,"k":1,"kind":"call","label":"agents, hooks, skills, the global block","note":null,"number":"2","ref":"steps[1]","route":"install.py -> ~/.claude","sources":[{"end_line":null,"label":"def install_file","line":67,"path":"maint/install.py","snippet":"def install_file(src, dst):"}],"unproven":false},{"external":true,"k":2,"kind":"call","label":"settings.json: the session hooks, once each","note":null,"number":"3","ref":"steps[2]","route":"install.py -> ~/.claude","sources":[{"end_line":null,"label":"PreToolUse","line":96,"path":"maint/install.py","snippet":"[line hidden: may hold a secret]"}],"unproven":false},{"external":true,"k":3,"kind":"call","label":"install.py --check: exit 0 when nothing differs","note":null,"number":"4","ref":"steps[3]","route":"Owner -> install.py","sources":[{"end_line":39,"label":"--check","line":37,"path":"maint/install.py","snippet":"LEGACY = [(\"\u003c!-- roles-assign:begin -->\", \"\u003c!-- roles-assign:end -->\"),\n          (\"\u003c!-- claudecode-guide:begin -->\", \"\u003c!-- claudecode-guide:end -->\")]\ncheck_only = \"--check\" in sys.argv"}],"unproven":false}],"kind":"sequence","stats":{"external":2,"unproven":0},"subtitle":"install.py --global --settings brings ~/.claude in step with this repo","title":"Install"}</script>
+<script>
+(function () {
+  "use strict";
+  var data = JSON.parse(document.getElementById("ambysto-diagram-data").textContent);
+  var items = data.items || [];
+  var root = document.documentElement;
+  var svg = document.querySelector("svg.flow");
+  var panel = document.getElementById("flow-panel");
+  var stage = document.getElementById("stage");
+  var presetSelect = document.getElementById("flow-preset");
+  var cur = -1;
+  var workflow = data.kind === "workflow";
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+
+  function legendRow(cls, sw, text) {
+    var li = el("li", cls);
+    li.appendChild(el("span", "sw " + sw));
+    li.appendChild(document.createTextNode(text));
+    return li;
+  }
+
+  function showHint() {
+    var st = data.stats || {};
+    panel.textContent = "";
+    panel.appendChild(el("h2", "", workflow ? "Workflow" : "Sequence"));
+    var keys = el("p", "hint");
+    keys.appendChild(document.createTextNode("Press "));
+    keys.appendChild(el("kbd", "", "→"));
+    keys.appendChild(document.createTextNode(" to walk through one at a time, or click a " + (workflow ? "node" : "step") + ". "));
+    keys.appendChild(el("kbd", "", "←"));
+    keys.appendChild(document.createTextNode(" goes back, "));
+    keys.appendChild(el("kbd", "", "Esc"));
+    keys.appendChild(document.createTextNode(" leaves, "));
+    keys.appendChild(el("kbd", "", "T"));
+    keys.appendChild(document.createTextNode(" theme, "));
+    keys.appendChild(el("kbd", "", "E"));
+    keys.appendChild(document.createTextNode(" exports the SVG."));
+    panel.appendChild(keys);
+    panel.appendChild(el("h3", "", "Legend"));
+    var ul = el("ul", "legend");
+    if (workflow) {
+      ul.appendChild(legendRow("call", "filled", "solid arrow: flows to the next node"));
+    } else {
+      ul.appendChild(legendRow("call", "filled", "solid arrow: call"));
+      ul.appendChild(legendRow("async", "dashed open", "dashed open arrow: async or reply"));
+      ul.appendChild(legendRow("unproven", "dashed filled", "grey dashed: unproven (no source)"));
+    }
+    ul.appendChild(legendRow("accent", "filled", "accent: emphasised"));
+    panel.appendChild(ul);
+    panel.appendChild(el("h3", "", "Counts"));
+    var counts = el("ul", "counts");
+    counts.appendChild(el("li", "", items.length + (workflow ? " nodes" : " steps")));
+    if (!workflow) {
+      counts.appendChild(el("li", "", (st.external || 0) + " external participants"));
+      counts.appendChild(el("li", "", (st.unproven || 0) + " unproven edges"));
+    }
+    panel.appendChild(counts);
+  }
+
+  function showItem(it) {
+    panel.textContent = "";
+    panel.appendChild(el("h2", "", (workflow ? "Node " : "Step ") + it.number + ": " + it.label));
+    panel.appendChild(el("p", "meta", "kind: " + it.kind + (it.route ? " | " + it.route : "") +
+      " | " + (it.k + 1) + " of " + items.length));
+    if (it.unproven) panel.appendChild(el("span", "badge", "unproven: no proven source for this call"));
+    if (it.external) panel.appendChild(el("span", "badge", "external"));
+    if (it.detail) panel.appendChild(el("p", "", it.detail));
+    if (it.note) panel.appendChild(el("p", "", it.note));
+    (it.sources || []).forEach(function (s) {
+      var where = s.path + ":" + s.line + (s.end_line && s.end_line !== s.line ? "-" + s.end_line : "");
+      var row = el("div", "src");
+      row.appendChild(el("code", "", where));
+      if (s.label) row.appendChild(document.createTextNode(" " + s.label));
+      panel.appendChild(row);
+      if (s.snippet !== null && s.snippet !== undefined) panel.appendChild(el("pre", "", s.snippet));
+      else panel.appendChild(el("p", "hint", "not verified (no repo root was given)"));
+    });
+  }
+
+  var BASE_TEXT = 13, MIN_TEXT = 9, MAX_SCALE = 1.25;
+
+  // Contain: the whole diagram in the visible area, never above MAX_SCALE, and scrolling only when
+  // containing it would shrink the 13 px text below MIN_TEXT px on screen.
+  function fit() {
+    var w = parseFloat(svg.getAttribute("width")), h = parseFloat(svg.getAttribute("height"));
+    var cs = getComputedStyle(stage);
+    var aw = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var ah = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (!(w > 0 && h > 0 && aw > 0)) return;
+    var s = ah > 0 ? Math.min(aw / w, ah / h, MAX_SCALE) : Math.min(aw / w, MAX_SCALE);
+    s = Math.max(s, MIN_TEXT / BASE_TEXT);
+    svg.style.width = Math.floor(w * s) + "px";
+    svg.style.height = Math.floor(h * s) + "px";
+  }
+
+  function mark(k) {
+    var all = svg.querySelectorAll("[data-k]");
+    for (var i = 0; i < all.length; i++) {
+      all[i].classList.toggle("active", k >= 0 && all[i].getAttribute("data-k") === String(k));
+    }
+    svg.classList.toggle("walking", k >= 0);
+  }
+
+  function show(k) {
+    if (!items.length) return;
+    cur = Math.max(0, Math.min(items.length - 1, k));
+    mark(cur);
+    showItem(items[cur]);
+    var a = svg.querySelector("[data-k].active");
+    if (a && a.scrollIntoView) a.scrollIntoView({block: "center", inline: "nearest"});
+  }
+
+  function leave() {
+    cur = -1;
+    mark(-1);
+    showHint();
+  }
+
+  function toggleTheme() {
+    root.setAttribute("data-theme", root.getAttribute("data-theme") === "light" ? "dark" : "light");
+  }
+
+  function cyclePreset() {
+    var order = ["classic", "blueprint", "signal-flow"];
+    var now = root.getAttribute("data-preset") || "classic";
+    var next = order[(order.indexOf(now) + 1) % order.length];
+    root.setAttribute("data-preset", next);
+    presetSelect.value = next;
+  }
+
+  // The drawing takes its colours from CSS variables; the export writes their current values into the file.
+  function exportSvg() {
+    var clone = svg.cloneNode(true);
+    clone.classList.remove("walking");
+    clone.style.width = "";
+    clone.style.height = "";
+    var act = clone.querySelectorAll(".active");
+    for (var i = 0; i < act.length; i++) act[i].classList.remove("active");
+    var cs = getComputedStyle(svg), style = "";
+    ["--c-bg", "--c-fg", "--c-muted", "--c-border", "--c-box", "--c-line", "--c-accent", "--c-unproven",
+     "--c-frame", "--c-tab", "--c-pill", "--c-dec"].forEach(function (n) {
+      style += n + ":" + cs.getPropertyValue(n).trim() + ";";
+    });
+    clone.setAttribute("style", style);
+    var text = new XMLSerializer().serializeToString(clone);
+    var blob = new Blob([text], {type: "image/svg+xml"});
+    var make = URL["createObjectURL"], drop = URL["revokeObjectURL"];
+    var link = document.createElement("a");
+    link.href = make.call(URL, blob);
+    link.download = (data.title || "diagram").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".svg";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () { drop.call(URL, link.href); }, 1000);
+  }
+
+  svg.addEventListener("click", function (ev) {
+    var t = ev.target.closest ? ev.target.closest("[data-k]") : null;
+    if (t) show(parseInt(t.getAttribute("data-k"), 10));
+  });
+
+  document.addEventListener("keydown", function (ev) {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (ev.target && ev.target.tagName === "SELECT") return;
+    var key = ev.key;
+    if (key === "t" || key === "T") {
+      toggleTheme();
+    } else if (key === "s" || key === "S") {
+      cyclePreset();
+    } else if (key === "ArrowRight") {
+      ev.preventDefault();
+      show(cur < 0 ? 0 : cur + 1);
+    } else if (key === "ArrowLeft") {
+      ev.preventDefault();
+      show(cur < 0 ? 0 : cur - 1);
+    } else if (key === "Escape") {
+      leave();
+    } else if (key === "e" || key === "E") {
+      exportSvg();
+    }
+  });
+
+  presetSelect.value = root.getAttribute("data-preset") || "classic";
+  presetSelect.addEventListener("change", function () {
+    root.setAttribute("data-preset", presetSelect.value);
+  });
+  document.getElementById("flow-theme").addEventListener("click", toggleTheme);
+  document.getElementById("flow-export").addEventListener("click", exportSvg);
+  document.getElementById("flow-kind").textContent = workflow ? "workflow" : "sequence";
+  window.addEventListener("resize", fit);
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(stage);
+  fit();
+  showHint();
+})();
+</script>
+</body>
+</html>

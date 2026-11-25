@@ -8,7 +8,7 @@ The original first-round report on the original commit 1f8064f, verbatim (claude
 
 Issues:
 
-1. **MAJOR** `/home/dc-group/work/ambysto/claudecode-guide-guard/hooks/owner-token-guard/owner-token-guard.py:26-32` — the deny list misses the token paths an agent most plausibly runs by accident, confirmed by experiment (allowed by the hook):
+1. **MAJOR** `~/work/ambysto/claudecode-guide-guard/hooks/owner-token-guard/owner-token-guard.py:26-32` — the deny list misses the token paths an agent most plausibly runs by accident, confirmed by experiment (allowed by the hook):
    - `printf 'protocol=https\nhost=github.com\n' | git credential fill` run in any `~/work/ambysto/*` dir returns `username=ambysto password=<owner token>` (verified, redacted). Also `git-credential-ambysto.sh get` directly.
    - `gh auth --user ambysto token`: cobra accepts flags before the subcommand (verified with `gh auth --hostname github.com status`), so the `auth\W{1,8}token` adjacency is trivially broken; likewise `gh auth -t status`.
    - `gh alias set --shell e 'echo $GH_TOKEN'; gh e`: the wrapper exports the owner's token into `GH_TOKEN` and execs gh, so any shell alias or `gh extension` prints it, and the alias persists in config.yml.
@@ -21,7 +21,7 @@ Issues:
 
 4. **MINOR** same file:55-58 — `Grep pattern=oauth path=~/.config/gh` (directory) is allowed and reads hosts.yml; irrelevant here (token is in the keyring, `hosts.yml` has 0 `oauth_token` lines) but matters on a machine without a keyring.
 
-5. **MINOR** `/home/dc-group/work/ambysto/claudecode-guide-guard/maint/install.py:203` — `"hooks": null` → `AttributeError` traceback (exit 1) after the defaults were already written. Also with `hooks` a list or `PreToolUse` a dict, `--settings` writes the defaults first and then refuses with exit 2, contradicting the docstring "exit 2 and nothing written".
+5. **MINOR** `~/work/ambysto/claudecode-guide-guard/maint/install.py:203` — `"hooks": null` → `AttributeError` traceback (exit 1) after the defaults were already written. Also with `hooks` a list or `PreToolUse` a dict, `--settings` writes the defaults first and then refuses with exit 2, contradicting the docstring "exit 2 and nothing written".
 
 6. **MINOR** install.py:184-208 — when defaults drift and the guard is missing, settings.json is written twice with two backups in the same second (`.bak-…`, `.bak-…-1`); the second backs up the intermediate file. Harmless, document or merge the writes.
 

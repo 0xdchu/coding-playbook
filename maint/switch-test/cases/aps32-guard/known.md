@@ -8,7 +8,7 @@ The original first-round report, verbatim (claude-fable-5-1). Issue n of the rep
 
 Issues
 
-1. MAJOR `/home/dc-group/work/ambysto/claudecode-guide/hooks/agent-guard.py:48,216,183-194` — combined short flags slip through, and these are plausible mistake-forms, not evasion. Review mode allows `sed -Ei 's/a/b/' f`, `sed -ri`, `sed -ni`, `perl -ni -e 1 f` (only a flag *starting* with `-i`/`-pi` is caught). Build mode allows `bash -lc 'git push'` (`-c` must be a separate word) and `gh api -XPOST repos/o/r/issues` (`-X` glued to its value). Fix: treat any single-dash flag cluster containing `i` for sed/perl, any `-…c` cluster for shells, and `-X<METHOD>` for gh.
+1. MAJOR `~/work/ambysto/claudecode-guide/hooks/agent-guard.py:48,216,183-194` — combined short flags slip through, and these are plausible mistake-forms, not evasion. Review mode allows `sed -Ei 's/a/b/' f`, `sed -ri`, `sed -ni`, `perl -ni -e 1 f` (only a flag *starting* with `-i`/`-pi` is caught). Build mode allows `bash -lc 'git push'` (`-c` must be a separate word) and `gh api -XPOST repos/o/r/issues` (`-X` glued to its value). Fix: treat any single-dash flag cluster containing `i` for sed/perl, any `-…c` cluster for shells, and `-X<METHOD>` for gh.
 
 2. MINOR `agent-guard.py:20,110` — glued operators: `test -f x ||(git push)` and `true &&(git commit -m x)` pass (shlex yields the token `||(`, which is not in OPERATORS). Strip trailing `(`/leading `)` from operator tokens.
 
@@ -28,7 +28,7 @@ Commands run
 - `python3 maint/check.py` → PASS (exit 0)
 - `python3 hooks/1prompt/agent-guard.py --self-test` → PASS 58/58
 - `python3 maint/install.py --check` → exit 1, only the pre-existing global-block difference; agents, hook and skills "unchanged"
-- 56 crafted guard probes + 11 odd-JSON inputs + 26 fragment fuzz (script in `/tmp/claude-1000/-home-dc-group-work-ambysto/d0b7e864-6014-493d-bb07-8e86bb56207f/scratchpad/probe.py`)
+- 56 crafted guard probes + 11 odd-JSON inputs + 26 fragment fuzz (script in `/tmp/claude-1000/-home-<user>-work-ambysto/d0b7e864-6014-493d-bb07-8e86bb56207f/scratchpad/probe.py`)
 - Mutation checks of check.py on a scratch copy (4/4 caught)
 
 Not run: `install.py` without `--check` (forbidden by task); the Verify step "run the agent once on a known diff and record it in the PR" (no PR yet; this review session itself ran under the installed hook without a false block); Windows/PowerShell hook invocation (no VM run; CLAUDE.md already lists it as untested).

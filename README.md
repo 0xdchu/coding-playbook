@@ -52,7 +52,7 @@ Run from the repo, or installed as hooks. None of it assigns a role.
 |---|---|---|
 | `tools/dispatch.py` | run from the repo | Writes a builder's worktree and task contract (`new`, `contract`, `show`, `done`) |
 | `tools/sdlc-check.py` | run from the repo | `clarify` fails while an intent has an open point, a missing or empty Coverage bullet (nine: who, trigger, main path, branches, business rules, data, security, UI states, limits), a wrong `Flow:` line, or a flow that fails validation or whose `.flow.html` is not a fresh render; `converge` lists changed files outside the plan's tasks, tasks left untouched, Proof items without a result, Outcome items no Proof item names `(On)` (intents with Coverage), and `floor:` notes for added suppressions, skipped/deleted tests or removed assertions, and in a repo with `docs/map/` the map's items as `map:` gaps; `map <repo>` checks a repo's map (exit 2: no `ambysto-graph`, not checked); `converge --checks` also runs each task's `check:` commands once nothing else is missing (the one-prompt loop's judge) |
-| `hooks/1prompt/agent-guard.py`, `hooks/1prompt/autonomous-settings.json`, `hooks/1prompt/pin.json` | `~/.claude/hooks/1prompt/` | The hooks the builder and the reviewers run: a builder edits only inside its contract, the reviewers cannot change a tree. Copied from `ambysto/1prompt` at the commit `pin.json` names; never edited here |
+| `hooks/1prompt/agent-guard.py`, `hooks/1prompt/autonomous-settings.json`, `hooks/1prompt/pin.json` | `~/.claude/hooks/1prompt/` | The hooks the builder and the reviewers run: a builder edits only inside its contract, the reviewers cannot change a tree. Copied from `0xdonniechu/1prompt` at the commit `pin.json` names; never edited here |
 | `hooks/owner-token-guard/owner-token-guard.py` | `~/.claude/hooks/owner-token-guard/` | A PreToolUse hook for every session: denies a command that would take the owner's GitHub token or switch an account |
 | `hooks/saveit/saveit-hook.py` | `~/.claude/hooks/saveit/`, registered with `--settings` | Save-it hooks for every session: at SessionStart the `ambysto-saveit resume` brief when the repo root has a `HANDOFF.md`; at PreCompact `ambysto-saveit tail --write` into an existing, git-ignored `HANDOFF.md`. Never blocks a session |
 | `tools/plane.py` | run from the repo | Plane tickets over REST (`projects`, `show`, `create`, `state`, `comment`, `link`); the key is read at run time, sent only over https and never printed |
@@ -64,8 +64,7 @@ Run from the repo, or installed as hooks. None of it assigns a role.
 | `hooks/gates/session-gates.py` | `~/.claude/hooks/gates/`, registered with `--settings` | Session gates for rules that slipped as text: refuses a branch name a repo's `.claude/branch-name.json` does not allow and a push to a branch it lists in `no_push`, refuses an edit or a changing git command in a tree a still-running subagent has read, and names a shared-memory lesson once when a command matches it |
 | `tools/hil-report.py` | run from the repo | Reports the owner time log (`~/.claude/hil/log.jsonl`) |
 | `maint/cost-report.py`, `maint/model-prices.json` | run from the repo | What each agent role, ticket, model, day or project costs, from Claude Code's own transcripts in `~/.claude/projects` (`--by role\|ticket\|model\|day\|project`, several for a nested grouping; `--since`, `--until`, `--project`, `--ticket`, `--json`). Each API response counted once; USD from the price table beside it (a model not in the table shows `?`, never a guess); the share with no ticket is always shown. `--self-test` builds its own scratch transcripts |
-| `maint/sync-public.py`, `.sync-source.json` | (the maintainer's tool) | How this repo is kept in step with the maintainer's internal copy: every file comes from there except this repo's own `CLAUDE.md`, `README.md`, `.claude/branch-name.json` and its Codex and Gemini files; `.sync-source.json` records which internal commit each was last brought in step with. Its config lives only in the internal copy, so here it only runs `--self-test` |
-| `maint/github-boundary.py`, `.json` | run from the repo | The server-side boundary for paths only the owner changes |
+| `maint/leak-patterns.json` | read by `maint/check.py` | Secret shapes and internal names no tracked file may contain; this repo is public and the only copy (since 2026-11-25) |
 | `intent/`, `docs/` | read | The intents and plans behind these files, review records and brand assets |
 | `maint/switch-model.py` | run from the repo | Moves one role to another model in one edit |
 | `maint/check.py`, `maint/install.py` | run from the repo | The checks and the installer |
@@ -73,6 +72,17 @@ Run from the repo, or installed as hooks. None of it assigns a role.
 ## Models
 
 Every model is pinned to a full model ID, never an alias, so an upgrade is always a decision (`rules/global/CLAUDE.md`, "Switching models"). The main session's model and effort live in `~/.claude/settings.json` (`"model": "claude-opus-5-5"`, and `high` effort under `modelSettings`). The installer only reports them; the owner sets them.
+
+## Install
+
+This repo is the only copy (since 2026-11-25): the private internal copy it was synced from is archived, and its rules, agents, hooks, tools, `docs/map/` and intents came in here, with the four skills that used to be public-only (`graph`, `mockup`, `static-mockup-visuals`, `userflow`) now required like the others. Clone it to `~/work/0xdonniechu/coding-playbook` (the path the global block names) and the guard source `1prompt` beside it, then:
+
+```sh
+python3 maint/install.py --global --settings   # agents, skills, hooks, the global block and the session hooks
+python3 maint/install.py --check               # exit 0 = the installed copy matches this clone
+```
+
+A skill folder in `~/.claude/skills` that is a symlink into another repo is skipped, never written through.
 
 ## Use
 

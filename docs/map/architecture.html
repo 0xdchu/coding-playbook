@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-preset="classic">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>coding-playbook: architecture</title>
+<style>
+:root, [data-theme="dark"] {
+  --bg-canvas: #090d16;
+  --bg-surface: rgba(17, 24, 39, 0.88);
+  --bg-card: rgba(22, 31, 50, 0.94);
+  --bg-elevated: #1e293b;
+  --bg-code: #0b1120;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-subtle: rgba(148, 163, 184, 0.18);
+  --border-strong: rgba(148, 163, 184, 0.34);
+  --grid-dot: rgba(148, 163, 184, 0.14);
+  --shadow-card: 0 10px 28px -6px rgba(0, 0, 0, 0.55);
+  --edge-default: #94a3b8;
+  --edge-active: #38bdf8;
+  --layer-frontend: #06b6d4;
+  --layer-backend: #6366f1;
+  --layer-database: #10b981;
+  --layer-security: #f43f5e;
+  --layer-messagebus: #a855f7;
+  --layer-cloud: #0ea5e9;
+  --layer-external: #64748b;
+  --delta-added: #22c55e;
+  --delta-modified: #f59e0b;
+  --delta-removed: #ef4444;
+}
+[data-theme="light"] {
+  --bg-canvas: #f8fafc;
+  --bg-surface: rgba(255, 255, 255, 0.92);
+  --bg-card: rgba(255, 255, 255, 0.98);
+  --bg-elevated: #f1f5f9;
+  --bg-code: #0f172a;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --border-strong: rgba(15, 23, 42, 0.26);
+  --grid-dot: rgba(15, 23, 42, 0.12);
+  --shadow-card: 0 8px 22px -4px rgba(15, 23, 42, 0.10);
+  --edge-default: #475569;
+  --edge-active: #0284c7;
+  --layer-frontend: #0891b2;
+  --layer-backend: #4f46e5;
+  --layer-database: #059669;
+  --layer-security: #e11d48;
+  --layer-messagebus: #9333ea;
+  --layer-cloud: #0284c7;
+  --layer-external: #475569;
+}
+[data-preset="blueprint"] {
+  --bg-canvas: #07192f;
+  --bg-surface: rgba(10, 31, 58, 0.92);
+  --bg-card: rgba(12, 38, 70, 0.95);
+  --grid-dot: rgba(56, 189, 248, 0.20);
+  --border-subtle: rgba(56, 189, 248, 0.30);
+  --border-strong: rgba(56, 189, 248, 0.60);
+  --edge-default: #38bdf8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  user-select: none;
+}
+#app {
+  position: relative; width: 100vw; height: 100vh;
+  background-image: radial-gradient(var(--grid-dot) 1.25px, transparent 1.25px);
+  background-size: 24px 24px;
+}
+[data-preset="blueprint"] #app {
+  background-image:
+    linear-gradient(to right, var(--grid-dot) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-dot) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+/* Top Header & Toolbar */
+#topbar {
+  position: fixed; top: 14px; left: 16px; right: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; border-radius: 12px;
+  background: var(--bg-surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  z-index: 30;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+body.presentation #topbar,
+body.presentation #cards-dock,
+body.presentation #minimap-wrap {
+  opacity: 0; pointer-events: none; transform: translateY(-12px);
+}
+.brand-block { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.brand-title {
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.brand-subtitle {
+  font-size: 11.5px; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.toolbar-controls {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.ctrl-input, .ctrl-select, .ctrl-btn {
+  height: 32px; padding: 0 10px; border-radius: 7px;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-primary); background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  outline: none; cursor: pointer;
+}
+.ctrl-input { width: 180px; cursor: text; }
+.ctrl-input:focus, .ctrl-select:focus, .ctrl-btn:hover {
+  border-color: var(--edge-active);
+}
+.ctrl-btn.active {
+  background: var(--edge-active); color: #090d16; border-color: var(--edge-active); font-weight: 600;
+}
+.mode-pill {
+  padding: 3px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  background: rgba(99, 102, 241, 0.18); color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+/* Route Probe Bar */
+#probe-bar {
+  position: fixed; top: 76px; left: 16px;
+  display: none; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 10px;
+  background: var(--bg-surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-strong);
+  z-index: 29; font-size: 12px;
+}
+#probe-bar.open { display: flex; }
+/* Canvas Viewport */
+#viewport {
+  width: 100%; height: 100%; cursor: grab;
+}
+#viewport.dragging { cursor: grabbing; }
+/* SVG Styling */
+.boundary-box {
+  fill: rgba(30, 41, 59, 0.26);
+  stroke-width: 1.5; stroke-dasharray: 6 4;
+  rx: 14px; ry: 14px;
+}
+[data-theme="light"] .boundary-box {
+  fill: rgba(241, 245, 249, 0.55);
+}
+.boundary-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; fill: var(--text-secondary);
+}
+.node-group { cursor: pointer; transition: opacity 0.18s ease; }
+.node-card {
+  fill: var(--bg-card);
+  stroke: var(--border-subtle); stroke-width: 1.4;
+  rx: 10px; ry: 10px;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.30));
+}
+.node-group:hover .node-card,
+.node-group.selected .node-card {
+  stroke: var(--edge-active); stroke-width: 2.4;
+}
+.node-title {
+  font-size: 13.5px; font-weight: 700; fill: var(--text-primary);
+}
+.node-sub {
+  font-size: 11px; fill: var(--text-secondary);
+}
+.node-item-text {
+  font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  fill: var(--text-secondary);
+}
+.node-badge {
+  font-size: 9.5px; font-weight: 600; fill: var(--text-primary);
+}
+.edge-group { transition: opacity 0.18s ease; }
+.edge-path {
+  fill: none; stroke: var(--edge-default); stroke-width: 1.85;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.edge-path.heuristic { stroke-dasharray: 5 5; opacity: 0.82; }
+.edge-path.highlighted {
+  stroke: var(--edge-active); stroke-width: 2.8; opacity: 1 !important;
+}
+[data-preset="signal-flow"] .edge-path {
+  stroke-dasharray: 8 6;
+  animation: signalPulse 1.4s linear infinite;
+}
+@keyframes signalPulse {
+  to { stroke-dashoffset: -28; }
+}
+.edge-label-bg {
+  fill: var(--bg-surface); stroke: var(--border-subtle); stroke-width: 1;
+  rx: 5px; ry: 5px;
+}
+.edge-label-text {
+  font-size: 10.5px; font-weight: 600; fill: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.dimmed { opacity: 0.16 !important; }
+.lifeline {
+  stroke: var(--border-strong); stroke-width: 1.4; stroke-dasharray: 6 6;
+}
+/* Semantic Passport Sidebar */
+#passport {
+  position: fixed; top: 76px; right: 16px; bottom: 16px; width: 400px;
+  max-width: calc(100vw - 32px);
+  background: var(--bg-surface); backdrop-filter: blur(16px);
+  border: 1px solid var(--border-strong); border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column;
+  transform: translateX(440px); transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 35; user-select: text;
+}
+#passport.open { transform: translateX(0); }
+.passport-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+}
+.passport-body {
+  padding: 14px 16px; overflow-y: auto; flex: 1;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 6px;
+}
+.reach-list { display: flex; flex-direction: column; gap: 4px; }
+.reach-item {
+  padding: 6px 9px; border-radius: 6px; background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle); font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.reach-item:hover { border-color: var(--edge-active); }
+.source-card {
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border-subtle); background: var(--bg-code);
+}
+.source-header {
+  padding: 6px 10px; background: rgba(148, 163, 184, 0.10);
+  font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #38bdf8; display: flex; justify-content: space-between;
+}
+.source-pre {
+  padding: 8px 10px; font-size: 11px; line-height: 1.45;
+  color: #e2e8f0; overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+/* Summary Cards Dock */
+#cards-dock {
+  position: fixed; left: 16px; bottom: 16px;
+  display: flex; gap: 10px; max-width: calc(100vw - 240px);
+  overflow-x: auto; z-index: 25;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.summary-card {
+  min-width: 250px; max-width: 320px; padding: 10px 12px;
+  border-radius: 10px; background: var(--bg-surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle); box-shadow: var(--shadow-card);
+}
+.summary-card h4 { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.summary-card pre {
+  font-size: 11px; white-space: pre-wrap; color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.4;
+}
+/* Minimap */
+#minimap-wrap {
+  position: fixed; right: 16px; bottom: 16px;
+  width: 184px; height: 124px; border-radius: 10px;
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card); overflow: hidden; z-index: 26;
+}
+#minimap-wrap.hidden { display: none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand-block">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="mode-pill" id="mode-badge"></span>
+        <span class="brand-title" id="doc-title"></span>
+      </div>
+      <div class="brand-subtitle" id="doc-subtitle"></div>
+    </div>
+    <div class="toolbar-controls">
+      <input id="search-input" class="ctrl-input" type="search" placeholder="Search nodes / files (/)..." />
+      <select id="layer-select" class="ctrl-select" title="Filter by Semantic Layer (L)">
+        <option value="all">All Layers</option>
+        <option value="frontend">Frontend</option>
+        <option value="security">Security</option>
+        <option value="backend">Backend</option>
+        <option value="messagebus">MessageBus</option>
+        <option value="database">Database</option>
+        <option value="cloud">Cloud</option>
+        <option value="external">External</option>
+      </select>
+      <select id="prov-select" class="ctrl-select" title="Filter by Provenance">
+        <option value="all">All Provenance</option>
+        <option value="proven">Proven Only</option>
+        <option value="heuristic">Heuristic Only</option>
+      </select>
+      <select id="preset-select" class="ctrl-select" title="Style Preset (S)">
+        <option value="classic">Preset: Classic</option>
+        <option value="blueprint">Preset: Blueprint</option>
+        <option value="signal-flow">Preset: Signal Flow</option>
+      </select>
+      <button id="btn-probe" class="ctrl-btn" title="Route Probe (R)">Probe (R)</button>
+      <button id="btn-theme" class="ctrl-btn" title="Toggle Theme (T)">Theme (T)</button>
+      <button id="btn-reset" class="ctrl-btn" title="Fit to Screen (0)">Fit (0)</button>
+      <button id="btn-minimap" class="ctrl-btn" title="Toggle Minimap (M)">Map (M)</button>
+      <button id="btn-export" class="ctrl-btn" title="Export SVG (E)">Export SVG</button>
+    </div>
+  </header>
+
+  <div id="probe-bar">
+    <strong>Route Probe:</strong>
+    <select id="probe-from" class="ctrl-select"></select>
+    <span>→</span>
+    <select id="probe-to" class="ctrl-select"></select>
+    <button id="probe-run" class="ctrl-btn active">Trace Path</button>
+    <button id="probe-clear" class="ctrl-btn">Clear</button>
+    <span id="probe-status" style="color:var(--text-secondary);"></span>
+  </div>
+
+  <svg id="viewport">
+    <defs>
+      <marker id="arrow-default" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#94a3b8"></path>
+      </marker>
+      <marker id="arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#38bdf8"></path>
+      </marker>
+    </defs>
+    <g id="canvas-root">
+      <g id="layer-boundaries"></g>
+      <g id="layer-lifelines"></g>
+      <g id="layer-edges"></g>
+      <g id="layer-nodes"></g>
+    </g>
+  </svg>
+
+  <aside id="passport">
+    <div class="passport-header">
+      <div>
+        <div id="pp-layer" style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#38bdf8;"></div>
+        <h3 id="pp-title" style="font-size:15px;font-weight:700;margin-top:2px;"></h3>
+        <div id="pp-sub" style="font-size:12px;color:var(--text-secondary);margin-top:2px;"></div>
+      </div>
+      <button id="pp-close" class="ctrl-btn">✕</button>
+    </div>
+    <div class="passport-body">
+      <div id="pp-metrics" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      <div id="pp-items-sec">
+        <div class="section-title">Key Symbols & Items</div>
+        <div id="pp-items" class="reach-list"></div>
+      </div>
+      <div>
+        <div class="section-title">Upstream Callers / Importers</div>
+        <div id="pp-upstream" class="reach-list"></div>
+      </div>
+      <div>
+        <div class="section-title">Downstream Callees / Dependencies</div>
+        <div id="pp-downstream" class="reach-list"></div>
+      </div>
+      <div>
+        <div class="section-title">Verified Source Evidence (path:line)</div>
+        <div id="pp-sources" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+  </aside>
+
+  <div id="cards-dock"></div>
+  <div id="minimap-wrap">
+    <svg id="minimap-svg" width="184" height="124" viewBox="0 0 1000 700">
+      <g id="minimap-content"></g>
+      <rect id="minimap-viewport" x="0" y="0" width="200" height="140" fill="rgba(56,189,248,0.12)" stroke="#38bdf8" stroke-width="6"></rect>
+    </svg>
+  </div>
+</div>
+
+<script id="ambysto-diagram-data" type="application/json">{"mode":"architecture","title":"coding-playbook: architecture","subtitle":"The rules, guards and scripts every Claude Code session on this machine runs with, grouped by domain","theme":null,"preset":null,"boundaries":[{"id":"host","label":"Host","sublabel":null,"layer":"external","pos":[52.0,284.0],"size":[312.0,164.0]},{"id":"rules","label":"Rules","sublabel":null,"layer":"frontend","pos":[388.0,48.0],"size":[312.0,658.0]},{"id":"guards","label":"Guards","sublabel":null,"layer":"security","pos":[724.0,48.0],"size":[312.0,636.0]},{"id":"chain","label":"SDLC chain","sublabel":null,"layer":"backend","pos":[1060.0,48.0],"size":[648.0,636.0]},{"id":"memory","label":"Handoff & graph hooks","sublabel":null,"layer":"database","pos":[1732.0,48.0],"size":[312.0,400.0]},{"id":"skillcode","label":"Skill code & design systems","sublabel":null,"layer":"frontend","pos":[388.0,756.0],"size":[984.0,422.0]},{"id":"ship","label":"Install, verify & publish","sublabel":null,"layer":"cloud","pos":[2068.0,48.0],"size":[312.0,636.0]},{"id":"reports","label":"Tracker & owner log","sublabel":null,"layer":"messagebus","pos":[1732.0,756.0],"size":[312.0,400.0]},{"id":"outside","label":"Outside","sublabel":null,"layer":"external","pos":[2404.0,48.0],"size":[312.0,1108.0]}],"nodes":[{"id":"rules_global","label":"Global rules","sublabel":"The block every session follows: who does which job, task rating, the review loop, who merges","layer":"frontend","role":null,"boundary":"rules","row":0,"col":1,"pos":[416.0,92.0],"size":[256.0,118.0],"items":[],"badges":["canonical"],"sources":[{"path":"rules/global/CLAUDE.md","line":1,"end_line":null,"label":"Global Claude Code instructions","snippet":"   1 | # Global Claude Code instructions (install into ~/.claude/CLAUDE.md, applies to every project)\n   2 | \n   3 | ## Model economy\n   4 | The main session runs the model with the best quality per cost for deciding, rating, gating and HARD work. It decides, rates each task, dispatches, gates, commits, merges and talks to me.\n   5 | **Current choice (2026-10-16): Opus 5.5.** On cost/quality it is ahead of Fable 5.1. Revisit when the next model ships, by the switch test below. Owner decision 2026-11-11: every role keeps its pinned model (Fable 5.2 as hard-reviewer) until a new model ships; no switch test before then.\n   6 | Switch (2026-11-10): hard-reviewer → Fable 5.2 (`claude-fable-5-2`); owner decision, the switch test was skipped, so the main session was not re-compared with Fable 5.2\n   7 | \n   8 | Where each setting lives (CLAUDE.md only records the choice; it cannot set a model):\n   9 | - Main session model: `\"model\"` in `~/.claude/settings.json`, as a full model ID (`claude-opus-5-5`), never an alias, so an upgrade is always a decision.\n  10 | - Effort: `modelSettings.<model id>.effortLevel` in `~/.claude/settings.json` for the main session (Opus 5.5: `high`, owner decision 2026-11-08); `effort:` in each agent file for subagents (builder, reviewers `high`, transcriber `low`). Set once per session, never changed mid-session.\n  11 | - Subagent models: `model:` in each agent file, pinned to full model IDs. They change together with the main session, in one edit."}],"delta":null,"fan_in":null,"fan_out":null},{"id":"agents","label":"Agent roles","sublabel":"builder edits inside its contract; reviewers never edit; transcriber only copies","layer":"frontend","role":null,"boundary":"rules","row":1,"col":1,"pos":[416.0,328.0],"size":[256.0,118.0],"items":[],"badges":["canonical"],"sources":[{"path":"rules/agents/builder.md","line":2,"end_line":null,"label":"name: builder","snippet":"   2 | name: builder\n   3 | description: Implements one approved plan step, or one MEDIUM/EASY task, after the main session has decided what to build. It edits the working tree only; it never commits, pushes, opens PRs, merges or updates an issue tracker. After a reviewer FAIL, run it again with the numbered issue list (at most 2 rounds; then the main session stops and asks the owner).\n   4 | model: claude-sonnet-5-5\n   5 | effort: high\n   6 | hooks:\n   7 |   PreToolUse:\n   8 |     - matcher: \"*\"\n   9 |       hooks:\n  10 |         - type: command\n  11 |           command: 'python3 \"$HOME/.claude/hooks/1prompt/agent-guard.py\" build'\n  12 |   PostToolUse:"},{"path":"rules/agents/reviewer.md","line":2,"end_line":null,"label":"name: reviewer","snippet":"   2 | name: reviewer\n   3 | [line hidden: may hold a secret]\n   4 | model: claude-opus-5-5\n   5 | effort: high\n   6 | tools: Read, Grep, Glob, Bash\n   7 | hooks:\n   8 |   PreToolUse:\n   9 |     - matcher: \"*\"\n  10 |       hooks:\n  11 |         - type: command\n  12 |           command: 'python3 \"$HOME/.claude/hooks/1prompt/agent-guard.py\" review'"},{"path":"rules/agents/hard-reviewer.md","line":2,"end_line":null,"label":"name: hard-reviewer","snippet":"   2 | name: hard-reviewer\n   3 | [line hidden: may hold a secret]\n   4 | model: claude-fable-5-2\n   5 | effort: high\n   6 | tools: Read, Grep, Glob, Bash\n   7 | hooks:\n   8 |   PreToolUse:\n   9 |     - matcher: \"*\"\n  10 |       hooks:\n  11 |         - type: command\n  12 |           command: 'python3 \"$HOME/.claude/hooks/1prompt/agent-guard.py\" review'"},{"path":"rules/agents/transcriber.md","line":2,"end_line":null,"label":"name: transcriber","snippet":"   2 | name: transcriber\n   3 | description: Mechanical copying and format conversion only, with no judgment. Use it to copy command output or numbers into tables, write status lines or log entries from text it is given, turn notes into JSON, CSV or test fixtures, or move text between files. It never commits or updates an issue tracker.\n   4 | model: claude-haiku-5-5\n   5 | effort: low\n   6 | tools: Read, Write, Edit, Glob, Grep\n   7 | ---\n   8 | Copy or convert exactly what you are given. Make no judgment calls and no \"improvements\". Do not summarize, reword, translate or round numbers unless the task says to.\n   9 | \n  10 | - Keep the target file's existing format: columns, heading style, field order, quoting, line endings.\n  11 | - Copy numbers, ids, hashes, dates, paths and quoted text character for character.\n  12 | - If something is ambiguous (a value that does not fit, two possible targets, a missing field), leave it as it was given, do not guess, and list the ambiguity at the end."}],"delta":null,"fan_in":null,"fan_out":null},{"id":"skills","label":"Skills","sublabel":"Step-by-step jobs a session follows: the sdlc chain, system-map, graph, mockup, userflow, static-mockup-visuals, handoff and others","layer":"frontend","role":null,"boundary":"rules","row":2,"col":1,"pos":[416.0,564.0],"size":[256.0,118.0],"items":[],"badges":["canonical"],"sources":[{"path":"skills/sdlc/SKILL.md","line":2,"end_line":null,"label":"name: sdlc","snippet":"   2 | name: sdlc\n   3 | description: The artifact chain intent, plan, build, verify, ship for any piece of work big enough to need it in a repo. Use when you start a new feature or a large refactor, or say \"write the intent\", \"follow the plan\", \"/sdlc\". Not for a one-line fix, a quick diagnosis, or a one-off ops task.\n   4 | ---\n   5 | \n   6 | # /sdlc\n   7 | \n   8 | Each phase ends with an artifact committed to the repo. A later session (or another agent) only needs to read that file, not the chat history.\n   9 | \n  10 | You are both the one who sets the requirements and the one who builds, so every approval gate comes down to one rule: **you approve the artifact before the next phase runs.**\n  11 | \n  12 | The chain lives in the repo's `intent/` folder:"},{"path":"skills/system-map/SKILL.md","line":2,"end_line":null,"label":"name: system-map","snippet":"   2 | name: system-map\n   3 | description: Writes and updates a repo's committed map in docs/map/ (an Architecture view grouped by domain, a Docs view of sources of truth and derived documents, and runtime request paths), every part citing the code it stands for, checked for citations, coverage and fresh renders, and kept current by converge. Use when the owner says \"map this repo\", \"system map\", \"draw the architecture of the repo\", \"/system-map\", or when converge lists `map:` gaps. Not for one flow drawn from an intent (the sdlc skill), not for a one-off diagram nobody keeps.\n   4 | ---\n   5 | \n   6 | # /system-map\n   7 | \n   8 | A map is a picture of a whole repo that a reader can trust. It lives in the repo, in `docs/map/`. Its JSON files are the source of truth, and the HTML files are renders of them. Every part on the map cites the code or text it stands for, and a check proves three things: the citations still point at that code, every code file is on the map or left out with a reason, and the HTML is a fresh render. Once a repo has a map, `converge` runs that check on every plan that changes the repo, so the map cannot go stale quietly.\n   9 | \n  10 | ## What you need\n  11 | - **`ambysto-graph`** on `PATH`. It draws the Architecture and Docs views, and every check needs it. Without it, go to \"Without ambysto-graph\" below.\n  12 | - **The check:** `python3 <coding-playbook>/tools/sdlc-check.py map <repo>`, from the coding-playbook repo your global instructions name."},{"path":"skills/graph/SKILL.md","line":2,"end_line":null,"label":"name: graph","snippet":"   2 | name: graph\n   3 | description: Draw how a system works as one offline HTML diagram - numbered sequence diagrams (who calls whom, in order, with alt, loop, par frames, webhooks and replies) and flowcharts with decisions and loops - where every step is checked against declared links and cited code lines. Use when asked for a sequence diagram, a user flow, a request flow, a flowchart, or \"draw how X works\".\n   4 | ---\n   5 | \n   6 | # /graph\n   7 | \n   8 | Turn a description or a codebase into a diagram a person can trust: each arrow either matches a link you declared (with the code lines that make it) or is marked external. The script checks the diagram before it draws it and refuses one that breaks a rule.\n   9 | \n  10 | Scripts: `python3 ~/.claude/skills/graph/scripts/graph.py` (below: `graph.py`). Standard library only, no network; the HTML it writes loads nothing from outside.\n  11 | \n  12 | ## 1. Pick the kind"},{"path":"skills/mockup/SKILL.md","line":2,"end_line":null,"label":"name: mockup","snippet":"   2 | name: mockup\n   3 | description: Build a clickable end-user mockup from a user flow, PRD or system architecture into a gallery that lists every screen, where each screen opens as a real page with hover and focus states, loading to complete states, web and mobile, light and dark, seeded demo data, and a Playwright check that proves the routes, states and overflow. Use when saying \"build a mockup\", \"make a clickable prototype\", \"turn this user flow into screens\", \"mockup gallery\", \"prototype the app UI\", \"dựng mockup\", \"làm mockup\", or when a user-flow or architecture artifact exists and the UI must be seen before code. Don't use when drawing a diagram or one-page explainer (use archify), when only reviewing an existing UI, or for a single static page with no interactions.\n   4 | ---\n   5 | \n   6 | # /mockup\n   7 | \n   8 | Turn a flow into something a person can click: a gallery of every screen, each opening as a real page.\n   9 | Static HTML, no framework, no backend — the point is to see and approve the UI before code exists.\n  10 | \n  11 | ## When to use\n  12 | "},{"path":"skills/userflow/SKILL.md","line":2,"end_line":null,"label":"name: userflow","snippet":"   2 | name: userflow\n   3 | description: Design or review a software user flow to a defensible standard — one primary actor and goal, entry and exit, happy path, decision and error branches with recovery, a flow-spec table, accessibility notes and measurable success criteria; grounded in ISO 9241-210/11/110, ISO/IEC 25010 and WCAG 2.2. Use when saying \"design a user flow\", \"review this user flow\", \"make a flow spec\", \"chuẩn hóa user flow\", \"vẽ luồng người dùng theo chuẩn\", or when a flow has no error branches, actors or success criteria. Not for sequence diagrams or code-traced request flows (use graph, which can also render the checked flow), clickable screens (use mockup), or architecture/C4 diagrams (use archify).\n   4 | ---\n   5 | \n   6 | # /userflow\n   7 | \n   8 | Turn a vague journey into a flow a team can build, test and review. The deliverable is a **flow spec** plus a diagram brief; the diagram is a view of the spec, not the spec itself.\n   9 | \n  10 | ## When to use\n  11 | \n  12 | - A product flow is being designed, critiqued or handed to engineering."},{"path":"skills/static-mockup-visuals/SKILL.md","line":2,"end_line":null,"label":"name: static-mockup-visuals","snippet":"   2 | name: static-mockup-visuals\n   3 | description: Create or edit the visual composition of a single-screen static website mockup in code, including hero art placement, layering, cards, spacing, and responsive framing. Use when saying “adjust this hero mockup”, “move the existing mascot”, “arrange the post cards”, “make the static mockup fit 9:16”, or “render the landing mockup on mobile”. Don’t use for clickable multi-screen prototypes, production app changes, or standalone image generation without mockup placement.\n   4 | ---\n   5 | \n   6 | # /static-mockup-visuals\n   7 | \n   8 | Make the requested visual change to a static page while preserving the rest of the mockup. Input is an existing page, source material, or a screenshot with instructions; output is the smallest code or asset change that renders correctly at the requested screen sizes.\n   9 | \n  10 | ## When to use\n  11 | \n  12 | - A landing page, homepage, or feature mockup needs one hero or section composed or adjusted."}],"delta":null,"fan_in":null,"fan_out":null},{"id":"agent_guard","label":"agent-guard.py","sublabel":"Holds a builder to its task contract; a write outside it is refused and locks the run","layer":"security","role":null,"boundary":"guards","row":2,"col":2,"pos":[752.0,564.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"hooks/1prompt/agent-guard.py","line":1440,"end_line":1442,"label":"main","snippet":"1440 | def main():\n1441 |     mode = sys.argv[1] if len(sys.argv) > 1 else \"\"\n1442 |     if mode == \"--self-test\":"},{"path":"hooks/1prompt/agent-guard.py","line":1193,"end_line":null,"label":"CONTRACT_NAME","snippet":"1193 | CONTRACT_NAME = \"agent-contract.json\"\n1194 | EDIT_TOOLS = (\"Edit\", \"Write\", \"MultiEdit\", \"NotebookEdit\")\n1195 | READ_TOOLS = (\"Read\", \"Grep\", \"Glob\", \"LS\")\n1196 | FOLD_CASE = sys.platform in (\"win32\", \"darwin\")  # file systems that ignore case\n1197 | \n1198 | \n1199 | def git_dir(top):\n1200 |     out = git(top, \"rev-parse\", \"--absolute-git-dir\")\n1201 |     return os.path.realpath(out.decode().strip()) if out else None\n1202 | \n1203 | "}],"delta":null,"fan_in":null,"fan_out":null},{"id":"owner_token","label":"owner-token-guard.py","sublabel":"Denies any command that would take the owner's GitHub token or switch the account","layer":"security","role":null,"boundary":"guards","row":1,"col":2,"pos":[752.0,328.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"hooks/owner-token-guard/owner-token-guard.py","line":134,"end_line":136,"label":"main","snippet":" 134 | def main():\n 135 |     if sys.argv[1:] == [\"--self-test\"]:\n 136 |         return self_test()"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"session_gates","label":"session-gates.py","sublabel":"Branch names, no push to main, trees a running subagent read, lesson recall","layer":"security","role":null,"boundary":"guards","row":0,"col":2,"pos":[752.0,92.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"hooks/gates/session-gates.py","line":1563,"end_line":1565,"label":"main","snippet":"1563 | def main():\n1564 |     args = sys.argv[1:]\n1565 |     if args[:1] == [\"--self-test\"]:"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"dispatch","label":"dispatch.py","sublabel":"Writes the task contract a builder works to, taken from the plan's task","layer":"backend","role":null,"boundary":"chain","row":0,"col":3,"pos":[1088.0,92.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"tools/dispatch.py","line":153,"end_line":177,"label":"cmd_new","snippet":" 153 | def cmd_new(args):\n 154 |     allow, forbid, checks, tid = task_terms(args)\n 155 |     repo = top_of(args.repo)\n 156 |     if git(repo, \"check-ref-format\", \"--branch\", args.branch, check=False) is None:\n 157 |         raise Refused(f\"{args.branch!r} is not a valid branch name\")\n 158 |     if git(repo, \"rev-parse\", \"-q\", \"--verify\", f\"refs/heads/{args.branch}\", check=False):\n 159 |         raise Refused(f\"branch {args.branch} already exists; pick a new one, or use `contract` on its tree\")\n 160 |     slug = re.sub(r\"^aps-\\d+-\", \"\", args.branch, flags=re.I).replace(\"/\", \"-\")\n 161 |     target = repo.parent / f\"{repo.name}-{slug}\"\n 162 |     if target.exists():\n 163 |         raise Refused(f\"{target} already exists\")\n 164 |     check_globs(allow, \"--allow\")"},{"path":"tools/dispatch.py","line":180,"end_line":null,"label":"cmd_contract","snippet":" 180 | def cmd_contract(args):\n 181 |     allow, forbid, checks, tid = task_terms(args)\n 182 |     top = top_of(args.tree)\n 183 |     branch = git(top, \"branch\", \"--show-current\") or \"detached\"\n 184 |     old, data = write_contract(top, f\"{branch} {tid}\" if tid else branch, allow, forbid, checks)\n 185 |     print(f\"contract {contract_path(top)}: \" + (\"replaced; it was:\\n\" + old if old else \"written\"))\n 186 |     print(brief(top, data))\n 187 | \n 188 | \n 189 | def cmd_show(args):\n 190 |     top = top_of(args.tree)"},{"path":"tools/dispatch.py","line":189,"end_line":null,"label":"cmd_show","snippet":" 189 | def cmd_show(args):\n 190 |     top = top_of(args.tree)\n 191 |     path = contract_path(top)\n 192 |     print(path.read_text(encoding=\"utf-8\").rstrip() if path.exists() else f\"no task contract in {top}: a builder may only read there\")\n 193 | \n 194 | \n 195 | def cmd_done(args):\n 196 |     top = top_of(args.tree)\n 197 |     path = contract_path(top)\n 198 |     if is_main_checkout(top):\n 199 |         path.unlink(missing_ok=True)"},{"path":"tools/dispatch.py","line":195,"end_line":null,"label":"cmd_done","snippet":" 195 | def cmd_done(args):\n 196 |     top = top_of(args.tree)\n 197 |     path = contract_path(top)\n 198 |     if is_main_checkout(top):\n 199 |         path.unlink(missing_ok=True)\n 200 |         print(f\"contract removed from {top} (the main checkout stays)\")\n 201 |         return\n 202 |     dirty = git(top, \"status\", \"--porcelain\", \"--untracked-files=all\")\n 203 |     if dirty:\n 204 |         raise Refused(f\"{top} has uncommitted work; commit or drop it first:\\n{dirty}\")\n 205 |     branch = git(top, \"branch\", \"--show-current\")"},{"path":"tools/dispatch.py","line":355,"end_line":357,"label":"main","snippet":" 355 | def main():\n 356 |     if sys.argv[1:] == [\"--self-test\"]:\n 357 |         return self_test()"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"sdlc_check","label":"sdlc-check.py","sublabel":"clarify an intent, converge a plan with its branch, check a repo's map; the task parser","layer":"backend","role":null,"boundary":"chain","row":1,"col":3,"pos":[1088.0,328.0],"size":[256.0,118.0],"items":[],"badges":["canonical"],"sources":[{"path":"tools/sdlc-check.py","line":1489,"end_line":1491,"label":"main","snippet":"1489 | def main(argv):\n1490 |     if argv == [\"--self-test\"]:\n1491 |         return self_test()"},{"path":"tools/sdlc-check.py","line":744,"end_line":null,"label":"def converge","snippet":" 744 | def converge(plan_path, base=None, checks=False, find_map_tool=map_tool):\n 745 |     \"\"\"(notes, gaps) for a plan file in a git work tree.\"\"\"\n 746 |     plan_path = Path(plan_path).resolve()\n 747 |     text = plan_path.read_text(encoding=\"utf-8\")\n 748 |     tasks = parse_tasks(text)\n 749 |     if tasks is None:\n 750 |         return [f\"{plan_path.name}: no `## Tasks` section; nothing to compare\"], []\n 751 |     top = Path(git(plan_path.parent, \"rev-parse\", \"--show-toplevel\").strip()).resolve()\n 752 |     base, paths = changed_paths(top, base)\n 753 |     own = {plan_path.relative_to(top).as_posix()}\n 754 |     if plan_path.name.endswith(\".plan.md\"):"},{"path":"tools/sdlc-check.py","line":132,"end_line":null,"label":"def parse_tasks","snippet":" 132 | def parse_tasks(text):\n 133 |     \"\"\"The plan's tasks as dicts (id, who, parallel, title, allow, forbid, checks, not_needed), or None without a\n 134 |     `## Tasks` section. A line the format does not know is refused, never skipped.\"\"\"\n 135 |     lines = section(text, \"Tasks\")\n 136 |     if lines is None:\n 137 |         return None\n 138 |     tasks, task = [], None\n 139 |     for line in lines:\n 140 |         if not line.strip():\n 141 |             continue\n 142 |         if line.startswith(\"###\"):"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"loop","label":"loop.py","sublabel":"Opens a one-prompt run on a plan and records each reviewer verdict per task","layer":"backend","role":null,"boundary":"chain","row":1,"col":4,"pos":[1424.0,328.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"tools/loop.py","line":142,"end_line":144,"label":"main","snippet":" 142 | def main(argv):\n 143 |     if not argv or argv[0] in (\"-h\", \"--help\"):\n 144 |         print(__doc__.strip())"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"loop_stop","label":"loop-stop.py","sublabel":"Stop hook: judges the run with converge and hands back what is left","layer":"backend","role":null,"boundary":"chain","row":0,"col":4,"pos":[1424.0,92.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"hooks/loop/loop-stop.py","line":901,"end_line":903,"label":"main","snippet":" 901 | def main():\n 902 |     if sys.argv[1:] == [\"--self-test\"]:\n 903 |         sys.exit(self_test())"},{"path":"hooks/loop/loop-stop.py","line":417,"end_line":null,"label":"judge","snippet":" 417 |     judge = tools / \"sdlc-check.py\"\n 418 |     with tempfile.TemporaryDirectory() as tmp:\n 419 |         repo = Path(tmp) / \"repo\"\n 420 |         (repo / \"src\").mkdir(parents=True)\n 421 |         g = lambda *a: subprocess.run([\"git\", \"-C\", str(repo), *a], capture_output=True, text=True, check=True)\n 422 |         g(\"init\", \"-q\", \"-b\", \"main\")\n 423 |         (repo / \"src\" / \"a.py\").write_text(\"a = 1\\n\", encoding=\"utf-8\")\n 424 |         g(\"add\", \".\")\n 425 |         g(\"-c\", \"user.name=t\", \"-c\", \"user.email=t@t\", \"commit\", \"-qm\", \"init\")\n 426 |         g(\"switch\", \"-q\", \"-c\", \"work\")\n 427 |         plan = repo / \"work.plan.md\""}],"delta":null,"fan_in":null,"fan_out":null},{"id":"loop_wake","label":"loop-wake.py","sublabel":"Forks a run whose session died, headless, under spend caps","layer":"backend","role":null,"boundary":"chain","row":2,"col":4,"pos":[1424.0,564.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"hooks/loop/loop-wake.py","line":807,"end_line":809,"label":"main","snippet":" 807 | def main():\n 808 |     args = sys.argv[1:]\n 809 |     if args == [\"--self-test\"]:"},{"path":"hooks/loop/loop-wake.py","line":377,"end_line":null,"label":"claude","snippet":" 377 |         claude = os.environ.get(\"LOOP_WAKE_CLAUDE\") or shutil.which(\"claude\")\n 378 |         if not claude or not cwd or not boundary().is_file():\n 379 |             ledger_update(-reserved, day)\n 380 |             raise RuntimeError(\"claude not found\" if not claude else \"no cwd\" if not cwd else f\"{boundary()} missing\")\n 381 |         mode = str(run.get(\"mode\"))\n 382 |         args = [claude, \"-p\", \"--resume\", old, \"--fork-session\", \"--session-id\", new, \"--permission-mode\", mode,\n 383 |                 \"--max-budget-usd\", f\"{reserved:.2f}\", \"--settings\", str(boundary()), \"--output-format\", \"json\"]\n 384 |         args += [\"--model\", model] if model else []\n 385 | [line hidden: may hold a secret]\n 386 |         loop = Path(str(run.get(\"judge\"))).parent / \"loop.py\"  # both in tools/\n 387 |         prompt = PROMPT.format(top=run.get(\"top\"), loop=loop, plan=Path(str(run.get(\"plan\"))).name)"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"progress","label":"progress-diagram.py","sublabel":"Draws a plan's tasks and proof state, and what the branch changed","layer":"backend","role":null,"boundary":"chain","row":2,"col":3,"pos":[1088.0,564.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"tools/progress-diagram.py","line":123,"end_line":125,"label":"main","snippet":" 123 | def main(argv):\n 124 |     if any(a in (\"-h\", \"--help\") for a in argv):\n 125 |         print(__doc__.strip())"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"saveit","label":"saveit-hook.py","sublabel":"Briefs HANDOFF.md at session start and saves the live tail before a compact","layer":"database","role":null,"boundary":"memory","row":0,"col":5,"pos":[1760.0,92.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"hooks/saveit/saveit-hook.py","line":254,"end_line":256,"label":"main","snippet":" 254 | def main():\n 255 |     if sys.argv[1:] == [\"--self-test\"]:\n 256 |         sys.exit(self_test())"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"graph_hook","label":"graph-hook.py","sublabel":"Refreshes the repo's architecture graph in its git folder at session end","layer":"database","role":null,"boundary":"memory","row":1,"col":5,"pos":[1760.0,328.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"hooks/graph/graph-hook.py","line":579,"end_line":581,"label":"main","snippet":" 579 | def main():\n 580 |     if sys.argv[1:] == [\"--self-test\"]:\n 581 |         return self_test()"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"install","label":"install.py","sublabel":"Copies agents, hooks, skills and the global block into ~/.claude; registers the hooks","layer":"cloud","role":null,"boundary":"ship","row":0,"col":6,"pos":[2096.0,92.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"maint/install.py","line":67,"end_line":null,"label":"def install_file","snippet":"  67 | def install_file(src, dst):\n  68 |     \"\"\"Copies src to dst unless they are equal; a differing dst is backed up first. --check only reports.\"\"\"\n  69 |     if dst.exists() and dst.read_bytes() == src.read_bytes():\n  70 |         print(f\"unchanged  {dst}\")\n  71 |         return\n  72 |     differs.append(str(dst))\n  73 |     if check_only:\n  74 |         print(f\"differs    {dst}\")\n  75 |         return\n  76 |     dst.parent.mkdir(parents=True, exist_ok=True)\n  77 |     note = f\" (backup: {backup(dst).name})\" if dst.exists() else \"\""},{"path":"maint/install.py","line":96,"end_line":null,"label":"PreToolUse","snippet":"  96 | [line hidden: may hold a secret]\n  97 | [line hidden: may hold a secret]\n  98 | [line hidden: may hold a secret]\n  99 | [line hidden: may hold a secret]\n 100 | [line hidden: may hold a secret]\n 101 | [line hidden: may hold a secret]\n 102 | [line hidden: may hold a secret]\n 103 |     # Its judge runs the plan's checks before a run is done (APS-58), so the hook gets 1800 s, not 60.\n 104 |     (\"one-prompt loop Stop hook\", \"Stop\",\n 105 |      {\"hooks\": [{\"type\": \"command\", \"command\": LOOP_COMMAND, \"timeout\": 1800}]}),\n 106 |     # Records what a reviewer or hard-reviewer run returned in the session's open run (APS-58)."}],"delta":null,"fan_in":null,"fan_out":null},{"id":"check","label":"check.py","sublabel":"Verify: pinned models, skills, a leak check over every tracked file, and every script's self-test","layer":"cloud","role":null,"boundary":"ship","row":1,"col":6,"pos":[2096.0,328.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"maint/check.py","line":29,"end_line":null,"label":"SKILLS","snippet":"  29 | [line hidden: may hold a secret]\n  30 | [line hidden: may hold a secret]\n  31 | # Skills that carry their own self-test script (None: it has no standard-library self-test) and trigger prompts here\n  32 | # instead of in SKILL_TRIGGERS; required like the others (until APS-97 they lived only in the public copy).\n  33 | MORE_SKILLS = {\n  34 |     \"graph\": (\"skills/graph/scripts/graph.py\",\n  35 |               ([\"draw a sequence diagram of the purchase flow with numbered steps and a webhook\",\n  36 |                 \"flowchart of the onboarding flow with a decision and a loop\"],\n  37 |                [\"save progress to HANDOFF.md before clear\"])),\n  38 |     # mockup's own check is a Playwright script (template/check.mjs), outside standard-library Python (APS-85)\n  39 |     \"mockup\": (None,"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"switch_model","label":"switch-model.py","sublabel":"Changes every pinned model and the Current choice line in one edit","layer":"cloud","role":null,"boundary":"ship","row":2,"col":6,"pos":[2096.0,564.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"maint/switch-model.py","line":367,"end_line":369,"label":"main","snippet":" 367 | def main():\n 368 |     parser = argparse.ArgumentParser(description=__doc__.split(\"\\n\")[0])\n 369 |     parser.add_argument(\"--self-test\", action=\"store_true\")"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"plane","label":"plane.py","sublabel":"Moves tracker tickets; reads the key at run time and never prints it","layer":"messagebus","role":null,"boundary":"reports","row":3,"col":5,"pos":[1760.0,800.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"tools/plane.py","line":196,"end_line":198,"label":"main","snippet":" 196 | def main(argv):\n 197 |     if not argv or argv[0] in (\"-h\", \"--help\"):\n 198 |         print(__doc__.strip())"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"hil","label":"hil-report.py","sublabel":"Summarises the owner time log","layer":"messagebus","role":null,"boundary":"reports","row":4,"col":5,"pos":[1760.0,1036.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"tools/hil-report.py","line":58,"end_line":60,"label":"main","snippet":"  58 | def main():\n  59 |     ap = argparse.ArgumentParser()\n  60 |     ap.add_argument(\"--log\", default=os.path.expanduser(\"~/.claude/hil/log.jsonl\"))"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"claude_code","label":"Claude Code","sublabel":"Runs every session and calls the hooks on its events","layer":"external","role":null,"boundary":"host","row":1,"col":0,"pos":[80.0,328.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"maint/install.py","line":96,"end_line":null,"label":"PreToolUse","snippet":"  96 | [line hidden: may hold a secret]\n  97 | [line hidden: may hold a secret]\n  98 | [line hidden: may hold a secret]\n  99 | [line hidden: may hold a secret]\n 100 | [line hidden: may hold a secret]\n 101 | [line hidden: may hold a secret]\n 102 | [line hidden: may hold a secret]\n 103 |     # Its judge runs the plan's checks before a run is done (APS-58), so the hook gets 1800 s, not 60.\n 104 |     (\"one-prompt loop Stop hook\", \"Stop\",\n 105 |      {\"hooks\": [{\"type\": \"command\", \"command\": LOOP_COMMAND, \"timeout\": 1800}]}),\n 106 |     # Records what a reviewer or hard-reviewer run returned in the session's open run (APS-58)."}],"delta":null,"fan_in":null,"fan_out":null},{"id":"ambysto_graph","label":"ambysto-graph","sublabel":"Indexes a repo and draws diagrams, with no LLM","layer":"external","role":null,"boundary":"outside","row":0,"col":7,"pos":[2432.0,92.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"tools/progress-diagram.py","line":141,"end_line":null,"label":"ambysto-graph","snippet":" 141 |     binary = shutil.which(\"ambysto-graph\")\n 142 |     if not binary:\n 143 |         raise Stop(2, \"ambysto-graph is not on PATH\")\n 144 |     top = Path(git(Path(positional[0] if positional else \".\"), \"rev-parse\", \"--show-toplevel\")).resolve()\n 145 |     out_dir = Path(git(top, \"rev-parse\", \"--absolute-git-dir\")) / \"progress-diagram\"\n 146 |     base = opts.get(\"--base\")\n 147 |     if base is None:\n 148 |         base = next((r for r in (\"origin/main\", \"main\") if subprocess.run(\n 149 |             [\"git\", \"-C\", str(top), \"rev-parse\", \"-q\", \"--verify\", r + \"^{commit}\"], capture_output=True).returncode == 0), None)\n 150 |         if base is None:\n 151 | [line hidden: may hold a secret]"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"plane_api","label":"Plane","sublabel":"The tracker: tickets, states, comments","layer":"external","role":null,"boundary":"outside","row":3,"col":7,"pos":[2432.0,800.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"tools/plane.py","line":66,"end_line":null,"label":"PLANE_BASE_URL","snippet":"  66 | [line hidden: may hold a secret]\n  67 |     if all(os.environ.get(n) for n in names):\n  68 |         return checked(*(os.environ[n] for n in names))\n  69 |     try:\n  70 |         data = json.loads((Path.home() / \".claude.json\").read_text(encoding=\"utf-8\"))\n  71 |     except (OSError, ValueError):\n  72 |         data = None\n  73 |     for env in (get(data, \"mcpServers\", \"plane\", \"env\"), get(data, \"projects\", str(Path.home()), \"mcpServers\", \"plane\", \"env\")):\n  74 |         if isinstance(env, dict) and all(isinstance(env.get(n), str) and env.get(n).strip() for n in names):\n  75 |             return checked(*(env[n] for n in names))\n  76 | [line hidden: may hold a secret]"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"github","label":"GitHub","sublabel":"Pull requests and the owner's account, whose token the guard keeps from agents","layer":"external","role":null,"boundary":"outside","row":4,"col":7,"pos":[2432.0,1036.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"hooks/owner-token-guard/owner-token-guard.py","line":8,"end_line":null,"label":"gh","snippet":"   8 | [line hidden: may hold a secret]\n   9 | [line hidden: may hold a secret]\n  10 | [line hidden: may hold a secret]\n  11 | [line hidden: may hold a secret]\n  12 |   ask   a command that sets AMBYSTO_OWNER (the owner's own merge in ambysto-memory): Claude Code asks the owner\n  13 | [line hidden: may hold a secret]\n  14 | \n  15 | It reads the hook JSON on stdin and prints a decision; anything else is let through. It catches mistakes and\n  16 | [line hidden: may hold a secret]\n  17 | [line hidden: may hold a secret]\n  18 | [line hidden: may hold a secret]"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"onep","label":"1prompt","sublabel":"0xdonniechu/1prompt: the source of agent-guard, copied here at a pinned commit","layer":"external","role":null,"boundary":"outside","row":1,"col":7,"pos":[2432.0,328.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"maint/check.py","line":264,"end_line":null,"label":"0xdonniechu/1prompt","snippet":" 264 | # The hooks are copied from 0xdonniechu/1prompt at the commit hooks/1prompt/pin.json names; never edited here. Their hashes must\n 265 | # match the pin; when a clone of 1prompt sits next to this repo, the pinned commit's files must match too.\n 266 | try:\n 267 |     pin = json.loads(read(\"hooks/1prompt/pin.json\"))\n 268 |     if set(pin) != {\"repo\", \"commit\", \"files\"} or not re.fullmatch(r\"[0-9a-f]{40}\", pin[\"commit\"]) or \\\n 269 |             set(pin[\"files\"]) != {\"agent-guard.py\", \"autonomous-settings.json\"}:\n 270 |         raise ValueError(\"needs repo, a full commit sha and exactly agent-guard.py and autonomous-settings.json\")\n 271 |     for name, digest in pin[\"files\"].items():\n 272 |         if hashlib.sha256((ROOT / \"hooks\" / \"1prompt\" / name).read_bytes()).hexdigest() != digest:\n 273 |             fail(f\"hooks/1prompt/{name}: differs from hooks/1prompt/pin.json (edit it in 1prompt, then copy it here and update the pin)\")\n 274 |     upstream = ROOT.parent / \"1prompt\""}],"delta":null,"fan_in":null,"fan_out":null},{"id":"graph_cli","label":"graph.py","sublabel":"The graph skill's CLI: validate a flow IR, render it to HTML, turn a trace into an IR","layer":"frontend","role":null,"boundary":"skillcode","row":3,"col":1,"pos":[416.0,800.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"skills/graph/scripts/graph.py","line":103,"end_line":null,"label":"cmd_validate","snippet":" 103 | def cmd_validate(args):\n 104 |     root, bad = _root(args)\n 105 |     if bad:\n 106 |         return bad\n 107 |     _, diags = val.load(args.ir, root)\n 108 |     errors = [x for x in diags if x[\"severity\"] == \"error\"]\n 109 |     if args.json:\n 110 |         print(json.dumps({\"ok\": not errors, \"errors\": len(errors),\n 111 |                           \"warnings\": sum(x[\"severity\"] == \"warning\" for x in diags), \"diagnostics\": diags},\n 112 | [line hidden: may hold a secret]\n 113 |     else:"},{"path":"skills/graph/scripts/graph.py","line":121,"end_line":null,"label":"cmd_render","snippet":" 121 | def cmd_render(args):\n 122 |     if not args.output.endswith(\".html\"):\n 123 |         return _usage(\"-o must end in .html\")\n 124 |     if not os.path.isdir(os.path.dirname(os.path.abspath(args.output))):\n 125 |         return _usage(f\"the folder of {args.output!r} does not exist\")\n 126 |     root, bad = _root(args)\n 127 |     if bad:\n 128 |         return bad\n 129 |     d, diags = val.load(args.ir, root)\n 130 |     errors = [x for x in diags if x[\"severity\"] == \"error\"]\n 131 |     for x in diags:"},{"path":"skills/graph/scripts/graph.py","line":152,"end_line":null,"label":"cmd_from_trace","snippet":" 152 | def cmd_from_trace(args):\n 153 |     if not args.output.endswith(\".json\"):\n 154 |         return _usage(\"-o must end in .json\")\n 155 |     if not os.path.isdir(os.path.dirname(os.path.abspath(args.output))):\n 156 |         return _usage(f\"the folder of {args.output!r} does not exist\")\n 157 |     if os.path.realpath(args.output) == os.path.realpath(args.trace):\n 158 |         return _usage(f\"-o {args.output!r} is the trace file itself; it would be overwritten\")\n 159 |     try:\n 160 |         trace = json.loads(Path(args.trace).read_text(encoding=\"utf-8\"))\n 161 |         data = graph_trace.convert(trace)\n 162 |     except (OSError, ValueError) as e:      # graph_trace.TraceError is a ValueError"},{"path":"skills/graph/scripts/graph.py","line":197,"end_line":199,"label":"main","snippet":" 197 | def main(argv):\n 198 |     if argv == [\"--self-test\"]:\n 199 |         found = self_test()"},{"path":"skills/graph/scripts/graph_validate.py","line":278,"end_line":280,"label":"main","snippet":" 278 | def main(argv):\n 279 |     if argv == [\"--self-test\"]:\n 280 |         found = self_test()"},{"path":"skills/graph/scripts/graph_trace.py","line":34,"end_line":null,"label":"convert","snippet":"  34 | def convert(trace):\n  35 |     if not isinstance(trace, dict) or not isinstance(trace.get(\"paths\"), list) or not trace[\"paths\"]:\n  36 |         raise TraceError(\"the trace has no paths (expected a non-empty 'paths' list)\")\n  37 |     path0 = trace[\"paths\"][0]\n  38 |     steps = path0.get(\"steps\") if isinstance(path0, dict) else None\n  39 |     if not isinstance(steps, list) or not steps:\n  40 |         raise TraceError(\"paths[0] has no steps\")\n  41 |     ids, parts, edges, out = {}, [], [], []\n  42 |     heuristic = 0\n  43 | \n  44 |     def pid(file):"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"graph_render","label":"graph renderers","sublabel":"Lay out and draw sequence diagrams and flowcharts as offline SVG inside one HTML page","layer":"frontend","role":null,"boundary":"skillcode","row":3,"col":2,"pos":[752.0,800.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"skills/graph/scripts/graph_sequence.py","line":561,"end_line":563,"label":"main","snippet":" 561 | def main(argv):\n 562 |     if argv == [\"--self-test\"]:\n 563 |         found = self_test()"},{"path":"skills/graph/scripts/graph_workflow.py","line":941,"end_line":943,"label":"main","snippet":" 941 | def main(argv):\n 942 |     if argv == [\"--self-test\"]:\n 943 |         found = self_test()"},{"path":"skills/graph/scripts/graph_svg.py","line":74,"end_line":null,"label":"def esc","snippet":"  74 | def esc(s):\n  75 |     return html.escape(str(s), quote=True)\n  76 | \n  77 | \n  78 | def _n(v):\n  79 |     return f\"{v:g}\"\n  80 | \n  81 | \n  82 | def _path(points):\n  83 |     return \"M\" + \" L\".join(f\"{_n(x)} {_n(y)}\" for x, y in points)\n  84 | "},{"path":"skills/graph/scripts/graph_geometry.py","line":33,"end_line":null,"label":"def r","snippet":"  33 | def r(v):\n  34 |     \"\"\"Round to 0.5 px.\"\"\"\n  35 |     return round(v * 2) / 2\n  36 | \n  37 | \n  38 | def text_width(text, size=FONT):\n  39 |     total = 0.0\n  40 |     for ch in text or \"\":\n  41 |         if ch in _NARROW:\n  42 |             total += 0.30\n  43 |         elif ch in _SEMI:"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"graph_core","label":"graph IR and sources","sublabel":"The flow IR types and the check that cited code lines exist and hold no secret","layer":"frontend","role":null,"boundary":"skillcode","row":3,"col":3,"pos":[1088.0,800.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"skills/graph/scripts/graph_ir.py","line":34,"end_line":null,"label":"class Source","snippet":"  34 | class Source:\n  35 |     path: str\n  36 |     line: int\n  37 |     end_line: int = None\n  38 |     label: str = None\n  39 |     at: str = \"\"          # JSON path, for diagnostics\n  40 |     snippet: str = None   # filled by graph_sources when verified\n  41 | \n  42 | \n  43 | @dataclass\n  44 | class Participant:"},{"path":"skills/graph/scripts/graph_sources.py","line":69,"end_line":null,"label":"def secret_line","snippet":"  69 | [line hidden: may hold a secret]\n  70 | [line hidden: may hold a secret]\n  71 |     was hidden (so a list or string continued over several lines stays hidden). Linear in the line's length.\"\"\"\n  72 |     for name, pat in SECRET_SHAPES.items():\n  73 | [line hidden: may hold a secret]\n  74 | [line hidden: may hold a secret]\n  75 |     if _names_secret(text) and (_VALUE.search(text) or _spaced(text)):\n  76 | [line hidden: may hold a secret]\n  77 |     if above and (above_hidden or _names_secret(above)):\n  78 | [line hidden: may hold a secret]\n  79 |         if _OPENS.search(above) or (text.strip() and (indent(text) > indent(above) or text.lstrip()[:1] in \"\\\"'`\")):"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"mockup_tpl","label":"mockup template","sublabel":"The clickable-mockup page: router and demo state, screens, seed data and a Playwright check","layer":"frontend","role":null,"boundary":"skillcode","row":4,"col":1,"pos":[416.0,1036.0],"size":[256.0,96.0],"items":[],"badges":[],"sources":[{"path":"skills/mockup/template/app.js","line":3,"end_line":null,"label":"KEY","snippet":"   3 | [line hidden: may hold a secret]\n   4 |   const SEED = window.SEED;\n   5 |   const $ = (s, r) => (r || document).querySelector(s);\n   6 |   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));\n   7 |   const sleep = (ms) => new Promise(r => setTimeout(r, ms));\n   8 |   const clone = (o) => JSON.parse(JSON.stringify(o));\n   9 | \n  10 |   let state = load();\n  11 |   let current = 'gallery';\n  12 | \n  13 |   function load() {"},{"path":"skills/mockup/template/data.js","line":3,"end_line":null,"label":"SEED","snippet":"   3 |   const SEED = {\n   4 |     product: 'Orbit',\n   5 |     theme: 'light',\n   6 |     device: 'web',\n   7 |     generating: false,\n   8 |     generated: false,\n   9 |     screens: [\n  10 |       { id: 'login', title: 'Sign in', group: 'Onboarding', desc: 'Email, one code, then in.' },\n  11 |       { id: 'board', title: 'Board', group: 'Core loop', desc: 'One brief, steps, then approve.' },\n  12 |       { id: 'settings', title: 'Settings', group: 'Config', desc: 'Theme and demo data.' }\n  13 |     ],"},{"path":"skills/mockup/template/screens.js","line":5,"end_line":null,"label":"pending","snippet":"   5 |   const pending = (state) => state.items.filter(i => i.status === 'pending').length;\n   6 | \n   7 |   function nav(active, state) {\n   8 |     const items = S(state).filter(s => s.id !== 'login');\n   9 |     return `<aside class=\"sidebar\">\n  10 |       <div class=\"side-brand\">${state.product}<small>Demo workspace<\/small><\/div>\n  11 |       ${items.map(s => `<button class=\"nav-item${s.id === active ? ' active' : ''}\" data-go=\"${s.id}\">\n  12 |         ${I(s.id === 'board' ? 'list' : 'gear')}<span>${s.title}<\/span><\/button>`).join('')}\n  13 |       <div class=\"side-note\">Agent is on while your machine is open<\/div>\n  14 |     <\/aside>`;\n  15 |   }"},{"path":"skills/mockup/template/check.mjs","line":11,"end_line":null,"label":"ROOT","snippet":"  11 | const ROOT = dirname(fileURLToPath(import.meta.url));\n  12 | const OUT = join(ROOT, '.check');\n  13 | const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };\n  14 | [line hidden: may hold a secret]\n  15 | [line hidden: may hold a secret]\n  16 | \n  17 | async function load() { try { return (await import('playwright-core')).chromium; } catch {} console.error('playwright-core is not installed: run `npm install` first'); process.exit(2); }\n  18 | function chromePath() {\n  19 |   if (process.env.CHROME) return process.env.CHROME;\n  20 |   const base = join(homedir(), '.cache', 'ms-playwright');\n  21 |   if (existsSync(base)) {"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"design_systems","label":"design-systems/","sublabel":"Six CSS design systems (tokens, components, a reference page) a mockup copies in one step","layer":"frontend","role":null,"boundary":"skillcode","row":4,"col":2,"pos":[752.0,1036.0],"size":[256.0,118.0],"items":[],"badges":["canonical"],"sources":[{"path":"design-systems/README.md","line":1,"end_line":null,"label":"Design-system library","snippet":"   1 | # Design-system library\n   2 | \n   3 | Six modern systems, packaged so the `mockup` skill (or a person) can copy one in a single step and an LLM can\n   4 | read it once. Plain CSS variables and classes; no JS, no build, no npm.\n   5 | \n   6 | ## The five-file contract\n   7 | \n   8 | Every system folder holds exactly:\n   9 | \n  10 | ```\n  11 | <system>/"},{"path":"design-systems/carbon/manifest.json","line":2,"end_line":null,"label":"name","snippet":"   2 |   \"name\": \"IBM Carbon\",\n   3 |   \"source\": \"https://github.com/carbon-design-system/carbon\",\n   4 |   \"version\": \"themes 11.86.0\",\n   5 |   \"date\": \"2026-11-20\",\n   6 |   \"license\": \"Apache-2.0\",\n   7 |   \"font\": \"IBM Plex Sans stack\",\n   8 |   \"accent\": \"#0f62fe\",\n   9 |   \"dark\": true,\n  10 |   \"components\": [\n  11 |     \"carbon-btn\",\n  12 |     \"carbon-btn--tertiary\","}],"delta":null,"fan_in":null,"fan_out":null}],"edges":[{"id":null,"from":"claude_code","to":"rules_global","label":"loads at session start","kind":null,"provenance":null,"step":null,"delta":null,"points":[[208.0,328.0],[208.0,257.0],[508.0,257.0],[508.0,210.0]]},{"id":null,"from":"claude_code","to":"agents","label":"spawns as subagents","kind":null,"provenance":null,"step":null,"delta":null,"points":[[336.0,387.2],[370.0,387.2],[370.0,387.0],[416.0,387.0]]},{"id":null,"from":"claude_code","to":"skills","label":"loads a skill when its task comes up","kind":null,"provenance":null,"step":null,"delta":null,"points":[[208.0,424.0],[208.0,494.0],[544.0,494.0],[544.0,564.0]]},{"id":null,"from":"claude_code","to":"session_gates","label":"PreToolUse","kind":null,"provenance":null,"step":null,"delta":null,"points":[[336.0,353.6],[398.0,353.6],[398.0,140.0],[752.0,140.0]]},{"id":null,"from":"claude_code","to":"owner_token","label":"PreToolUse","kind":null,"provenance":null,"step":null,"delta":null,"points":[[336.0,376.0],[398.0,376.0],[398.0,376.0],[752.0,376.0]]},{"id":null,"from":"dispatch","to":"sdlc_check","label":"reads the plan's task","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1252.0,188.0],[1252.0,246.0],[1180.0,246.0],[1180.0,328.0]]},{"id":null,"from":"agent_guard","to":"dispatch","label":"reads the agent-contract.json it writes","kind":null,"provenance":null,"step":null,"delta":null,"points":[[880.0,564.0],[880.0,544.0],[722.0,544.0],[722.0,208.0],[1180.0,208.0],[1180.0,188.0]]},{"id":null,"from":"claude_code","to":"agent_guard","label":"builder's tool calls","kind":null,"provenance":null,"step":null,"delta":null,"points":[[336.0,392.8],[398.0,392.8],[398.0,612.0],[752.0,612.0]]},{"id":null,"from":"claude_code","to":"loop_stop","label":"Stop","kind":null,"provenance":null,"step":null,"delta":null,"points":[[336.0,359.2],[734.0,359.2],[734.0,140.0],[1424.0,140.0]]},{"id":null,"from":"loop_stop","to":"loop","label":"reads the open run","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1588.0,188.0],[1588.0,270.0],[1552.0,270.0],[1552.0,328.0]]},{"id":null,"from":"loop_stop","to":"sdlc_check","label":"converge --checks","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1516.0,188.0],[1516.0,246.0],[1252.0,246.0],[1252.0,328.0]]},{"id":null,"from":"loop_wake","to":"claude_code","label":"forks a dead run","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1424.0,612.0],[734.0,612.0],[734.0,398.4],[336.0,398.4]]},{"id":null,"from":"sdlc_check","to":"ambysto_graph","label":"validate, render","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1344.0,374.0],[1742.0,374.0],[1742.0,140.0],[2432.0,140.0]]},{"id":null,"from":"progress","to":"ambysto_graph","label":"render","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1344.0,612.0],[1742.0,612.0],[1742.0,154.0],[2432.0,154.0]]},{"id":null,"from":"graph_hook","to":"ambysto_graph","label":"overview","kind":null,"provenance":null,"step":null,"delta":null,"points":[[2016.0,376.0],[2078.0,376.0],[2078.0,126.0],[2432.0,126.0]]},{"id":null,"from":"claude_code","to":"saveit","label":"SessionStart, PreCompact","kind":null,"provenance":null,"step":null,"delta":null,"points":[[336.0,364.8],[1036.0,364.8],[1036.0,140.0],[1760.0,140.0]]},{"id":null,"from":"claude_code","to":"graph_hook","label":"SessionEnd","kind":null,"provenance":null,"step":null,"delta":null,"points":[[336.0,381.6],[1042.0,381.6],[1042.0,376.0],[1760.0,376.0]]},{"id":null,"from":"install","to":"claude_code","label":"installs into ~/.claude","kind":null,"provenance":null,"step":null,"delta":null,"points":[[2096.0,149.33333333333331],[1070.0,149.33333333333331],[1070.0,370.4],[336.0,370.4]]},{"id":null,"from":"check","to":"sdlc_check","label":"runs every self-test","kind":null,"provenance":null,"step":null,"delta":null,"points":[[2096.0,366.6666666666667],[1726.0,366.6666666666667],[1726.0,400.0],[1344.0,400.0]]},{"id":null,"from":"plane","to":"plane_api","label":"REST API","kind":null,"provenance":null,"step":null,"delta":null,"points":[[2016.0,848.0],[2236.0,848.0],[2236.0,848.0],[2432.0,848.0]]},{"id":null,"from":"onep","to":"agent_guard","label":"copied at the pin","kind":null,"provenance":null,"step":null,"delta":null,"points":[[2432.0,376.0],[1708.0,376.0],[1708.0,612.0],[1008.0,612.0]]},{"id":null,"from":"switch_model","to":"agents","label":"pins the models","kind":null,"provenance":null,"step":null,"delta":null,"points":[[2096.0,612.0],[1378.0,612.0],[1378.0,387.0],[672.0,387.0]]},{"id":null,"from":"check","to":"skills","label":"checks each skill's triggers","kind":null,"provenance":null,"step":null,"delta":null,"points":[[2096.0,385.3333333333333],[1384.0,385.3333333333333],[1384.0,610.0],[672.0,610.0]]},{"id":null,"from":"install","to":"rules_global","label":"copies","kind":null,"provenance":null,"step":null,"delta":null,"points":[[2096.0,130.66666666666666],[1390.0,130.66666666666666],[1390.0,151.0],[672.0,151.0]]},{"id":null,"from":"owner_token","to":"github","label":"denies taking the owner's token","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1008.0,376.0],[1732.0,376.0],[1732.0,1084.0],[2432.0,1084.0]]},{"id":null,"from":"loop_wake","to":"loop","label":"reads the open runs","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1552.0,564.0],[1552.0,482.0],[1552.0,482.0],[1552.0,424.0]]},{"id":null,"from":"skills","to":"sdlc_check","label":"the sdlc skill runs clarify, converge","kind":null,"provenance":null,"step":null,"delta":null,"points":[[672.0,636.0],[734.0,636.0],[734.0,387.0],[1088.0,387.0]]},{"id":null,"from":"hil","to":"rules_global","label":"reads the owner time log the rules define","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1888.0,1036.0],[1888.0,1016.0],[696.0,1016.0],[696.0,230.0],[580.0,230.0],[580.0,210.0]]},{"id":null,"from":"skills","to":"graph_cli","label":"the graph skill runs it","kind":null,"provenance":null,"step":null,"delta":null,"points":[[508.0,682.0],[508.0,747.0],[544.0,747.0],[544.0,800.0]]},{"id":null,"from":"graph_cli","to":"graph_render","label":"draws","kind":null,"provenance":null,"step":null,"delta":null,"points":[[672.0,838.6666666666666],[724.0,838.6666666666666],[724.0,848.0],[752.0,848.0]]},{"id":null,"from":"graph_cli","to":"graph_core","label":"reads and checks sources","kind":null,"provenance":null,"step":null,"delta":null,"points":[[672.0,857.3333333333334],[734.0,857.3333333333334],[734.0,848.0],[1088.0,848.0]]},{"id":null,"from":"skills","to":"mockup_tpl","label":"the mockup skill copies it","kind":null,"provenance":null,"step":null,"delta":null,"points":[[580.0,682.0],[580.0,702.0],[690.0,702.0],[690.0,1016.0],[544.0,1016.0],[544.0,1036.0]]},{"id":null,"from":"mockup_tpl","to":"design_systems","label":"copies one system in","kind":null,"provenance":null,"step":null,"delta":null,"points":[[672.0,1084.0],[712.0,1084.0],[712.0,1095.0],[752.0,1095.0]]}],"cards":[]}</script>
+<script>
+(() => {
+  const rawJson = document.getElementById('ambysto-diagram-data').textContent;
+  const IR = JSON.parse(rawJson);
+  const NS = 'http' + '://www.w3.org/2000/svg';
+
+  const LAYER_COLORS = {
+    frontend: 'var(--layer-frontend)',
+    backend: 'var(--layer-backend)',
+    database: 'var(--layer-database)',
+    security: 'var(--layer-security)',
+    messagebus: 'var(--layer-messagebus)',
+    cloud: 'var(--layer-cloud)',
+    external: 'var(--layer-external)'
+  };
+  const DELTA_COLORS = {
+    added: 'var(--delta-added)',
+    modified: 'var(--delta-modified)',
+    removed: 'var(--delta-removed)'
+  };
+
+  document.getElementById('mode-badge').textContent = IR.mode || 'architecture';
+  document.getElementById('doc-title').textContent = IR.title || 'System Diagram';
+  document.getElementById('doc-subtitle').textContent = IR.subtitle || '';
+  const presetSelect = document.getElementById('preset-select');
+  presetSelect.value = document.documentElement.getAttribute('data-preset') || 'classic';
+
+  const gBoundaries = document.getElementById('layer-boundaries');
+  const gLifelines = document.getElementById('layer-lifelines');
+  const gEdges = document.getElementById('layer-edges');
+  const gNodes = document.getElementById('layer-nodes');
+  const minimapContent = document.getElementById('minimap-content');
+
+  const nodeMap = new Map();
+  IR.nodes.forEach(n => nodeMap.set(n.id, n));
+
+  function el(tag, attrs = {}, text = null) {
+    const node = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v !== null && v !== undefined) node.setAttribute(k, String(v));
+    }
+    if (text !== null) node.textContent = text;
+    return node;
+  }
+
+  function roundedOrthoPath(pts) {
+    if (!pts || !pts.length) return '';
+    if (pts.length === 1) return `M ${pts[0][0]} ${pts[0][1]}`;
+    if (pts.length === 2) return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
+    const r = 8;
+    let d = `M ${pts[0][0]} ${pts[0][1]}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1], p1 = pts[i], p2 = pts[i + 1];
+      const dx1 = p1[0] - p0[0], dy1 = p1[1] - p0[1];
+      const dx2 = p2[0] - p1[0], dy2 = p2[1] - p1[1];
+      const len1 = Math.hypot(dx1, dy1), len2 = Math.hypot(dx2, dy2);
+      if (len1 < 2 || len2 < 2) {
+        d += ` L ${p1[0]} ${p1[1]}`;
+        continue;
+      }
+      const cr = Math.min(r, len1 * 0.45, len2 * 0.45);
+      const sx = p1[0] - (dx1 / len1) * cr;
+      const sy = p1[1] - (dy1 / len1) * cr;
+      const ex = p1[0] + (dx2 / len2) * cr;
+      const ey = p1[1] + (dy2 / len2) * cr;
+      d += ` L ${sx.toFixed(1)} ${sy.toFixed(1)} Q ${p1[0].toFixed(1)} ${p1[1].toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`;
+    }
+    const last = pts[pts.length - 1];
+    d += ` L ${last[0]} ${last[1]}`;
+    return d;
+  }
+
+  let canvasMaxX = 960, canvasMaxY = 640;
+
+  // 1. Render Boundaries
+  (IR.boundaries || []).forEach(b => {
+    const [x, y] = b.pos || [40, 40];
+    const [w, h] = b.size || [300, 180];
+    canvasMaxX = Math.max(canvasMaxX, x + w + 80);
+    canvasMaxY = Math.max(canvasMaxY, y + h + 80);
+    const color = LAYER_COLORS[b.layer || 'backend'] || LAYER_COLORS.backend;
+    const grp = el('g', { class: 'boundary-group', 'data-id': b.id });
+    grp.appendChild(el('rect', { x, y, width: w, height: h, class: 'boundary-box', stroke: color }));
+    grp.appendChild(el('text', { x: x + 16, y: y + 24, class: 'boundary-label', style: `fill:${color}` }, b.label));
+    if (b.sublabel) {
+      grp.appendChild(el('text', { x: x + w - 16, y: y + 24, 'text-anchor': 'end', class: 'node-sub' }, b.sublabel));
+    }
+    gBoundaries.appendChild(grp);
+  });
+
+  // 2. Render Sequence Lifelines if Sequence mode
+  if (IR.mode === 'sequence') {
+    const lifelineBottom = 180 + ((IR.edges || []).length + 1) * 64;
+    canvasMaxY = Math.max(canvasMaxY, lifelineBottom + 80);
+    IR.nodes.forEach(n => {
+      const [x, y] = n.pos || [80, 64];
+      const [w, h] = n.size || [200, 68];
+      const cx = x + w * 0.5;
+      gLifelines.appendChild(el('line', { x1: cx, y1: y + h, x2: cx, y2: lifelineBottom, class: 'lifeline' }));
+    });
+  }
+
+  // 3. Render Edges
+  const edgeEls = [];
+  (IR.edges || []).forEach((e, idx) => {
+    const pts = e.points || [];
+    if (!pts.length) return;
+    const grp = el('g', {
+      class: 'edge-group',
+      'data-from': e.from,
+      'data-to': e.to,
+      'data-prov': e.provenance || 'proven'
+    });
+    const pathCls = 'edge-path' + (e.provenance === 'heuristic' ? ' heuristic' : '');
+    const pathEl = el('path', {
+      d: roundedOrthoPath(pts),
+      class: pathCls,
+      'marker-end': 'url(#arrow-default)'
+    });
+    if (e.delta && DELTA_COLORS[e.delta]) {
+      pathEl.style.stroke = DELTA_COLORS[e.delta];
+    }
+    grp.appendChild(pathEl);
+
+    if (e.label) {
+      let bestMid = pts[0], bestLen = -1;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const len = Math.hypot(pts[i+1][0] - pts[i][0], pts[i+1][1] - pts[i][1]);
+        if (len > bestLen) {
+          bestLen = len;
+          bestMid = [(pts[i][0] + pts[i+1][0]) * 0.5, (pts[i][1] + pts[i+1][1]) * 0.5];
+        }
+      }
+      const lw = Math.min(220, Math.max(46, e.label.length * 6.4 + 14));
+      const lh = 20;
+      grp.appendChild(el('rect', {
+        x: bestMid[0] - lw * 0.5,
+        y: bestMid[1] - lh * 0.5,
+        width: lw,
+        height: lh,
+        class: 'edge-label-bg'
+      }));
+      grp.appendChild(el('text', {
+        x: bestMid[0],
+        y: bestMid[1] + 3.5,
+        'text-anchor': 'middle',
+        class: 'edge-label-text'
+      }, e.label));
+    }
+    gEdges.appendChild(grp);
+    edgeEls.push({ edge: e, grp, pathEl });
+  });
+
+  // 4. Render Nodes
+  const nodeEls = new Map();
+  IR.nodes.forEach(n => {
+    const [x, y] = n.pos || [80, 80];
+    const [w, h] = n.size || [256, 108];
+    canvasMaxX = Math.max(canvasMaxX, x + w + 96);
+    canvasMaxY = Math.max(canvasMaxY, y + h + 96);
+    const layer = n.layer || 'backend';
+    const accent = (n.delta && DELTA_COLORS[n.delta]) ? DELTA_COLORS[n.delta] : (LAYER_COLORS[layer] || LAYER_COLORS.backend);
+
+    const grp = el('g', {
+      class: 'node-group',
+      'data-id': n.id,
+      'data-layer': layer,
+      transform: `translate(${x}, ${y})`
+    });
+
+    grp.appendChild(el('rect', { x: 0, y: 0, width: w, height: h, class: 'node-card' }));
+    grp.appendChild(el('rect', { x: 0, y: 0, width: w, height: 5, rx: 3, fill: accent }));
+
+    const titleText = n.label.length > 28 ? n.label.slice(0, 27) + '…' : n.label;
+    grp.appendChild(el('text', { x: 14, y: 26, class: 'node-title' }, titleText));
+
+    let curY = 44;
+    if (n.sublabel) {
+      const subText = n.sublabel.length > 36 ? n.sublabel.slice(0, 35) + '…' : n.sublabel;
+      grp.appendChild(el('text', { x: 14, y: curY, class: 'node-sub' }, subText));
+      curY += 18;
+    }
+
+    if (n.badges && n.badges.length) {
+      let bx = 14;
+      n.badges.slice(0, 4).forEach(b => {
+        const bw = b.length * 6.0 + 12;
+        grp.appendChild(el('rect', {
+          x: bx, y: curY - 10, width: bw, height: 16, rx: 4,
+          fill: 'rgba(148,163,184,0.16)'
+        }));
+        grp.appendChild(el('text', { x: bx + 6, y: curY + 1, class: 'node-badge' }, b));
+        bx += bw + 6;
+      });
+      curY += 20;
+    }
+
+    (n.items || []).slice(0, 5).forEach(item => {
+      const label = item.detail ? `• ${item.name} (${item.detail})` : `• ${item.name}`;
+      const clipped = label.length > 34 ? label.slice(0, 33) + '…' : label;
+      grp.appendChild(el('text', { x: 14, y: curY, class: 'node-item-text' }, clipped));
+      curY += 20;
+    });
+
+    if (n.sources && n.sources.length) {
+      grp.appendChild(el('text', {
+        x: w - 12, y: 24, 'text-anchor': 'end',
+        style: 'font-size:10px;fill:#38bdf8;font-weight:700;'
+      }, `${n.sources.length} src`));
+    }
+
+    grp.addEventListener('click', ev => {
+      ev.stopPropagation();
+      selectNode(n.id);
+    });
+
+    gNodes.appendChild(grp);
+    nodeEls.set(n.id, grp);
+
+    // Minimap rect
+    minimapContent.appendChild(el('rect', {
+      x, y, width: w, height: h, rx: 6, fill: accent, opacity: 0.75
+    }));
+  });
+
+  document.getElementById('minimap-svg').setAttribute('viewBox', `0 0 ${canvasMaxX} ${canvasMaxY}`);
+
+  // 5. Render Summary Cards Dock
+  const cardsDock = document.getElementById('cards-dock');
+  (IR.cards || []).forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'summary-card';
+    const h4 = document.createElement('h4');
+    h4.textContent = c.title;
+    const pre = document.createElement('pre');
+    pre.textContent = c.body;
+    div.appendChild(h4);
+    div.appendChild(pre);
+    cardsDock.appendChild(div);
+  });
+
+  // 6. Pan & Zoom Controller
+  const svg = document.getElementById('viewport');
+  const rootG = document.getElementById('canvas-root');
+  const miniVp = document.getElementById('minimap-viewport');
+  let panX = 0, panY = 0, scale = 1;
+  let isDragging = false, dragStartX = 0, dragStartY = 0;
+
+  function applyTransform() {
+    rootG.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
+    const vw = window.innerWidth / scale;
+    const vh = window.innerHeight / scale;
+    miniVp.setAttribute('x', String(-panX / scale));
+    miniVp.setAttribute('y', String(-panY / scale));
+    miniVp.setAttribute('width', String(vw));
+    miniVp.setAttribute('height', String(vh));
+  }
+
+  function fitToScreen() {
+    const pad = 60;
+    const sx = (window.innerWidth - pad * 2) / canvasMaxX;
+    const sy = (window.innerHeight - pad * 2) / canvasMaxY;
+    scale = Math.min(1.15, Math.max(0.25, Math.min(sx, sy)));
+    panX = (window.innerWidth - canvasMaxX * scale) * 0.5;
+    panY = Math.max(64, (window.innerHeight - canvasMaxY * scale) * 0.5);
+    applyTransform();
+  }
+  fitToScreen();
+  window.addEventListener('resize', applyTransform);
+
+  svg.addEventListener('mousedown', ev => {
+    if (ev.button !== 0) return;
+    isDragging = true;
+    dragStartX = ev.clientX - panX;
+    dragStartY = ev.clientY - panY;
+    svg.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', ev => {
+    if (!isDragging) return;
+    panX = ev.clientX - dragStartX;
+    panY = ev.clientY - dragStartY;
+    applyTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    svg.classList.remove('dragging');
+  });
+  svg.addEventListener('wheel', ev => {
+    ev.preventDefault();
+    const factor = ev.deltaY < 0 ? 1.12 : 0.89;
+    const nextScale = Math.min(3.0, Math.max(0.18, scale * factor));
+    panX = ev.clientX - (ev.clientX - panX) * (nextScale / scale);
+    panY = ev.clientY - (ev.clientY - panY) * (nextScale / scale);
+    scale = nextScale;
+    applyTransform();
+  }, { passive: false });
+
+  svg.addEventListener('click', () => clearSelection());
+
+  // 7. Node Selection & Semantic Passport
+  const passport = document.getElementById('passport');
+  function selectNode(nodeId) {
+    const n = nodeMap.get(nodeId);
+    if (!n) return;
+    const neighbors = new Set([nodeId]);
+    const upstream = [];
+    const downstream = [];
+
+    edgeEls.forEach(({ edge, grp, pathEl }) => {
+      if (edge.from === nodeId) {
+        neighbors.add(edge.to);
+        downstream.push(edge);
+        grp.classList.remove('dimmed');
+        pathEl.classList.add('highlighted');
+        pathEl.setAttribute('marker-end', 'url(#arrow-active)');
+      } else if (edge.to === nodeId) {
+        neighbors.add(edge.from);
+        upstream.push(edge);
+        grp.classList.remove('dimmed');
+        pathEl.classList.add('highlighted');
+        pathEl.setAttribute('marker-end', 'url(#arrow-active)');
+      } else {
+        grp.classList.add('dimmed');
+        pathEl.classList.remove('highlighted');
+        pathEl.setAttribute('marker-end', 'url(#arrow-default)');
+      }
+    });
+
+    nodeEls.forEach((grp, id) => {
+      grp.classList.toggle('selected', id === nodeId);
+      grp.classList.toggle('dimmed', !neighbors.has(id));
+    });
+
+    document.getElementById('pp-layer').textContent = `${n.layer || 'backend'}${n.role ? ' · ' + n.role : ''}`;
+    document.getElementById('pp-title').textContent = n.label;
+    document.getElementById('pp-sub').textContent = n.sublabel || n.id;
+
+    const metricsEl = document.getElementById('pp-metrics');
+    metricsEl.innerHTML = '';
+    (n.badges || []).forEach(b => {
+      const sp = document.createElement('span');
+      sp.className = 'mode-pill';
+      sp.textContent = b;
+      metricsEl.appendChild(sp);
+    });
+
+    const itemsEl = document.getElementById('pp-items');
+    itemsEl.innerHTML = '';
+    (n.items || []).forEach(it => {
+      const row = document.createElement('div');
+      row.className = 'reach-item';
+      row.textContent = it.detail ? `${it.name} (${it.detail})` : it.name;
+      itemsEl.appendChild(row);
+    });
+    document.getElementById('pp-items-sec').style.display = (n.items && n.items.length) ? 'block' : 'none';
+
+    const renderReach = (containerId, list, isUp) => {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      if (!list.length) {
+        const empty = document.createElement('div');
+        empty.style.fontSize = '12px';
+        empty.style.color = 'var(--text-muted)';
+        empty.textContent = 'None';
+        container.appendChild(empty);
+        return;
+      }
+      list.forEach(e => {
+        const otherId = isUp ? e.from : e.to;
+        const other = nodeMap.get(otherId);
+        const row = document.createElement('div');
+        row.className = 'reach-item';
+        const left = document.createElement('span');
+        left.textContent = other ? other.label : otherId;
+        const right = document.createElement('span');
+        right.style.fontSize = '11px';
+        right.style.color = 'var(--text-secondary)';
+        right.textContent = `${e.kind || 'edge'} [${e.provenance || 'proven'}]`;
+        row.appendChild(left);
+        row.appendChild(right);
+        row.addEventListener('click', () => selectNode(otherId));
+        container.appendChild(row);
+      });
+    };
+    renderReach('pp-upstream', upstream, true);
+    renderReach('pp-downstream', downstream, false);
+
+    const srcContainer = document.getElementById('pp-sources');
+    srcContainer.innerHTML = '';
+    if (!n.sources || !n.sources.length) {
+      const none = document.createElement('div');
+      none.style.fontSize = '12px';
+      none.style.color = 'var(--text-muted)';
+      none.textContent = 'No source citations attached';
+      srcContainer.appendChild(none);
+    } else {
+      n.sources.forEach(cite => {
+        const card = document.createElement('div');
+        card.className = 'source-card';
+        const hdr = document.createElement('div');
+        hdr.className = 'source-header';
+        const loc = cite.end_line ? `${cite.path}:${cite.line}-${cite.end_line}` : `${cite.path}:${cite.line}`;
+        const s1 = document.createElement('span');
+        s1.textContent = loc;
+        const s2 = document.createElement('span');
+        s2.textContent = cite.label || '';
+        hdr.appendChild(s1);
+        hdr.appendChild(s2);
+        card.appendChild(hdr);
+        if (cite.snippet) {
+          const pre = document.createElement('pre');
+          pre.className = 'source-pre';
+          pre.textContent = cite.snippet;
+          card.appendChild(pre);
+        }
+        srcContainer.appendChild(card);
+      });
+    }
+
+    passport.classList.add('open');
+  }
+
+  function clearSelection() {
+    passport.classList.remove('open');
+    nodeEls.forEach(grp => grp.classList.remove('selected', 'dimmed'));
+    edgeEls.forEach(({ grp, pathEl }) => {
+      grp.classList.remove('dimmed');
+      pathEl.classList.remove('highlighted');
+      pathEl.setAttribute('marker-end', 'url(#arrow-default)');
+    });
+  }
+  document.getElementById('pp-close').addEventListener('click', clearSelection);
+
+  // 8. Search, Layer & Provenance Filters
+  const searchInput = document.getElementById('search-input');
+  const layerSelect = document.getElementById('layer-select');
+  const provSelect = document.getElementById('prov-select');
+
+  function applyFilters() {
+    const q = searchInput.value.trim().toLowerCase();
+    const layer = layerSelect.value;
+    const prov = provSelect.value;
+    const visibleNodes = new Set();
+
+    IR.nodes.forEach(n => {
+      const matchLayer = layer === 'all' || (n.layer || 'backend') === layer;
+      const hay = [
+        n.id, n.label, n.sublabel || '',
+        ...(n.items || []).map(i => i.name),
+        ...(n.sources || []).map(s => s.path)
+      ].join(' ').toLowerCase();
+      const matchQuery = !q || hay.includes(q);
+      const ok = matchLayer && matchQuery;
+      if (ok) visibleNodes.add(n.id);
+      const grp = nodeEls.get(n.id);
+      if (grp) grp.classList.toggle('dimmed', !ok);
+    });
+
+    edgeEls.forEach(({ edge, grp }) => {
+      const matchProv = prov === 'all' || (edge.provenance || 'proven') === prov;
+      const ok = matchProv && visibleNodes.has(edge.from) && visibleNodes.has(edge.to);
+      grp.classList.toggle('dimmed', !ok);
+    });
+  }
+
+  searchInput.addEventListener('input', applyFilters);
+  layerSelect.addEventListener('change', applyFilters);
+  provSelect.addEventListener('change', applyFilters);
+
+  // 9. Route Probe (BFS between any two nodes)
+  const probeBar = document.getElementById('probe-bar');
+  const probeFrom = document.getElementById('probe-from');
+  const probeTo = document.getElementById('probe-to');
+  IR.nodes.forEach(n => {
+    const o1 = document.createElement('option');
+    o1.value = n.id; o1.textContent = n.label;
+    const o2 = o1.cloneNode(true);
+    probeFrom.appendChild(o1);
+    probeTo.appendChild(o2);
+  });
+  if (IR.nodes.length > 1) probeTo.selectedIndex = 1;
+
+  document.getElementById('btn-probe').addEventListener('click', () => {
+    probeBar.classList.toggle('open');
+  });
+  document.getElementById('probe-clear').addEventListener('click', () => {
+    document.getElementById('probe-status').textContent = '';
+    clearSelection();
+  });
+  document.getElementById('probe-run').addEventListener('click', () => {
+    const start = probeFrom.value, goal = probeTo.value;
+    const queue = [[start]];
+    const visited = new Set([start]);
+    let foundPath = null;
+    while (queue.length) {
+      const path = queue.shift();
+      const curr = path[path.length - 1];
+      if (curr === goal) { foundPath = path; break; }
+      (IR.edges || []).forEach(e => {
+        if (e.from === curr && !visited.has(e.to)) {
+          visited.add(e.to);
+          queue.push([...path, e.to]);
+        }
+      });
+    }
+    if (!foundPath) {
+      document.getElementById('probe-status').textContent = 'No directed path found';
+      return;
+    }
+    document.getElementById('probe-status').textContent = `${foundPath.length - 1} hop(s)`;
+    const onPath = new Set(foundPath);
+    nodeEls.forEach((grp, id) => grp.classList.toggle('dimmed', !onPath.has(id)));
+    edgeEls.forEach(({ edge, grp, pathEl }) => {
+      let inSeq = false;
+      for (let i = 0; i < foundPath.length - 1; i++) {
+        if (edge.from === foundPath[i] && edge.to === foundPath[i + 1]) inSeq = true;
+      }
+      grp.classList.toggle('dimmed', !inSeq);
+      pathEl.classList.toggle('highlighted', inSeq);
+    });
+  });
+
+  // 10. Theme, Preset, Minimap, Export & Keyboard Shortcuts
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  }
+  function cyclePreset() {
+    const order = ['classic', 'blueprint', 'signal-flow'];
+    const cur = document.documentElement.getAttribute('data-preset') || 'classic';
+    const next = order[(order.indexOf(cur) + 1) % order.length];
+    document.documentElement.setAttribute('data-preset', next);
+    presetSelect.value = next;
+  }
+  presetSelect.addEventListener('change', () => {
+    document.documentElement.setAttribute('data-preset', presetSelect.value);
+  });
+  document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+  document.getElementById('btn-reset').addEventListener('click', fitToScreen);
+  document.getElementById('btn-minimap').addEventListener('click', () => {
+    document.getElementById('minimap-wrap').classList.toggle('hidden');
+  });
+  document.getElementById('btn-export').addEventListener('click', () => {
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('width', String(canvasMaxX));
+    clone.setAttribute('height', String(canvasMaxY));
+    clone.querySelector('#canvas-root').setAttribute('transform', 'translate(0,0) scale(1)');
+    const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(IR.title || 'diagram').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.svg`;
+    a.click();
+  });
+
+  window.addEventListener('keydown', ev => {
+    if (document.activeElement === searchInput) {
+      if (ev.key === 'Escape') { searchInput.blur(); }
+      return;
+    }
+    if (ev.key === '/') { ev.preventDefault(); searchInput.focus(); }
+    else if (ev.key === 't' || ev.key === 'T') toggleTheme();
+    else if (ev.key === 's' || ev.key === 'S') cyclePreset();
+    else if (ev.key === 'r' || ev.key === 'R') probeBar.classList.toggle('open');
+    else if (ev.key === 'm' || ev.key === 'M') document.getElementById('minimap-wrap').classList.toggle('hidden');
+    else if (ev.key === 'f' || ev.key === 'F') document.body.classList.toggle('presentation');
+    else if (ev.key === '0') fitToScreen();
+    else if (ev.key === 'Escape') { clearSelection(); document.body.classList.remove('presentation'); }
+  });
+})();
+</script>
+</body>
+</html>

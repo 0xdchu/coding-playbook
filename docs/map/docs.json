@@ -1,0 +1,314 @@
+{
+  "mode": "architecture",
+  "title": "coding-playbook: documents",
+  "subtitle": "Which file is the source of truth, and which only describes it",
+  "boundaries": [
+    {
+      "id": "truth",
+      "label": "Source of truth",
+      "layer": "backend"
+    },
+    {
+      "id": "derived",
+      "label": "Derived",
+      "layer": "cloud"
+    },
+    {
+      "id": "internal",
+      "label": "Internal",
+      "layer": "frontend"
+    },
+    {
+      "id": "schema",
+      "label": "Schema",
+      "layer": "database"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "d_rules",
+      "label": "rules/global/CLAUDE.md",
+      "sublabel": "The global rules, installed into ~/.claude/CLAUDE.md",
+      "boundary": "truth",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "rules/global/CLAUDE.md",
+          "line": 1,
+          "label": "Global Claude Code instructions"
+        }
+      ],
+      "badges": [
+        "source of truth"
+      ],
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": "d_agents",
+      "label": "rules/agents/*.md",
+      "sublabel": "Each subagent's model, tools and instructions",
+      "boundary": "truth",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "rules/agents/builder.md",
+          "line": 2,
+          "label": "name: builder"
+        }
+      ],
+      "badges": [
+        "source of truth"
+      ],
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": "d_skills",
+      "label": "skills/*/SKILL.md",
+      "sublabel": "Each skill's steps",
+      "boundary": "truth",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "skills/sdlc/SKILL.md",
+          "line": 2,
+          "label": "name: sdlc"
+        }
+      ],
+      "badges": [
+        "source of truth"
+      ],
+      "col": 0,
+      "row": 2
+    },
+    {
+      "id": "d_parser",
+      "label": "tools/sdlc-check.py",
+      "sublabel": "The intent, plan and map formats, as the code reads them",
+      "boundary": "truth",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "tools/sdlc-check.py",
+          "line": 132,
+          "label": "def parse_tasks"
+        }
+      ],
+      "badges": [
+        "source of truth"
+      ],
+      "col": 0,
+      "row": 3
+    },
+    {
+      "id": "d_guard",
+      "label": "hooks/1prompt/agent-guard.py",
+      "sublabel": "Copied from 0xdonniechu/1prompt at the pinned commit; never edited here",
+      "boundary": "derived",
+      "layer": "cloud",
+      "sources": [
+        {
+          "path": "hooks/1prompt/agent-guard.py",
+          "line": 1193,
+          "label": "CONTRACT_NAME"
+        }
+      ],
+      "badges": [
+        "derived"
+      ],
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": "d_readme",
+      "label": "README.md",
+      "sublabel": "What each file is and where it installs",
+      "boundary": "derived",
+      "layer": "cloud",
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 1,
+          "label": "coding-playbook"
+        }
+      ],
+      "badges": [
+        "derived"
+      ],
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": "d_internals",
+      "label": "docs/internals.md",
+      "sublabel": "How each hook and script works inside",
+      "boundary": "derived",
+      "layer": "cloud",
+      "sources": [
+        {
+          "path": "docs/internals.md",
+          "line": 1,
+          "label": "Internals"
+        }
+      ],
+      "badges": [
+        "derived"
+      ],
+      "col": 1,
+      "row": 2
+    },
+    {
+      "id": "d_map",
+      "label": "docs/map/*.json",
+      "sublabel": "This map: the views and the files left out; checked against the code",
+      "boundary": "derived",
+      "layer": "cloud",
+      "sources": [
+        {
+          "path": "docs/map/map.json",
+          "line": 2,
+          "label": "views"
+        }
+      ],
+      "badges": [
+        "derived"
+      ],
+      "col": 1,
+      "row": 3
+    },
+    {
+      "id": "d_claude",
+      "label": "CLAUDE.md",
+      "sublabel": "This repo's own rules: Verify, rating, Rules",
+      "boundary": "internal",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "CLAUDE.md",
+          "line": 1,
+          "label": "coding-playbook"
+        }
+      ],
+      "badges": [
+        "internal"
+      ],
+      "col": 2,
+      "row": 0
+    },
+    {
+      "id": "d_intent",
+      "label": "intent/*.md",
+      "sublabel": "Why each change was made: intents and plans",
+      "boundary": "internal",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "intent/2026-11-20-system-map.md",
+          "line": 4,
+          "label": "system-map"
+        }
+      ],
+      "badges": [
+        "internal"
+      ],
+      "col": 2,
+      "row": 1
+    },
+    {
+      "id": "d_settings",
+      "label": "rules/global/settings-defaults.json",
+      "sublabel": "The settings entries the installer writes into ~/.claude/settings.json",
+      "boundary": "schema",
+      "layer": "database",
+      "sources": [
+        {
+          "path": "rules/global/settings-defaults.json",
+          "line": 2,
+          "label": "enabledPlugins"
+        }
+      ],
+      "badges": [
+        "schema"
+      ],
+      "col": 3,
+      "row": 0
+    },
+    {
+      "id": "d_leak",
+      "label": "maint/leak-patterns.json",
+      "sublabel": "Secret shapes and internal names no tracked file may contain; read by maint/check.py",
+      "boundary": "schema",
+      "layer": "database",
+      "sources": [
+        {
+          "path": "maint/leak-patterns.json",
+          "line": 3,
+          "label": "patterns"
+        }
+      ],
+      "badges": [
+        "schema"
+      ],
+      "col": 3,
+      "row": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "d_claude",
+      "to": "d_rules",
+      "label": "defers to"
+    },
+    {
+      "from": "d_rules",
+      "to": "d_readme",
+      "label": "documented by"
+    },
+    {
+      "from": "d_skills",
+      "to": "d_readme",
+      "label": "documented by"
+    },
+    {
+      "from": "d_parser",
+      "to": "d_internals",
+      "label": "documented by"
+    },
+    {
+      "from": "d_skills",
+      "to": "d_parser",
+      "label": "defers to"
+    },
+    {
+      "from": "d_intent",
+      "to": "d_parser",
+      "label": "defers to"
+    },
+    {
+      "from": "d_guard",
+      "to": "d_internals",
+      "label": "documented by"
+    },
+    {
+      "from": "d_settings",
+      "to": "d_rules",
+      "label": "documented by"
+    },
+    {
+      "from": "d_agents",
+      "to": "d_readme",
+      "label": "documented by"
+    },
+    {
+      "from": "d_map",
+      "to": "d_parser",
+      "label": "defers to"
+    },
+    {
+      "from": "d_leak",
+      "to": "d_internals",
+      "label": "documented by"
+    }
+  ]
+}

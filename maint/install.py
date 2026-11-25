@@ -18,6 +18,8 @@ The model and effort there stay the owner's: they are only reported.
 With --settings (also under --check) it refuses, exit 2 and nothing written, when settings.json is not a
 UTF-8 JSON object, its enabledPlugins or skillOverrides is not an object, or a hooks event it registers is not a list.
 It never deletes: a file in an installed skill's folder that this repo does not have is reported and left alone.
+It never writes through ~/.claude/skills/<name> when that is a symlink resolving outside this repo (another skill
+set installed by link): that skill is reported as skipped.
 It refuses (exit 2, nothing written) when ~/.claude/CLAUDE.md is not UTF-8 or its markers are not exactly one
 begin followed by one end: replacing text between broken markers could delete the owner's own instructions.
 """
@@ -178,7 +180,7 @@ if problem and with_settings:
 
 # Hooks the agents' frontmatter runs (agent-guard.py; without them a guarded agent's Bash calls are all blocked),
 # and autonomous-settings.json, which an autonomous run passes with `claude --settings` (the boundary hook).
-# Their source is ambysto/1prompt; hooks/1prompt/pin.json names the commit and the files copied from it (check.py compares
+# Their source is 0xdonniechu/1prompt; hooks/1prompt/pin.json names the commit and the files copied from it (check.py compares
 # their hashes). They go where that repo's hooks and the agents' frontmatter expect them, before the agents, so a
 # failure here never leaves agents pointing at a hook that is not there.
 for name in sorted(json.loads((ROOT / "hooks" / "1prompt" / "pin.json").read_text(encoding="utf-8"))["files"]):
@@ -199,6 +201,11 @@ for src in sorted((ROOT / "rules" / "agents").glob("*.md")):
 # Skills: every file of each skills/<name>/
 skill_dirs = (ROOT / "skills").iterdir() if (ROOT / "skills").is_dir() else []
 for skill in sorted(p for p in skill_dirs if p.is_dir()):
+    link = HOME / "skills" / skill.name
+    # A skill folder linked to another repo (another skill set installed by symlink) is never written through (APS-97).
+    if link.is_symlink() and not link.resolve().is_relative_to(ROOT.resolve()):
+        print(f"skipped    {link}: symlink to {link.resolve()} (another repo's skill; not written through)")
+        continue
     wanted = {src.relative_to(skill) for src in skill.rglob("*") if src.is_file()}
     for rel in sorted(wanted):
         install_file(skill / rel, HOME / "skills" / skill.name / rel)

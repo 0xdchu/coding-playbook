@@ -28,10 +28,9 @@ GUARDED = {"builder": BUILD_HOOKS, "reviewer": REVIEW_HOOKS, "hard-reviewer": RE
 TEMPLATE_SECTIONS = ["## What it does", "## Verify", "## HARD", "## MEDIUM", "## EASY", "## Rules", "## Read when", "## Session state"]
 SKILLS = {"starter-kit", "handoff", "sdlc", "teardown", "orca-worktree-setup", "agent-team", "create-skill", "secrets", "whats-next",
           "system-map"}
-# Skills that live only in the public copy (a `skills/<name>/` public-only folder in maint/public-sync.json, APS-80): checked like
-# the others when present, absent here without a failure. Each names its self-test script (None: it has no
-# standard-library self-test) and its trigger prompts.
-PUBLIC_ONLY_SKILLS = {
+# Skills that carry their own self-test script (None: it has no standard-library self-test) and trigger prompts here
+# instead of in SKILL_TRIGGERS; required like the others (until APS-97 they lived only in the public copy).
+MORE_SKILLS = {
     "graph": ("skills/graph/scripts/graph.py",
               (["draw a sequence diagram of the purchase flow with numbered steps and a webhook",
                 "flowchart of the onboarding flow with a decision and a loop"],
@@ -95,7 +94,7 @@ failures = []
 SELF_TESTS = [("maint/switch-model.py", False, None), ("tools/sdlc-check.py", False, None), ("hooks/loop/loop-stop.py", False, 600),
               ("hooks/graph/graph-hook.py", False, 600), ("hooks/gates/session-gates.py", False, None), ("tools/plane.py", False, None), ("hooks/1prompt/agent-guard.py", True, None),
               ("tools/dispatch.py", False, None), ("tools/loop.py", False, 600), ("hooks/loop/loop-wake.py", False, 600), ("hooks/saveit/saveit-hook.py", False, None),
-              ("tools/progress-diagram.py", False, None), ("maint/sync-public.py", False, None), ("maint/github-boundary.py", True, None),
+              ("tools/progress-diagram.py", False, None),
               ("hooks/owner-token-guard/owner-token-guard.py", True, None), ("maint/switch-test/switch-test.py", False, None),
               ("maint/cost-report.py", False, None)]
 IN_SWITCH_COPY = bool(os.environ.get("SWITCH_MODEL_SELF_TEST"))
@@ -234,20 +233,35 @@ self_test("tools/plane.py")
 diagram = self_test("tools/progress-diagram.py")
 if diagram and diagram.returncode == 0 and diagram.stdout.startswith("not run"):
     print("note: " + diagram.stdout.strip())
-self_test("maint/github-boundary.py")
+# This repo is public (APS-97): no tracked or new (not ignored) file may match a leak pattern (secret shapes, a machine's
+# home path; internal names from a machine-local list). maint/leak-patterns.json holds the patterns and is itself skipped.
 try:
-    gb = json.loads(read("maint/github-boundary.json"))
-    if not (isinstance(gb.get("owner"), str) and isinstance(gb.get("repos"), list) and isinstance(gb.get("codeowners"), list)
-            and "/docs/spec/" in gb["codeowners"] and "/.github/CODEOWNERS" in gb["codeowners"]):
-        raise ValueError("owner, repos and codeowners (with /docs/spec/ and /.github/CODEOWNERS) are required")
-    extra = gb.get("repo_codeowners", {})
-    if not (isinstance(extra, dict) and all(name in gb["repos"] and isinstance(paths, list)
-                                            and all(isinstance(p, str) and p.startswith("/") for p in paths)
-                                            for name, paths in extra.items())):
-        raise ValueError("repo_codeowners must map listed repos to lists of paths starting with /")
-except (ValueError, TypeError) as error:
-    fail(f"maint/github-boundary.json: {error}")
-# The hooks are copied from ambysto/1prompt at the commit hooks/1prompt/pin.json names; never edited here. Their hashes must
+    leak_pats = [re.compile(p.encode()) for p in json.loads(read("maint/leak-patterns.json"))["patterns"]]
+    if not leak_pats:
+        raise ValueError("no patterns")
+    local_terms = Path.home() / ".config" / "coding-playbook" / "leak-terms.txt"
+    if local_terms.is_file():  # internal names, kept off the repo so the list publishes none
+        leak_pats += [re.compile(re.escape(t.strip().encode())) for t in local_terms.read_text(encoding="utf-8").splitlines()
+                      if t.strip() and not t.lstrip().startswith("#")]
+    else:
+        print(f"note: no {local_terms}; internal names not checked")
+    listed = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+                            capture_output=True)
+    if listed.returncode == 0:
+        rels = [t.decode() for t in listed.stdout.split(b"\0") if t]
+    else:  # not a git work tree (switch-model's scratch copies): every file but caches
+        rels = [str(f.relative_to(ROOT)) for f in ROOT.rglob("*")
+                if f.is_file() and ".git" not in f.parts and "__pycache__" not in f.parts]
+    for rel in sorted(rels):
+        if rel == "maint/leak-patterns.json" or not (ROOT / rel).is_file():
+            continue
+        data = (ROOT / rel).read_bytes()
+        hit = next((pat.pattern.decode() for pat in leak_pats if pat.search(data)), None)
+        if hit:
+            fail(f"{rel}: matches leak pattern {hit!r} (this repo is public; remove it or rewrite it)")
+except (OSError, ValueError, KeyError, TypeError, re.error) as error:
+    fail(f"maint/leak-patterns.json: {type(error).__name__}: {error}")
+# The hooks are copied from 0xdonniechu/1prompt at the commit hooks/1prompt/pin.json names; never edited here. Their hashes must
 # match the pin; when a clone of 1prompt sits next to this repo, the pinned commit's files must match too.
 try:
     pin = json.loads(read("hooks/1prompt/pin.json"))
@@ -257,7 +271,7 @@ try:
     for name, digest in pin["files"].items():
         if hashlib.sha256((ROOT / "hooks" / "1prompt" / name).read_bytes()).hexdigest() != digest:
             fail(f"hooks/1prompt/{name}: differs from hooks/1prompt/pin.json (edit it in 1prompt, then copy it here and update the pin)")
-    upstream = ROOT.parent / "ambysto-1prompt"
+    upstream = ROOT.parent / "1prompt"
     if (upstream / ".git").exists():
         url = subprocess.run(["git", "-C", str(upstream), "remote", "get-url", "origin"], capture_output=True, text=True)
         if not re.search(r"github\.com[/:]" + re.escape(pin["repo"]) + r"(\.git)?/?$", url.stdout.strip()):
@@ -274,7 +288,7 @@ try:
             elif shown.stdout != (ROOT / "hooks" / "1prompt" / name).read_bytes():
                 fail(f"hooks/1prompt/{name}: differs from {upstream.name} at {pin['commit'][:12]}")
     else:
-        print("note: no ambysto-1prompt clone next to this repo; hooks checked against pin.json hashes only")
+        print("note: no 1prompt clone next to this repo; hooks checked against pin.json hashes only")
 except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
     fail(f"hooks/1prompt/pin.json: {type(error).__name__}: {error}")
 self_test("hooks/1prompt/agent-guard.py")
@@ -385,16 +399,15 @@ def skill_tokens(text):
 skills = sorted(p.name for p in (ROOT / "skills").iterdir()
                 if p.is_dir() and any(f.is_file() and "__pycache__" not in f.parts for f in p.rglob("*"))) \
     if (ROOT / "skills").is_dir() else []
-public_skills = set(skills) & set(PUBLIC_ONLY_SKILLS)
-expected_skills = SKILLS | public_skills
-if set(skills) != expected_skills or not SKILLS <= set(skills):
-    fail(f"skills/: expected {sorted(SKILLS)} (plus any of the public-only {sorted(PUBLIC_ONLY_SKILLS)}), found {skills}")
-for name in sorted(public_skills):
-    script = PUBLIC_ONLY_SKILLS[name][0]
+expected_skills = SKILLS | set(MORE_SKILLS)
+if set(skills) != expected_skills:
+    fail(f"skills/: expected {sorted(expected_skills)}, found {skills}")
+for name in sorted(set(skills) & set(MORE_SKILLS)):
+    script = MORE_SKILLS[name][0]
     if script is None:
         continue
     if not (ROOT / script).is_file():
-        fail(f"skills/{name}: public-only skill without its self-test script {script}")
+        fail(f"skills/{name}: without its self-test script {script}")
     elif not IN_SWITCH_COPY:
         try:
             run = subprocess.run([sys.executable, str(ROOT / script), "--self-test"], capture_output=True, text=True,
@@ -404,7 +417,7 @@ for name in sorted(public_skills):
             run = None
         if run is not None and run.returncode != 0:
             fail(f"{script} --self-test failed:\n" + (run.stdout + run.stderr).strip())
-triggers = SKILL_TRIGGERS | {name: PUBLIC_ONLY_SKILLS[name][1] for name in public_skills}
+triggers = SKILL_TRIGGERS | {name: MORE_SKILLS[name][1] for name in set(skills) & set(MORE_SKILLS)}
 skill_descs = {}
 for name in skills:
     rel = f"skills/{name}/SKILL.md"
@@ -535,6 +548,19 @@ with tempfile.TemporaryDirectory() as home:
             or not (claude / "hooks" / "gates" / "session-gates.py").is_file():
         fail(f"install.py --settings session hooks: expected {want} registered once, the second run unchanged and --check clean; "
              f"got exits {[r.returncode for r in runs]}, {commands}")
+
+# A skill folder that is a symlink into another repo is never written through (APS-97): a scratch HOME whose
+# skills/mockup links to an outside folder; install leaves that folder as it was and says it skipped it.
+with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as outside:
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("XDG_", "CLAUDE"))
+           and k not in ("HOMEDRIVE", "HOMEPATH")} | {"HOME": home, "USERPROFILE": home}
+    (Path(home) / ".claude" / "skills").mkdir(parents=True)
+    (Path(outside) / "SKILL.md").write_text("another repo's skill\n", encoding="utf-8")
+    (Path(home) / ".claude" / "skills" / "mockup").symlink_to(outside)
+    out = subprocess.run([sys.executable, str(ROOT / "maint" / "install.py")], env=env, capture_output=True, text=True, timeout=120)
+    if out.returncode != 0 or sorted(p.name for p in Path(outside).iterdir()) != ["SKILL.md"] \
+            or (Path(outside) / "SKILL.md").read_text(encoding="utf-8") != "another repo's skill\n" or "symlink to" not in out.stdout:
+        fail(f"install.py over a skill symlinked to another repo: expected it skipped and untouched; got exit {out.returncode}")
 
 # A refusal writes nothing: with --settings and a hooks event that is not a list, exit 2 before any file is copied
 # (hard-reviewer, 2026-11-10: the agents, skills and hooks used to be written first). Temporary HOME again.

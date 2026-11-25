@@ -1,0 +1,91 @@
+{
+  "kind": "sequence",
+  "title": "Install",
+  "subtitle": "install.py --global --settings brings ~/.claude in step with this repo",
+  "participants": [
+    {
+      "id": "owner",
+      "label": "Owner",
+      "external": true
+    },
+    {
+      "id": "install",
+      "label": "install.py",
+      "sources": [
+        {
+          "path": "maint/install.py",
+          "line": 67,
+          "label": "def install_file"
+        }
+      ]
+    },
+    {
+      "id": "home",
+      "label": "~/.claude",
+      "external": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "owner",
+      "to": "install",
+      "label": "flags",
+      "sources": [
+        {
+          "path": "maint/install.py",
+          "line": 37,
+          "label": "--check",
+          "end_line": 39
+        }
+      ]
+    },
+    {
+      "from": "install",
+      "to": "home",
+      "label": "copy a file, with a backup",
+      "sources": [
+        {
+          "path": "maint/install.py",
+          "line": 67,
+          "label": "def install_file"
+        }
+      ]
+    },
+    {
+      "from": "install",
+      "to": "home",
+      "label": "register a hook",
+      "id": "register",
+      "sources": [
+        {
+          "path": "maint/install.py",
+          "line": 96,
+          "label": "PreToolUse"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "from": "owner",
+      "to": "install",
+      "label": "install.py --global --settings"
+    },
+    {
+      "from": "install",
+      "to": "home",
+      "label": "agents, hooks, skills, the global block"
+    },
+    {
+      "from": "install",
+      "to": "home",
+      "label": "settings.json: the session hooks, once each",
+      "edge": "register"
+    },
+    {
+      "from": "owner",
+      "to": "install",
+      "label": "install.py --check: exit 0 when nothing differs"
+    }
+  ]
+}
