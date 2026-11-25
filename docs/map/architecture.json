@@ -240,18 +240,18 @@
       "sources": [
         {
           "path": "tools/sdlc-check.py",
-          "line": 1489,
+          "line": 1537,
           "label": "main",
-          "end_line": 1491
+          "end_line": 1539
         },
         {
           "path": "tools/sdlc-check.py",
-          "line": 744,
+          "line": 778,
           "label": "def converge"
         },
         {
           "path": "tools/sdlc-check.py",
-          "line": 132,
+          "line": 134,
           "label": "def parse_tasks"
         }
       ],

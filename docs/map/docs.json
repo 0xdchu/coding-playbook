@@ -91,7 +91,7 @@
       "sources": [
         {
           "path": "tools/sdlc-check.py",
-          "line": 132,
+          "line": 134,
           "label": "def parse_tasks"
         }
       ],
