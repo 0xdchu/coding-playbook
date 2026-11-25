@@ -1,0 +1,45 @@
+{
+  "model": "claude-fable-5-2",
+  "cost_usd": 3.7927012000000007,
+  "usage": {
+    "input_tokens": 30,
+    "cache_creation_input_tokens": 116858,
+    "cache_read_input_tokens": 1390666,
+    "output_tokens": 41115,
+    "output_tokens_details": {
+      "thinking_tokens": 29985
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 116858,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2617,
+        "cache_read_input_tokens": 130527,
+        "cache_creation_input_tokens": 3556,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3556
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "duration_ms": 683774,
+  "is_error": false,
+  "effort": "high",
+  "case": "aps72-round3",
+  "void": [],
+  "verdict": "scored by the owner in results.md",
+  "watch_changed": []
+}

@@ -15,8 +15,10 @@ Matching the report against known.md is the main session's proposal and the owne
 Standard library only. Spends money: every review or replay is a real model run.
 """
 import argparse
+import contextlib
 import datetime
 import hashlib
+import io
 import json
 import os
 import re
@@ -43,6 +45,7 @@ WATCHED = [HOME / ".claude" / p for p in ("settings.json", "CLAUDE.md", "agents"
 KIT_NAME = KIT.name  # matched without its parent, so a read of the kit through any checkout or layout counts
 VOID_MARKERS = [f"{KIT_NAME}/cases", f"{KIT_NAME}/replay", f"{KIT_NAME}/runs", "known.md", ".claude/projects"]
 CASE_KEYS = {"id", "kind", "repo", "base", "head", "rating", "original_model", "source", "source_line"}
+NO_MEMORY = "/nonexistent"  # SESSION_GATES_MEMORY in every run: lesson recall off
 EFFORTS = ["low", "medium", "high", "xhigh", "max"]
 REVIEW_PREFACE = ("The repository is a throwaway clone, detached at the change's head, with no remote. Read files from the "
                   "working tree or with `git show <commit>:<path>`; never check out, switch or reset.\n\n")
@@ -426,7 +429,10 @@ def run_claude(cwd, prompt, model, effort, settings, tools, stream, append=None)
     if append:
         cmd += ["--append-system-prompt", append]
     with open(stream, "w", encoding="utf-8") as out:
-        subprocess.run(cmd, cwd=cwd, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+        # lesson recall of the session gates (~/.claude/settings.json) finds no lessons: a lesson can hint at a case's
+        # answers in hook context, which the void check cannot see
+        subprocess.run(cmd, cwd=cwd, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                       env=dict(os.environ, SESSION_GATES_MEMORY=NO_MEMORY))
     info = parse_stream(stream)
     if info["model"] != model:
         die(f"the run used model {info['model']!r}, not {model!r} (stream: {stream})")
@@ -452,7 +458,7 @@ def guarded(sources, action, out_dir):
     run_json = out_dir / "run.json"
     if run_json.exists():
         data = json.loads(run_json.read_text(encoding="utf-8"))
-        data["watch_changed"] = changed
+        data["watch_changed"] = home_relative(changed)
         run_json.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     if changed:
         print(f"WARNING: changed during the run, check who wrote it: {', '.join(changed)}", file=sys.stderr)
@@ -475,11 +481,24 @@ def review_one(case, model, effort, run, task=None, rng=None, repo=None):
     return info
 
 
+def run_taken(run, case_id):
+    """A run folder in the cache or in the kit already holds this case."""
+    return (CACHE / run / case_id).exists() or (KIT / "runs" / run / case_id).exists()
+
+
+def home_relative(paths):
+    """Paths as `~/…`: run.json is tracked in a public repo, so it names no user."""
+    return [p.replace(str(HOME), "~", 1) if p.startswith(str(HOME) + "/") else p for p in paths]
+
+
 def cmd_review(args):
     cases = [c for c in load_cases("review") if args.case in (None, c["id"])]
     if not cases:
         die(f"no review case {args.case!r}")
-    run = f"{datetime.date.today()}-{args.model}-{args.effort}"
+    run = args.run or f"{datetime.date.today()}-{args.model}-{args.effort}"
+    used = [c["id"] for c in cases if run_taken(run, c["id"])]
+    if used:  # before any paid run: a recorded report.md and run.json are never overwritten
+        die(f"run {run!r} already holds {', '.join(used)}: pick another --run name")
     sources = sorted({SOURCES / c["repo"] for c in cases})
     for case in cases:
         guarded(sources, lambda: review_one(case, args.model, args.effort, run), KIT / "runs" / run / case["id"])
@@ -733,12 +752,53 @@ def self_test():
             problems.append(f"{case['id']}: review_task does not fill in two steps")
     if fill("{repo} {range}", repo="r", range="a..b") != "r a..b":
         problems.append("fill wrong")
+    # every model run gets lesson recall off: the variable must reach the claude process (and so its hooks)
+    seen = {}
+    real_run, real_parse = subprocess.run, parse_stream
+    try:
+        subprocess.run = lambda cmd, **kw: seen.update(kw.get("env") or {})
+        globals()["parse_stream"] = lambda stream: {"model": "m"}
+        with tempfile.TemporaryDirectory() as tmp:
+            run_claude(tmp, "p", "m", "low", {}, [], Path(tmp) / "s.jsonl")
+    finally:
+        subprocess.run, globals()["parse_stream"] = real_run, real_parse
+    if seen.get("SESSION_GATES_MEMORY") != NO_MEMORY:
+        problems.append("run_claude does not turn lesson recall off (SESSION_GATES_MEMORY)")
+    # a recorded run is never overwritten; watched paths are written under ~/
+    real_cache = CACHE
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            globals()["CACHE"] = Path(tmp)  # an empty cache: the kit's recorded run alone must count
+            kit_seen = run_taken("2026-11-07-claude-opus-5-5-high", "aps32-guard")
+            (Path(tmp) / "cached-only" / "c").mkdir(parents=True)
+            cache_seen = run_taken("cached-only", "c")
+            free = not run_taken("no-such-run", "aps32-guard")
+    finally:
+        globals()["CACHE"] = real_cache
+    if not (kit_seen and cache_seen and free):
+        problems.append("run_taken does not see a recorded run (kit or cache), or sees one that is not there")
+    # through the entry point: `review --run <a recorded name>` stops before any paid run
+    called, real_review, real_guarded = [], review_one, guarded
+    try:  # guarded stubbed too: a broken refusal must not touch the recorded run's files
+        globals()["review_one"] = lambda *a, **k: called.append(a)
+        globals()["guarded"] = lambda sources, action, out_dir: action()
+        with contextlib.redirect_stderr(io.StringIO()):  # the refusal's message is expected here
+            cmd_review(argparse.Namespace(model="m", effort="high", case="aps32-guard", run="2026-11-07-claude-opus-5-5-high"))
+        refused = False
+    except SystemExit:
+        refused = True
+    finally:
+        globals()["review_one"], globals()["guarded"] = real_review, real_guarded
+    if not refused or called:
+        problems.append("review --run on a recorded run does not stop before the run")
+    if home_relative([str(HOME / ".claude" / "CLAUDE.md"), "/elsewhere/x"]) != ["~/.claude/CLAUDE.md", "/elsewhere/x"]:
+        problems.append("home_relative does not write watched paths under ~/")
     if problems:
         print("FAIL\n" + "\n".join(f"- {p}" for p in problems))
         sys.exit(1)
     print("PASS: cases valid, reviewer body and hooks read, stream parse and void-check (5 planted reads, answer-key reads direct or by a search rooted above them, another run's session folder and a "
           "sibling run folder caught; own clone, own session folder, name-only listings and writes allowed), "
-          "clone holds nothing past the case's commit, repo watch sees the kit outside runs/")
+          "clone holds nothing past the case's commit, repo watch sees the kit outside runs/, runs get lesson recall off, recorded runs kept, watched paths under ~/")
 
 
 def main():
@@ -750,6 +810,7 @@ def main():
     p.add_argument("--model", required=True)
     p.add_argument("--effort", default="high", choices=EFFORTS)
     p.add_argument("--case")
+    p.add_argument("--run", help="the run folder name, when one with the default name exists (a rerun the same day)")
     p = sub.add_parser("replay")
     p.add_argument("--model", required=True)
     p.add_argument("--effort", required=True, choices=EFFORTS)

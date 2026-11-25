@@ -15,7 +15,7 @@ On release day, follow `RELEASE-DAY.md`.
 |---|---|
 | `cases/<id>/` | a review case: `case.json` (repo, base, head, rating, original reviewer, source transcript), `task.md` (the prompt the original reviewer got, with `{repo}` and `{range}` filled in at run time), `known.md` (the original first-round report, verbatim but for its paths, renamed to the APS-91 layout; issue n is `Kn`) |
 | `replay/aps37-token-guard/` | the HARD task replayed for (b): `task.md` is the author's task, `known.md` the first-round report on the original author's commit, `case.json` adds `review_task` and the fixed `replay_reviewer` |
-| `runs/<date>-<model>-<effort>/<case>/` | written by the runner: `report.md` (the run's final message) and `run.json` (model from the stream, effort, cost, tokens, duration, void check) |
+| `runs/<run>/<case>/` | written by the runner: `report.md` (the run's final message) and `run.json` (model from the stream, effort, cost, tokens, duration, void check). `<run>` is `<date>-<model>-<effort>`, or `--run <name>` for a second run the same day; the runner refuses a name that already holds the case. This repo is public: a report that names a secret's path on the machine is redacted, and says so |
 | `results.md` | the scores, with the owner's verdicts |
 | `candidates.txt` | created on release day: one published model ID per line; `check.py` refuses any other unpinned ID in the kit |
 
@@ -24,7 +24,10 @@ On release day, follow `RELEASE-DAY.md`.
 | `aps32-guard` | coding-playbook `d5bc1dc..ea89167` | HARD | Fable 5.1, FAIL | 1 MAJOR, 6 MINOR |
 | `aps34-boundary` | coding-playbook `bcc4708..852a39a` | HARD | Fable 5.1, FAIL | 3 MAJOR, 4 MINOR, 1 NIT |
 | `asp18-overview` | ambysto-space `266e95c..8f0356d` | MEDIUM | Opus 5.5, FAIL | 2 MAJOR, 2 MINOR |
+| `aps72-round3` | coding-playbook `4b83421..d8aa744` | HARD | Fable 5.2, PASS (round 3) | 3 MINOR |
 | replay `aps37-token-guard` | coding-playbook from `d33a160` (original commit `1f8064f`) | HARD | Fable 5.1, FAIL | 2 MAJOR, 5 MINOR |
+
+`aps72-round3` is a round-3 report, not a first round: the original reviewer saw rounds 1 and 2 in the same session, and its three MINORs cost a fourth round (ambysto/coding-playbook PR #71). It tests MINOR labels (APS-101); `task.md` merges the three prompts into one first review (`prompt_edits`).
 
 Cases 1-3 were first found by Fable 5.1, so its baseline repeats its own review of the same diff in a new run. That
 is a fair floor for "catches at least as many"; Opus 5.5 on the same cases shows what a different model catches.
@@ -36,7 +39,7 @@ Paths in `known.md` and `runs/` use the layout of APS-91 (`tools/`, `maint/`, `h
 ```
 python3 maint/switch-test/switch-test.py --self-test                      # no model calls
 python3 maint/switch-test/switch-test.py probe --model <id>               # one cheap run: the reviewer's hook must block a checkout
-python3 maint/switch-test/switch-test.py review --model <id> [--effort high] [--case <id>]
+python3 maint/switch-test/switch-test.py review --model <id> [--effort high] [--case <id>] [--run <name>]
 python3 maint/switch-test/switch-test.py replay --model <id> --effort <main session effort>
 python3 maint/switch-test/switch-test.py void-check ~/.cache/model-switch-runs/<run>/<case>/stream.jsonl
 ```
@@ -60,6 +63,10 @@ python3 maint/switch-test/switch-test.py void-check ~/.cache/model-switch-runs/<
   replays with each other; the original author's first-round numbers in `known.md` are context, not a like-for-like
   baseline.
 - Runs use `--no-session-persistence`, so they add nothing to `~/.claude/projects`.
+- Every run gets `SESSION_GATES_MEMORY=/nonexistent` from the runner. The session gates in `~/.claude/settings.json` run
+  in a headless run too, and their lesson recall can name a shared-memory lesson that hints at a case's answers
+  (`aps72-round3`: `limit-malformed-input-minors`, a void marker) in hook context, which the void check cannot see.
+  With the variable, recall finds no lessons, as in the 2026-11-07 baseline, which predates the gates (APS-66).
 - Cost: every review and replay is a real model run; `run.json` records it.
 
 ## Blindness
