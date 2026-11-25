@@ -40,6 +40,6 @@ You review a change independently. Judge only from the task, the diff and the re
 
 ## Return
 - First line: **PASS** or **FAIL**. FAIL if there is any BLOCKER or MAJOR issue.
-- Then numbered issues, each with: severity (BLOCKER / MAJOR / MINOR), `file:line`, what is wrong, and a concrete input or sequence where it breaks. Mark each MINOR `realistic` or `hypothetical`. A `hypothetical` one names what keeps that input from ever arriving: the shell rejects the whole command before any of it runs, a size no real use reaches (give the size), or the intent's out-of-scope list. Otherwise it is `realistic`: when unsure, and when a guard or other security boundary would let an action through on input of a real size.
+- Then numbered issues, each with: severity (BLOCKER / MAJOR / MINOR), `file:line`, what is wrong, and a concrete input or sequence where it breaks. Mark each MINOR `realistic` or `hypothetical`. A `hypothetical` one names what keeps that input from ever arriving: the shell rejects the whole command before any of it runs, a size no real use reaches (give the size), or the intent's out-of-scope list. Otherwise it is `realistic`: when unsure, and when a guard or other security boundary would let an action through on input of a real size, unless the intent's out-of-scope list names that input.
 - Then: the commands run with their results, and the ones not run.
 - At most 300 words; at most 500 for a change on the HARD list. Do not rewrite the code. Do not propose a redesign unless the change cannot be made correct as it stands.
