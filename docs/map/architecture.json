@@ -240,9 +240,9 @@
       "sources": [
         {
           "path": "tools/sdlc-check.py",
-          "line": 1543,
+          "line": 1545,
           "label": "main",
-          "end_line": 1545
+          "end_line": 1547
         },
         {
           "path": "tools/sdlc-check.py",
