@@ -3,6 +3,7 @@
 ## Model economy
 The main session runs the model with the best quality per cost for deciding, rating, gating and HARD work. It decides, rates each task, dispatches, gates, commits, merges and talks to me.
 **Current choice (2026-10-16): Opus 5.5.** On cost/quality it is ahead of Fable 5.1. Revisit when the next model ships, by the switch test below. Owner decision 2026-11-11: every role keeps its pinned model (Fable 5.2 as hard-reviewer) until a new model ships; no switch test before then.
+Switch (2026-11-10): hard-reviewer → Fable 5.2 (`claude-fable-5-2`); owner decision, the switch test was skipped, so the main session was not re-compared with Fable 5.2
 
 Where each setting lives (CLAUDE.md only records the choice; it cannot set a model):
 - Main session model: `"model"` in `~/.claude/settings.json`, as a full model ID (`claude-opus-5-5`), never an alias, so an upgrade is always a decision.
@@ -15,6 +16,7 @@ Subagents (in `~/.claude/agents/`; a project's `.claude/agents/` overrides them)
 - **hard-reviewer** (Fable 5.2): the same review for HARD changes. A different model from the one that wrote the change, so it does not share its blind spots.
 - **transcriber** (Haiku 5.5): mechanical copying and conversion only, no judgment.
 
+Subagents return concise summaries, never full file dumps: builder and transcriber at most 200 words (the builder's contract check commands not counted), reviewers at most 300 (500 for a HARD change).
 Small tasks (1-2 files, obvious change) are done directly, not dispatched.
 
 ## Task rating (do this before dispatching)
@@ -29,6 +31,8 @@ Each project's CLAUDE.md lists its own HARD / MEDIUM / EASY examples; those over
 
 ## The loop
 - Every builder dispatch carries a task contract, written with `tools/dispatch.py` in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`): `new <repo> <branch> --allow … --check …` gives a builder that runs beside another its own worktree and contract; `contract <tree> --allow … --check …` serves a single builder in the main checkout. agent-guard refuses the builder's writes outside the contract (and all writes without one) and locks the run when anything changes outside it. The main session reruns the contract's checks as its gate before review, judges an `OUTSIDE CONTRACT` report before anything else, and runs `dispatch.py done <tree>` when the work is committed.
+- A plan with a `## Tasks` section (the sdlc skill): each builder's contract comes from its task (`dispatch.py new <repo> <branch> --task <plan> <id>`, or `contract <tree> --task …`), and before its review `tools/sdlc-check.py converge <plan>` must pass; the reviewer gets its output with the diff. `sdlc-check.py clarify <intent>` fails while an intent has an open point.
+- The reviewer gets the task and the diff, not the builder's or the main session's summary.
 - On FAIL: the builder (MEDIUM) or the main session (HARD) fixes from the numbered issue list, at most 2 rounds; then stop and ask me.
 - **One-prompt run** (opt-in, when the owner gives a goal to carry to done): follow the sdlc skill's "One-prompt run" section. Its loop tool is `python3 ~/work/0xdonniechu/coding-playbook/tools/loop.py` (`start <plan> [--hours <n>]`, default 12 hours; `pass <task>`, `fail <task> "<reason>"`, `ask "<question>"` and then ask it, `stop`, `resume`, `status`). Every reviewer prompt for the open run's plan has a line of its own `loop task: T<n>` (two tasks: `loop tasks: T1, T2`); a review of other work gets none. Record every reviewer FAIL with `loop.py fail`, once per task it named (the run is not done without it); a task whose last verdict is FAIL holds the run until a later PASS. For a run nobody watches, the session must be in a permission mode that does not ask; if it dies, the wake timer forks it (Tools). The run closes itself after 3 stops with no change, 40 stops held or its time limit; `loop.py resume` reopens it (not after two fails or done). A path outside every task that is not this work's: ask, never delete it or widen the plan. To merge inside a run: once `converge` passes and every review is recorded, `loop.py stop "converged"`, then merge as the rules below say (an open run reads the merged, empty branch as tasks not done).
 - A BLOCKER or MAJOR issue is never waived silently: fix it, or ask me.
@@ -71,7 +75,7 @@ Ambysto repos share one owner-reviewed memory in `~/work/ambysto/ambysto-memory`
 - **Waking a dead run** (`hooks/loop/loop-wake.py`, timer `1prompt-wake.timer`): a one-prompt run whose session died is forked headless under 1prompt's boundary settings after 30 quiet minutes and continues (at most 4 times, $20 a wake, $50 a day, each wake on its ticket); a run in a permission mode that asks is not woken. Closing a window does not end a run: `loop.py stop` does. `python3 ~/.claude/hooks/loop/loop-wake.py tick --dry-run` shows what it would do.
 
 ## Switching models (when a new model ships)
-Run the switch test in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`): `maint/switch-test/README.md`, then its `RELEASE-DAY.md`. Switch only if the candidate catches at least as many known issues at an acceptable cost; `maint/switch-model.py` then makes the edit in one command.
+Run the switch test in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`): `maint/switch-test/README.md`, then its `RELEASE-DAY.md`. Switch only if the candidate catches at least as many known issues at an acceptable cost; `maint/switch-model.py` then makes the repo's part of the edit in one command, and `~/.claude/settings.json` is changed with it.
 
 ## Honesty
 - Never report a check as passing that was not run. Write "not run: <reason>" (wrong OS, owner-only step, missing credentials).
