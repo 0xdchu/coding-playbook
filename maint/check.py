@@ -264,7 +264,7 @@ try:
             fail(f"{rel}: matches leak pattern {hit} (this repo is public; remove it or rewrite it)")
 except (OSError, ValueError, KeyError, TypeError, re.error) as error:
     fail(f"maint/leak-patterns.json: {type(error).__name__}: {error}")
-# The hooks are copied from 0xdonniechu/1prompt at the commit hooks/1prompt/pin.json names; never edited here. Their hashes must
+# The hooks are copied from 0xdchu/1prompt at the commit hooks/1prompt/pin.json names; never edited here. Their hashes must
 # match the pin; when a clone of 1prompt sits next to this repo, the pinned commit's files must match too.
 try:
     pin = json.loads(read("hooks/1prompt/pin.json"))

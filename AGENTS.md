@@ -25,7 +25,7 @@ The subagent roles (builder, reviewer, hard-reviewer, transcriber), the global i
 - README wording, typos, examples that do not change a rule, intent and plan status lines that record work done.
 
 ## Rules
-- Follow all rules in [CLAUDE.md](CLAUDE.md) (pinned model IDs, `reviewer.md` / `hard-reviewer.md` body parity, universal paths, no secrets, the leak check, `0xdonniechu` git identity, `cpb-N-slug` branches).
+- Follow all rules in [CLAUDE.md](CLAUDE.md) (pinned model IDs, `reviewer.md` / `hard-reviewer.md` body parity, universal paths, no secrets, the leak check, `0xdchu` git identity, `cpb-N-slug` branches).
 
 ## Session state
 `HANDOFF.md` (gitignored) holds only where the current goal stands. Plans, decisions and dead ends go in files, not in the chat.
