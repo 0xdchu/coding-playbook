@@ -1,7 +1,0 @@
-{
-  "name": "mockup",
-  "private": true,
-  "version": "0.1.0",
-  "scripts": { "check": "node check.mjs" },
-  "devDependencies": { "playwright-core": "^1.50.0" }
-}

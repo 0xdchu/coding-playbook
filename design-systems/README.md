@@ -1,6 +1,6 @@
 # Design-system library
 
-Six modern systems, packaged so the `mockup` skill (or a person) can copy one in a single step and an LLM can
+Six modern systems, packaged so the `mockup` skill (BYFA-skills, `0xdchu/BYFA-skills`; or a person) can copy one in a single step and an LLM can
 read it once. Plain CSS variables and classes; no JS, no build, no npm.
 
 ## The five-file contract

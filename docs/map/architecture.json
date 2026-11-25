@@ -106,7 +106,7 @@
     {
       "id": "skills",
       "label": "Skills",
-      "sublabel": "Step-by-step jobs a session follows: the sdlc chain, system-map, graph, mockup, userflow, static-mockup-visuals, handoff and others",
+      "sublabel": "Step-by-step jobs a session follows: the sdlc chain, system-map, graph, static-mockup-visuals, handoff and others",
       "boundary": "rules",
       "layer": "frontend",
       "sources": [
@@ -124,16 +124,6 @@
           "path": "skills/graph/SKILL.md",
           "line": 2,
           "label": "name: graph"
-        },
-        {
-          "path": "skills/mockup/SKILL.md",
-          "line": 2,
-          "label": "name: mockup"
-        },
-        {
-          "path": "skills/userflow/SKILL.md",
-          "line": 2,
-          "label": "name: userflow"
         },
         {
           "path": "skills/static-mockup-visuals/SKILL.md",
@@ -544,7 +534,7 @@
       "sources": [
         {
           "path": "maint/check.py",
-          "line": 267,
+          "line": 258,
           "label": "0xdchu/1prompt"
         }
       ],
@@ -649,40 +639,9 @@
       "col": 3
     },
     {
-      "id": "mockup_tpl",
-      "label": "mockup template",
-      "sublabel": "The clickable-mockup page: router and demo state, screens, seed data and a Playwright check",
-      "boundary": "skillcode",
-      "layer": "frontend",
-      "sources": [
-        {
-          "path": "skills/mockup/template/app.js",
-          "line": 3,
-          "label": "KEY"
-        },
-        {
-          "path": "skills/mockup/template/data.js",
-          "line": 3,
-          "label": "SEED"
-        },
-        {
-          "path": "skills/mockup/template/screens.js",
-          "line": 5,
-          "label": "pending"
-        },
-        {
-          "path": "skills/mockup/template/check.mjs",
-          "line": 11,
-          "label": "ROOT"
-        }
-      ],
-      "row": 4,
-      "col": 1
-    },
-    {
       "id": "design_systems",
       "label": "design-systems/",
-      "sublabel": "Six CSS design systems (tokens, components, a reference page) a mockup copies in one step",
+      "sublabel": "Six CSS design systems (tokens, components, a reference page) the mockup skill (BYFA-skills) copies in one step",
       "boundary": "skillcode",
       "layer": "frontend",
       "sources": [
@@ -859,16 +818,6 @@
       "from": "graph_cli",
       "to": "graph_core",
       "label": "reads and checks sources"
-    },
-    {
-      "from": "skills",
-      "to": "mockup_tpl",
-      "label": "the mockup skill copies it"
-    },
-    {
-      "from": "mockup_tpl",
-      "to": "design_systems",
-      "label": "copies one system in"
     }
   ]
 }
