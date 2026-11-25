@@ -48,6 +48,7 @@ Tech, budget, policy (lean, no new dependency, …).
 - Limits: size, time, cost, quotas, and the speed it must reach; each limit is a number.
 
 Flow: <each `<yyyy-mm-dd>-<slug>.<name>.flow.json` in backticks, or `not needed: <reason>`>
+Usability: <the 3-5 tasks a usability round will run, from the Outcome items, and who tests them; or not needed: <reason>>
 ## Out of scope
 What this work deliberately does NOT do.
 ## Open questions
@@ -56,7 +57,7 @@ None.
 
 **Write WHAT, never HOW.** Function names, file layouts and algorithms belong in the plan. Every line should change a decision or a test; cut the rest.
 
-**Coverage.** Each of the nine bullets has text, or `N/A: <reason>`. A bare `N/A`, `TBD` or `?` counts as empty; an open point is a marker (below). Sub-bullets go indented under their bullet. (Business rules, Security and privacy and UI states were added with APS-92: an intent approved before that and not yet planned gets them before its next `clarify`; a shipped intent is left as it is.)
+**Coverage.** Each of the nine bullets has text, or `N/A: <reason>`. A bare `N/A`, `TBD` or `?` counts as empty; an open point is a marker (below). Sub-bullets go indented under their bullet. (Business rules, Security and privacy and UI states were added with APS-92: an intent approved before that and not yet planned gets them before its next `clarify`; a shipped intent is left as it is. The `Usability:` line, below, came with CPB-4: an intent approved before that and not yet planned gets it before its next `clarify`, when its UI states bullet is not `N/A`; a shipped intent is left as it is.)
 
 **Flow.** Draw the work as a flow when it has a branch point (a place where it takes one of several paths with different outcomes: yes or no, success or failure) or three or more parties that act on each other (people, roles, your own systems, outside services). A forgotten path shows up as a validation error: a decision with one exit, a node nothing reaches, a step with no declared link.
 - A path through steps and decisions (a user flow) is a `workflow`: draw one when the work branches. Who calls whom, in order (a processing flow), is a `sequence`: draw one when three or more parties act on each other. When both hold, draw both, one file each.
@@ -65,13 +66,15 @@ None.
 - Say, when handing it over, that the flow was not checked against code.
 - Otherwise write `Flow: not needed: <reason>`.
 
+**Usability.** Needed when the work changes a screen a person uses, that is, when the Coverage "UI states" bullet is not `N/A`. Write the 3-5 tasks a usability round will run, each taken from an Outcome item and phrased as what the person wants to get done, never naming a button, menu or other UI label, and who tests them. The round itself is run with the `usability-test` skill when it is installed. Otherwise write `Usability: not needed: <reason>` (a command-line tool, or a change nobody sees).
+
 Mark every open point where it stands in the text as `[NEEDS CLARIFICATION: <question>]`, and list it under `## Open questions`. That section begins with `None` when nothing is open. Run
 
 ```
 python3 <coding-playbook>/tools/sdlc-check.py clarify intent/<yyyy-mm-dd>-<slug>.md
 ```
 
-(`tools/sdlc-check.py` in the coding-playbook repo) before the intent goes to `approved`, and again before the plan is written. It fails while any marker remains, `## Open questions` does not begin with `None`, a Coverage bullet is missing or empty, the `Flow:` line is missing or wrong, or a flow fails validation or its `.flow.html` is not a fresh render. With no flow tool installed it says the flows were not checked; say so too.
+(`tools/sdlc-check.py` in the coding-playbook repo) before the intent goes to `approved`, and again before the plan is written. It fails while any marker remains, `## Open questions` does not begin with `None`, a Coverage bullet is missing or empty, the `Usability:` line is missing, doubled, empty or `not needed` without a reason while the UI states bullet is not `N/A`, the `Flow:` line is missing or wrong, or a flow fails validation or its `.flow.html` is not a fresh render. With no flow tool installed it says the flows were not checked; say so too.
 
 **Fresh reader.** Before you ask the owner to approve, run one fresh agent, with none of this chat, on the model your builder agent uses, read-only. Give it this prompt, with the paths filled in:
 
@@ -103,7 +106,7 @@ Feed only the intent file into plan mode. For large or architectural work, split
 - **Risks**: what could break, and the check that would catch it.
 - **Design** (when the work adds a component, stores data, talks to an outside service or starts a project; otherwise `Design: not needed: <reason>`): the parts and how they talk (a small text diagram), the stack chosen and why, the data model (entities, fields, keys, or the JSON shape), a table with one row per outside service (auth, the fields it needs, its limits), the permissions, environment variables (names only, never values) and hosts it needs, and for a new project the folder tree.
 - **Tasks**: one entry per builder dispatch, or per step the main session does itself.
-- **Proof**: the commands or evidence that show it is done (test, build, screenshot, curl). "Done" is defined here, before any code is typed. An item names the intent's Outcome items it proves, as `(O1, O3)` on its line, and an item that proves none on its own (a whole-suite run) names none; every Outcome item is named at least once. When the work changes how someone installs or uses it, one item checks that the README says so (read it and name the section).
+- **Proof**: the commands or evidence that show it is done (test, build, screenshot, curl). "Done" is defined here, before any code is typed. An item names the intent's Outcome items it proves, as `(O1, O3)` on its line, and an item that proves none on its own (a whole-suite run) names none; every Outcome item is named at least once. When the work changes how someone installs or uses it, one item checks that the README says so (read it and name the section). When the work adds or changes a step that a userflow event plan measures, one item checks that those events arrive: name them, and use a test that captures the call or the analytics tool's live events. When the intent has a `Usability:` line with tasks, one item records the round's result in counts ("k of N completed task 1", with a link to the findings file); before real users exist its Result is `not run: <reason>`.
 - **Result**: an empty heading for now, filled in Phase 4.
 
 The plan starts with its own status line, `status: draft # draft → planned → building → verified`.

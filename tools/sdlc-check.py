@@ -13,6 +13,8 @@ It also fails (APS-82):
     failures:`, `- Business rules:`, `- Data and states:`, `- Security and privacy:`, `- UI states:`,
     `- Limits:`), gives one twice, or leaves one empty (blank, a bare `N/A`, `TBD`
     or `?`, with or without a full stop, also as sub-bullets; `N/A: <reason>` is content);
+  - (CPB-4) when the `UI states` bullet is not `N/A: <reason>` and the intent has no `Usability:` line (or more than
+    one), or the line is empty (blank, `TBD`, `?`) or says `not needed` with no reason; an `N/A` UI states bullet needs no line;
   - when the intent has no `Flow:` line or more than one; when `Flow: not needed:` gives no reason or names a flow
     file; when a named `*.flow.json` is not `<intent stem>.<name>.flow.json` beside the intent (no slash or backslash;
     a file belongs to the longest intent stem it extends, so `x.trial.a.flow.json` is `x.trial.md`'s, not `x.md`'s),
@@ -205,11 +207,8 @@ def clarify(text):
     return gaps
 
 
-def coverage(text):
-    """Gaps in `## Coverage`: each of the nine labels once, as `- <Label>: <text>`, with text or `N/A: <reason>`."""
-    lines = section(text, "Coverage")
-    if lines is None:
-        return ["no `## Coverage` section"]
+def coverage_rows(lines):
+    """({label: its lines}, gaps for a label given twice) from the lines of `## Coverage`."""
     rows, gaps, current, fenced = {}, [], None, False
     for line in lines:
         if line.startswith("```"):
@@ -225,12 +224,48 @@ def coverage(text):
             rows[current].append(line)
         elif line.strip():
             current = None
+    return rows, gaps
+
+
+def coverage(text):
+    """Gaps in `## Coverage`: each of the nine labels once, as `- <Label>: <text>`, with text or `N/A: <reason>`."""
+    lines = section(text, "Coverage")
+    if lines is None:
+        return ["no `## Coverage` section"]
+    rows, gaps = coverage_rows(lines)
     for label in COVERAGE:
         if label not in rows:
             gaps.append(f"`## Coverage` has no `- {label}:` bullet")
         elif empty_row(rows[label]):
             gaps.append(f"`## Coverage` `{label}` is empty (write it, or `N/A: <reason>`)")
     return gaps
+
+
+def usability_line(text):
+    """Gaps in the `Usability:` line (CPB-4): an intent whose Coverage `UI states` bullet is not `N/A: <reason>` has one
+    line, with tasks or `not needed: <reason>`. A missing or empty bullet is `coverage`'s gap, not this one's."""
+    lines = section(text, "Coverage")
+    rows = coverage_rows(lines)[0] if lines is not None else {}
+    ui = rows.get("UI states")
+    items = [re.sub(r"^\s*(?:[-*]|\d+\.)\s+", "", l).strip() for l in ui or [] if l.strip()]
+    if ui is None or empty_row(ui) or all(re.match(r"N/A\s*:", i, re.I) for i in items):  # every item `N/A: …`
+        return []
+    found, fenced = [], False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        elif not fenced and re.match(r"Usability:(\s|$)", line):
+            found.append(line[len("Usability:"):].strip())
+    if not found:
+        return ["no `Usability:` line (the UI states bullet is not `N/A`: list the 3-5 tasks, or write `Usability: not needed: <reason>`)"]
+    if len(found) > 1:
+        return [f"{len(found)} `Usability:` lines; write one"]
+    value = found[0]
+    if value.rstrip(".").strip().lower() in EMPTY_ROW:
+        return ["`Usability:` is empty (list the 3-5 tasks, or write `not needed: <reason>`)"]
+    if value.lower().startswith("not needed") and not re.match(r"not needed:\s*\S", value, re.I):
+        return ["`Usability: not needed` gives no reason"]
+    return []
 
 
 def empty_row(lines):
@@ -344,12 +379,12 @@ def check_flows(folder, named, tool, timeout=FLOW_TIMEOUT):
 
 
 def clarify_intent(path, tool=None, timeout=FLOW_TIMEOUT):
-    """(notes, gaps) for an intent file: the open points, `## Coverage`, the `Flow:` line and its flows."""
+    """(notes, gaps) for an intent file: the open points, `## Coverage`, the `Usability:` line, the `Flow:` line and its flows."""
     path = Path(path)
     text = path.read_text(encoding="utf-8")
     named, flow_gaps = flow_line(path.resolve(), text)
     notes, checked = check_flows(path.resolve().parent, named, tool, timeout)
-    return notes, clarify(text) + coverage(text) + flow_gaps + checked
+    return notes, clarify(text) + coverage(text) + usability_line(text) + flow_gaps + checked
 
 
 MAP_DIR = ("docs", "map")
@@ -902,6 +937,27 @@ def self_test():
                ["`## Coverage` `Limits` is empty (write it, or `N/A: <reason>`)"])
         expect("an approved intent without Coverage fails too", run_clarify("Flow: not needed: x\n",
                text="---\nstatus: shipped (PR #1)\n---\n## Open questions\nNone.\n")[1], ["no `## Coverage` section"])
+        ui_head = head.replace("- UI states: N/A: no screen", "- UI states: a form, then a thanks page")
+        nu = "no `Usability:` line (the UI states bullet is not `N/A`: list the 3-5 tasks, or write `Usability: not needed: <reason>`)"
+        expect("UI states with text, no Usability line", run_clarify("Flow: not needed: x\n", text=ui_head)[1], [nu])
+        expect("Usability not needed with a reason", run_clarify("Flow: not needed: x\nUsability: not needed: no screen change\n", text=ui_head)[1], [])
+        expect("Usability with tasks", run_clarify("Flow: not needed: x\nUsability: 1 sign up, 2 find the invoice; tested by 3 customers\n", text=ui_head)[1], [])
+        for bare in ("Usability:", "Usability: ", "Usability: TBD", "Usability: ?", "Usability: tbd."):
+            expect(f"Usability empty {bare!r}", run_clarify(f"Flow: not needed: x\n{bare}\n", text=ui_head)[1],
+                   ["`Usability:` is empty (list the 3-5 tasks, or write `not needed: <reason>`)"])
+        expect("Usability not needed without a reason", run_clarify("Flow: not needed: x\nUsability: not needed\n", text=ui_head)[1],
+               ["`Usability: not needed` gives no reason"])
+        expect("Usability Not needed (capitalised) without a reason", run_clarify("Flow: not needed: x\nUsability: Not needed\n", text=ui_head)[1],
+               ["`Usability: not needed` gives no reason"])
+        expect("Usability Not needed: with a reason", run_clarify("Flow: not needed: x\nUsability: Not needed: admin only\n", text=ui_head)[1], [])
+        expect("UI states N/A as the first sub-bullet, no Usability line",
+               run_clarify("Flow: not needed: x\n", text=head.replace("- UI states: N/A: no screen", "- UI states:\n  - N/A: no screen"))[1], [])
+        expect("UI states: one sub-bullet N/A, another a screen, no Usability line",
+               run_clarify("Flow: not needed: x\n", text=head.replace("- UI states: N/A: no screen", "- UI states:\n  - N/A: admin page unchanged\n  - signup form: loading, error"))[1], [nu])
+        expect("two Usability lines", run_clarify("Flow: not needed: x\nUsability: a\nUsability: b\n", text=ui_head)[1], ["2 `Usability:` lines; write one"])
+        expect("Usability in a fence is not the line", run_clarify("Flow: not needed: x\n```\nUsability: a\n```\n", text=ui_head)[1], [nu])
+        expect("UI states N/A: CLI, no Usability line", run_clarify("Flow: not needed: x\n", text=head.replace("N/A: no screen", "N/A: CLI"))[1], [])
+        expect("UI states with sub-bullets, no Usability line", run_clarify("Flow: not needed: x\n", text=head.replace("- UI states: N/A: no screen", "- UI states:\n  - loading"))[1], [nu])
         expect("no Flow line", run_clarify("")[1], ["no `Flow:` line (name the flow files, or write `Flow: not needed: <reason>`)"])
         expect("two Flow lines", run_clarify("Flow: not needed: a\nFlow: not needed: b\n")[1], ["2 `Flow:` lines; write one"])
         expect("Flow in a fence is not the line", run_clarify("```\nFlow: not needed: a\n```\n")[1][0][:15], "no `Flow:` line")

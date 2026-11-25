@@ -26,7 +26,7 @@
       "sources": [
         {
           "path": "tools/sdlc-check.py",
-          "line": 132,
+          "line": 134,
           "label": "def parse_tasks"
         }
       ]
@@ -93,7 +93,7 @@
       "sources": [
         {
           "path": "tools/sdlc-check.py",
-          "line": 744,
+          "line": 779,
           "label": "def converge"
         }
       ]
