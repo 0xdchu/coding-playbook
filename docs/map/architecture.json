@@ -31,7 +31,7 @@
     {
       "id": "skillcode",
       "label": "Skill code & design systems",
-      "layer": "frontend"
+      "layer": "cloud"
     },
     {
       "id": "ship",
@@ -490,7 +490,7 @@
           "label": "ambysto-graph"
         }
       ],
-      "row": 0,
+      "row": 2,
       "col": 7
     },
     {
@@ -660,7 +660,7 @@
         "canonical"
       ],
       "row": 4,
-      "col": 2
+      "col": 1
     }
   ],
   "edges": [
