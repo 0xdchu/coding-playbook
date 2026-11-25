@@ -1,0 +1,23 @@
+{
+  "kind": "review",
+  "repo": "ambysto/coding-playbook",
+  "base": "4b83421",
+  "head": "d8aa744",
+  "rating": "HARD",
+  "original_model": "claude-fable-5-2",
+  "source": "~/.claude/projects/-home-<user>-work-0xdonniechu/d07dfdaa-2116-4b20-8d25-7a68b50be988/subagents/agent-adfd04112a2f68033.jsonl",
+  "source_line": 719,
+  "id": "aps72-round3",
+  "void_extra": [
+    "~/.claude/hooks/gates/session-gates.py",
+    "~/work/ambysto/coding-playbook-aps101",
+    "ambysto-memory/lessons/limit-malformed-input-minors.md",
+    "d07dfdaa-2116-4b20-8d25-7a68b50be988",
+    "~/work/ambysto/coding-playbook-trials",
+    "~/work/0xdonniechu",
+    "~/work/0xdchu",
+    "0xdonniechu/coding-playbook",
+    "0xdchu/coding-playbook"
+  ],
+  "prompt_edits": "One prompt from three: the original reviewer reviewed rounds 1-3 in one session (SendMessage), so the round-3 prompt named its own earlier issues and scratch tools. task.md is the round-1 prompt (line 477 of the source), with the round-2 note on dash and `$((cmd); …)` (line 582) and the round-3 checks (line 676), over the whole range in one first review. Dropped: the round history (`your round N issues`), the scratch tool folders (rv8, rv10) and the stub's old_gates.py. `origin/main` is 4b83421 (the clone has no remote); `origin/main...aps-72-inner-commands` is {range}; `one commit 2e24507` is three commits. Added: the opening line (\"Review a HARD change: a PreToolUse hook that runs in every session…\", from the APS-71 round-1 prompt of the same session) and the read-only rules written out (\"Do not check out or edit anything… copy files to your own temp dir to run them\"), where round 1 said \"Same read-only rules apply\"."
+}
