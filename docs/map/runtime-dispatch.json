@@ -1,0 +1,168 @@
+{
+  "kind": "sequence",
+  "title": "Builder dispatch",
+  "subtitle": "A plan task becomes a contract; agent-guard holds the builder to it",
+  "participants": [
+    {
+      "id": "main",
+      "label": "Main session",
+      "external": true
+    },
+    {
+      "id": "dispatch",
+      "label": "dispatch.py",
+      "sources": [
+        {
+          "path": "tools/dispatch.py",
+          "line": 153,
+          "label": "cmd_new",
+          "end_line": 177
+        }
+      ]
+    },
+    {
+      "id": "sdlc",
+      "label": "sdlc-check.py",
+      "sources": [
+        {
+          "path": "tools/sdlc-check.py",
+          "line": 132,
+          "label": "def parse_tasks"
+        }
+      ]
+    },
+    {
+      "id": "builder",
+      "label": "Builder agent",
+      "external": true
+    },
+    {
+      "id": "guard",
+      "label": "agent-guard.py",
+      "sources": [
+        {
+          "path": "hooks/1prompt/agent-guard.py",
+          "line": 1440,
+          "label": "main",
+          "end_line": 1442
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "main",
+      "to": "dispatch",
+      "label": "dispatch.py new",
+      "sources": [
+        {
+          "path": "tools/dispatch.py",
+          "line": 153,
+          "label": "cmd_new"
+        }
+      ]
+    },
+    {
+      "from": "dispatch",
+      "to": "sdlc",
+      "label": "parse_tasks",
+      "sources": [
+        {
+          "path": "tools/dispatch.py",
+          "line": 138,
+          "label": "parse_tasks"
+        }
+      ]
+    },
+    {
+      "from": "builder",
+      "to": "guard",
+      "label": "PreToolUse",
+      "sources": [
+        {
+          "path": "hooks/1prompt/agent-guard.py",
+          "line": 1440,
+          "label": "main"
+        }
+      ]
+    },
+    {
+      "from": "main",
+      "to": "sdlc",
+      "label": "converge",
+      "sources": [
+        {
+          "path": "tools/sdlc-check.py",
+          "line": 744,
+          "label": "def converge"
+        }
+      ]
+    },
+    {
+      "from": "guard",
+      "to": "dispatch",
+      "label": "reads agent-contract.json",
+      "sources": [
+        {
+          "path": "hooks/1prompt/agent-guard.py",
+          "line": 1208,
+          "label": "CONTRACT_NAME"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "from": "main",
+      "to": "dispatch",
+      "label": "dispatch.py new --task <plan> T1"
+    },
+    {
+      "from": "dispatch",
+      "to": "sdlc",
+      "label": "the task's allow, forbid and checks"
+    },
+    {
+      "from": "builder",
+      "to": "guard",
+      "label": "PreToolUse: an edit or a command"
+    },
+    {
+      "from": "guard",
+      "to": "dispatch",
+      "label": "reads the contract"
+    },
+    {
+      "fragment": "alt",
+      "branches": [
+        {
+          "label": "inside allow",
+          "steps": [
+            {
+              "from": "guard",
+              "to": "guard",
+              "label": "allowed",
+              "kind": "self"
+            }
+          ]
+        },
+        {
+          "label": "outside allow",
+          "steps": [
+            {
+              "from": "guard",
+              "to": "guard",
+              "label": "refused; the run locks",
+              "kind": "self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "from": "main",
+      "to": "sdlc",
+      "label": "converge <plan>: gaps, or PASS"
+    }
+  ]
+}

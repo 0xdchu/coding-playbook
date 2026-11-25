@@ -1,0 +1,18 @@
+{
+  "_comment": "Secret shapes and machine paths check.py refuses in any tracked or new file. This repo is public (APS-97). Internal names are not listed here, so the list itself publishes none: check.py also reads the machine-local ~/.config/coding-playbook/leak-terms.txt (one literal term per line, # comments) when it exists.",
+  "patterns": [
+    "gh[pousr]_[A-Za-z0-9]{20}",
+    "github_pat_[A-Za-z0-9_]{20}",
+    "sk-ant-[A-Za-z0-9_-]{20}",
+    "sk-proj-[A-Za-z0-9_-]{20}",
+    "plane_api_[A-Za-z0-9]{16}",
+    "AIza[0-9A-Za-z_-]{30}",
+    "AKIA[0-9A-Z]{16}",
+    "xox[abprs]-[A-Za-z0-9-]{10}",
+    "xapp-[A-Za-z0-9-]{10}",
+    "-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    "-----BEGIN PGP PRIVATE KEY BLOCK-----",
+    "/home/(?!x\\b)[a-z][a-z0-9_-]*",
+    "(projects/|claude-[0-9]+/)-home-(?!x-|<user>-)[a-z][a-z0-9_]*-"
+  ]
+}

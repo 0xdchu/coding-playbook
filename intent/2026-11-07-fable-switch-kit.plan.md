@@ -20,7 +20,7 @@ The transcript paths below stay in the case file as the source, so the copy can 
 Replay for question (b): `aps37-token-guard`, claudecode-guide, from `d33a160`; the original first commit
 `1f8064f` got 2 MAJOR and 5 MINOR from Fable 5.1 in round 1.
 
-Sources: `aps32` `~/.claude/projects/-home-dc-group-work-ambysto/d0b7e864…/subagents/agent-ae1199c….jsonl:117`;
+Sources: `aps32` `~/.claude/projects/-home-<user>-work-ambysto/d0b7e864…/subagents/agent-ae1199c….jsonl:117`;
 `aps34` `…-ambysto-space/69e03d46…/subagents/agent-aa5cfb97….jsonl:185`; `asp18`
 `…-ambysto-space/453d966b…/subagents/agent-a355e14d….jsonl:130`; `aps37` `…-ambysto/ecb8bd61…/subagents/agent-a1d20fac….jsonl:175`
 (full ids in the case files). Line 1 of each file is the prompt the reviewer got; the case's `task.md` is that

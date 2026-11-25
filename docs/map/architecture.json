@@ -1,0 +1,874 @@
+{
+  "mode": "architecture",
+  "title": "coding-playbook: architecture",
+  "subtitle": "The rules, guards and scripts every Claude Code session on this machine runs with, grouped by domain",
+  "boundaries": [
+    {
+      "id": "host",
+      "label": "Host",
+      "layer": "external"
+    },
+    {
+      "id": "rules",
+      "label": "Rules",
+      "layer": "frontend"
+    },
+    {
+      "id": "guards",
+      "label": "Guards",
+      "layer": "security"
+    },
+    {
+      "id": "chain",
+      "label": "SDLC chain",
+      "layer": "backend"
+    },
+    {
+      "id": "memory",
+      "label": "Handoff & graph hooks",
+      "layer": "database"
+    },
+    {
+      "id": "skillcode",
+      "label": "Skill code & design systems",
+      "layer": "frontend"
+    },
+    {
+      "id": "ship",
+      "label": "Install, verify & publish",
+      "layer": "cloud"
+    },
+    {
+      "id": "reports",
+      "label": "Tracker & owner log",
+      "layer": "messagebus"
+    },
+    {
+      "id": "outside",
+      "label": "Outside",
+      "layer": "external"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rules_global",
+      "label": "Global rules",
+      "sublabel": "The block every session follows: who does which job, task rating, the review loop, who merges",
+      "boundary": "rules",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "rules/global/CLAUDE.md",
+          "line": 1,
+          "label": "Global Claude Code instructions"
+        }
+      ],
+      "badges": [
+        "canonical"
+      ],
+      "row": 0,
+      "col": 1
+    },
+    {
+      "id": "agents",
+      "label": "Agent roles",
+      "sublabel": "builder edits inside its contract; reviewers never edit; transcriber only copies",
+      "boundary": "rules",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "rules/agents/builder.md",
+          "line": 2,
+          "label": "name: builder"
+        },
+        {
+          "path": "rules/agents/reviewer.md",
+          "line": 2,
+          "label": "name: reviewer"
+        },
+        {
+          "path": "rules/agents/hard-reviewer.md",
+          "line": 2,
+          "label": "name: hard-reviewer"
+        },
+        {
+          "path": "rules/agents/transcriber.md",
+          "line": 2,
+          "label": "name: transcriber"
+        }
+      ],
+      "badges": [
+        "canonical"
+      ],
+      "row": 1,
+      "col": 1
+    },
+    {
+      "id": "skills",
+      "label": "Skills",
+      "sublabel": "Step-by-step jobs a session follows: the sdlc chain, system-map, graph, mockup, userflow, static-mockup-visuals, handoff and others",
+      "boundary": "rules",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "skills/sdlc/SKILL.md",
+          "line": 2,
+          "label": "name: sdlc"
+        },
+        {
+          "path": "skills/system-map/SKILL.md",
+          "line": 2,
+          "label": "name: system-map"
+        },
+        {
+          "path": "skills/graph/SKILL.md",
+          "line": 2,
+          "label": "name: graph"
+        },
+        {
+          "path": "skills/mockup/SKILL.md",
+          "line": 2,
+          "label": "name: mockup"
+        },
+        {
+          "path": "skills/userflow/SKILL.md",
+          "line": 2,
+          "label": "name: userflow"
+        },
+        {
+          "path": "skills/static-mockup-visuals/SKILL.md",
+          "line": 2,
+          "label": "name: static-mockup-visuals"
+        }
+      ],
+      "badges": [
+        "canonical"
+      ],
+      "row": 2,
+      "col": 1
+    },
+    {
+      "id": "agent_guard",
+      "label": "agent-guard.py",
+      "sublabel": "Holds a builder to its task contract; a write outside it is refused and locks the run",
+      "boundary": "guards",
+      "layer": "security",
+      "sources": [
+        {
+          "path": "hooks/1prompt/agent-guard.py",
+          "line": 1440,
+          "label": "main",
+          "end_line": 1442
+        },
+        {
+          "path": "hooks/1prompt/agent-guard.py",
+          "line": 1193,
+          "label": "CONTRACT_NAME"
+        }
+      ],
+      "row": 2,
+      "col": 2
+    },
+    {
+      "id": "owner_token",
+      "label": "owner-token-guard.py",
+      "sublabel": "Denies any command that would take the owner's GitHub token or switch the account",
+      "boundary": "guards",
+      "layer": "security",
+      "sources": [
+        {
+          "path": "hooks/owner-token-guard/owner-token-guard.py",
+          "line": 134,
+          "label": "main",
+          "end_line": 136
+        }
+      ],
+      "row": 1,
+      "col": 2
+    },
+    {
+      "id": "session_gates",
+      "label": "session-gates.py",
+      "sublabel": "Branch names, no push to main, trees a running subagent read, lesson recall",
+      "boundary": "guards",
+      "layer": "security",
+      "sources": [
+        {
+          "path": "hooks/gates/session-gates.py",
+          "line": 1563,
+          "label": "main",
+          "end_line": 1565
+        }
+      ],
+      "row": 0,
+      "col": 2
+    },
+    {
+      "id": "dispatch",
+      "label": "dispatch.py",
+      "sublabel": "Writes the task contract a builder works to, taken from the plan's task",
+      "boundary": "chain",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "tools/dispatch.py",
+          "line": 153,
+          "label": "cmd_new",
+          "end_line": 177
+        },
+        {
+          "path": "tools/dispatch.py",
+          "line": 180,
+          "label": "cmd_contract"
+        },
+        {
+          "path": "tools/dispatch.py",
+          "line": 189,
+          "label": "cmd_show"
+        },
+        {
+          "path": "tools/dispatch.py",
+          "line": 195,
+          "label": "cmd_done"
+        },
+        {
+          "path": "tools/dispatch.py",
+          "line": 355,
+          "label": "main",
+          "end_line": 357
+        }
+      ],
+      "row": 0,
+      "col": 3
+    },
+    {
+      "id": "sdlc_check",
+      "label": "sdlc-check.py",
+      "sublabel": "clarify an intent, converge a plan with its branch, check a repo's map; the task parser",
+      "boundary": "chain",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "tools/sdlc-check.py",
+          "line": 1489,
+          "label": "main",
+          "end_line": 1491
+        },
+        {
+          "path": "tools/sdlc-check.py",
+          "line": 744,
+          "label": "def converge"
+        },
+        {
+          "path": "tools/sdlc-check.py",
+          "line": 132,
+          "label": "def parse_tasks"
+        }
+      ],
+      "badges": [
+        "canonical"
+      ],
+      "row": 1,
+      "col": 3
+    },
+    {
+      "id": "loop",
+      "label": "loop.py",
+      "sublabel": "Opens a one-prompt run on a plan and records each reviewer verdict per task",
+      "boundary": "chain",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "tools/loop.py",
+          "line": 142,
+          "label": "main",
+          "end_line": 144
+        }
+      ],
+      "row": 1,
+      "col": 4
+    },
+    {
+      "id": "loop_stop",
+      "label": "loop-stop.py",
+      "sublabel": "Stop hook: judges the run with converge and hands back what is left",
+      "boundary": "chain",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "hooks/loop/loop-stop.py",
+          "line": 901,
+          "label": "main",
+          "end_line": 903
+        },
+        {
+          "path": "hooks/loop/loop-stop.py",
+          "line": 417,
+          "label": "judge"
+        }
+      ],
+      "row": 0,
+      "col": 4
+    },
+    {
+      "id": "loop_wake",
+      "label": "loop-wake.py",
+      "sublabel": "Forks a run whose session died, headless, under spend caps",
+      "boundary": "chain",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "hooks/loop/loop-wake.py",
+          "line": 807,
+          "label": "main",
+          "end_line": 809
+        },
+        {
+          "path": "hooks/loop/loop-wake.py",
+          "line": 377,
+          "label": "claude"
+        }
+      ],
+      "row": 2,
+      "col": 4
+    },
+    {
+      "id": "progress",
+      "label": "progress-diagram.py",
+      "sublabel": "Draws a plan's tasks and proof state, and what the branch changed",
+      "boundary": "chain",
+      "layer": "backend",
+      "sources": [
+        {
+          "path": "tools/progress-diagram.py",
+          "line": 123,
+          "label": "main",
+          "end_line": 125
+        }
+      ],
+      "row": 2,
+      "col": 3
+    },
+    {
+      "id": "saveit",
+      "label": "saveit-hook.py",
+      "sublabel": "Briefs HANDOFF.md at session start and saves the live tail before a compact",
+      "boundary": "memory",
+      "layer": "database",
+      "sources": [
+        {
+          "path": "hooks/saveit/saveit-hook.py",
+          "line": 254,
+          "label": "main",
+          "end_line": 256
+        }
+      ],
+      "row": 0,
+      "col": 5
+    },
+    {
+      "id": "graph_hook",
+      "label": "graph-hook.py",
+      "sublabel": "Refreshes the repo's architecture graph in its git folder at session end",
+      "boundary": "memory",
+      "layer": "database",
+      "sources": [
+        {
+          "path": "hooks/graph/graph-hook.py",
+          "line": 579,
+          "label": "main",
+          "end_line": 581
+        }
+      ],
+      "row": 1,
+      "col": 5
+    },
+    {
+      "id": "install",
+      "label": "install.py",
+      "sublabel": "Copies agents, hooks, skills and the global block into ~/.claude; registers the hooks",
+      "boundary": "ship",
+      "layer": "cloud",
+      "sources": [
+        {
+          "path": "maint/install.py",
+          "line": 67,
+          "label": "def install_file"
+        },
+        {
+          "path": "maint/install.py",
+          "line": 96,
+          "label": "PreToolUse"
+        }
+      ],
+      "row": 0,
+      "col": 6
+    },
+    {
+      "id": "check",
+      "label": "check.py",
+      "sublabel": "Verify: pinned models, skills, a leak check over every tracked file, and every script's self-test",
+      "boundary": "ship",
+      "layer": "cloud",
+      "sources": [
+        {
+          "path": "maint/check.py",
+          "line": 29,
+          "label": "SKILLS"
+        }
+      ],
+      "row": 1,
+      "col": 6
+    },
+    {
+      "id": "switch_model",
+      "label": "switch-model.py",
+      "sublabel": "Changes every pinned model and the Current choice line in one edit",
+      "boundary": "ship",
+      "layer": "cloud",
+      "sources": [
+        {
+          "path": "maint/switch-model.py",
+          "line": 367,
+          "label": "main",
+          "end_line": 369
+        }
+      ],
+      "row": 2,
+      "col": 6
+    },
+    {
+      "id": "plane",
+      "label": "plane.py",
+      "sublabel": "Moves tracker tickets; reads the key at run time and never prints it",
+      "boundary": "reports",
+      "layer": "messagebus",
+      "sources": [
+        {
+          "path": "tools/plane.py",
+          "line": 196,
+          "label": "main",
+          "end_line": 198
+        }
+      ],
+      "row": 3,
+      "col": 5
+    },
+    {
+      "id": "hil",
+      "label": "hil-report.py",
+      "sublabel": "Summarises the owner time log",
+      "boundary": "reports",
+      "layer": "messagebus",
+      "sources": [
+        {
+          "path": "tools/hil-report.py",
+          "line": 58,
+          "label": "main",
+          "end_line": 60
+        }
+      ],
+      "row": 4,
+      "col": 5
+    },
+    {
+      "id": "claude_code",
+      "label": "Claude Code",
+      "sublabel": "Runs every session and calls the hooks on its events",
+      "boundary": "host",
+      "layer": "external",
+      "sources": [
+        {
+          "path": "maint/install.py",
+          "line": 96,
+          "label": "PreToolUse"
+        }
+      ],
+      "row": 1,
+      "col": 0
+    },
+    {
+      "id": "ambysto_graph",
+      "label": "ambysto-graph",
+      "sublabel": "Indexes a repo and draws diagrams, with no LLM",
+      "boundary": "outside",
+      "layer": "external",
+      "sources": [
+        {
+          "path": "tools/progress-diagram.py",
+          "line": 141,
+          "label": "ambysto-graph"
+        }
+      ],
+      "row": 0,
+      "col": 7
+    },
+    {
+      "id": "plane_api",
+      "label": "Plane",
+      "sublabel": "The tracker: tickets, states, comments",
+      "boundary": "outside",
+      "layer": "external",
+      "sources": [
+        {
+          "path": "tools/plane.py",
+          "line": 66,
+          "label": "PLANE_BASE_URL"
+        }
+      ],
+      "row": 3,
+      "col": 7
+    },
+    {
+      "id": "github",
+      "label": "GitHub",
+      "sublabel": "Pull requests and the owner's account, whose token the guard keeps from agents",
+      "boundary": "outside",
+      "layer": "external",
+      "sources": [
+        {
+          "path": "hooks/owner-token-guard/owner-token-guard.py",
+          "line": 8,
+          "label": "gh"
+        }
+      ],
+      "row": 4,
+      "col": 7
+    },
+    {
+      "id": "onep",
+      "label": "1prompt",
+      "sublabel": "0xdonniechu/1prompt: the source of agent-guard, copied here at a pinned commit",
+      "boundary": "outside",
+      "layer": "external",
+      "sources": [
+        {
+          "path": "maint/check.py",
+          "line": 267,
+          "label": "0xdonniechu/1prompt"
+        }
+      ],
+      "row": 1,
+      "col": 7
+    },
+    {
+      "id": "graph_cli",
+      "label": "graph.py",
+      "sublabel": "The graph skill's CLI: validate a flow IR, render it to HTML, turn a trace into an IR",
+      "boundary": "skillcode",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "skills/graph/scripts/graph.py",
+          "line": 103,
+          "label": "cmd_validate"
+        },
+        {
+          "path": "skills/graph/scripts/graph.py",
+          "line": 121,
+          "label": "cmd_render"
+        },
+        {
+          "path": "skills/graph/scripts/graph.py",
+          "line": 152,
+          "label": "cmd_from_trace"
+        },
+        {
+          "path": "skills/graph/scripts/graph.py",
+          "line": 197,
+          "label": "main",
+          "end_line": 199
+        },
+        {
+          "path": "skills/graph/scripts/graph_validate.py",
+          "line": 278,
+          "label": "main",
+          "end_line": 280
+        },
+        {
+          "path": "skills/graph/scripts/graph_trace.py",
+          "line": 34,
+          "label": "convert"
+        }
+      ],
+      "row": 3,
+      "col": 1
+    },
+    {
+      "id": "graph_render",
+      "label": "graph renderers",
+      "sublabel": "Lay out and draw sequence diagrams and flowcharts as offline SVG inside one HTML page",
+      "boundary": "skillcode",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "skills/graph/scripts/graph_sequence.py",
+          "line": 561,
+          "label": "main",
+          "end_line": 563
+        },
+        {
+          "path": "skills/graph/scripts/graph_workflow.py",
+          "line": 941,
+          "label": "main",
+          "end_line": 943
+        },
+        {
+          "path": "skills/graph/scripts/graph_svg.py",
+          "line": 74,
+          "label": "def esc"
+        },
+        {
+          "path": "skills/graph/scripts/graph_geometry.py",
+          "line": 33,
+          "label": "def r"
+        }
+      ],
+      "row": 3,
+      "col": 2
+    },
+    {
+      "id": "graph_core",
+      "label": "graph IR and sources",
+      "sublabel": "The flow IR types and the check that cited code lines exist and hold no secret",
+      "boundary": "skillcode",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "skills/graph/scripts/graph_ir.py",
+          "line": 34,
+          "label": "class Source"
+        },
+        {
+          "path": "skills/graph/scripts/graph_sources.py",
+          "line": 69,
+          "label": "def secret_line"
+        }
+      ],
+      "row": 3,
+      "col": 3
+    },
+    {
+      "id": "mockup_tpl",
+      "label": "mockup template",
+      "sublabel": "The clickable-mockup page: router and demo state, screens, seed data and a Playwright check",
+      "boundary": "skillcode",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "skills/mockup/template/app.js",
+          "line": 3,
+          "label": "KEY"
+        },
+        {
+          "path": "skills/mockup/template/data.js",
+          "line": 3,
+          "label": "SEED"
+        },
+        {
+          "path": "skills/mockup/template/screens.js",
+          "line": 5,
+          "label": "pending"
+        },
+        {
+          "path": "skills/mockup/template/check.mjs",
+          "line": 11,
+          "label": "ROOT"
+        }
+      ],
+      "row": 4,
+      "col": 1
+    },
+    {
+      "id": "design_systems",
+      "label": "design-systems/",
+      "sublabel": "Six CSS design systems (tokens, components, a reference page) a mockup copies in one step",
+      "boundary": "skillcode",
+      "layer": "frontend",
+      "sources": [
+        {
+          "path": "design-systems/README.md",
+          "line": 1,
+          "label": "Design-system library"
+        },
+        {
+          "path": "design-systems/carbon/manifest.json",
+          "line": 2,
+          "label": "name"
+        }
+      ],
+      "badges": [
+        "canonical"
+      ],
+      "row": 4,
+      "col": 2
+    }
+  ],
+  "edges": [
+    {
+      "from": "claude_code",
+      "to": "rules_global",
+      "label": "loads at session start"
+    },
+    {
+      "from": "claude_code",
+      "to": "agents",
+      "label": "spawns as subagents"
+    },
+    {
+      "from": "claude_code",
+      "to": "skills",
+      "label": "loads a skill when its task comes up"
+    },
+    {
+      "from": "claude_code",
+      "to": "session_gates",
+      "label": "PreToolUse"
+    },
+    {
+      "from": "claude_code",
+      "to": "owner_token",
+      "label": "PreToolUse"
+    },
+    {
+      "from": "dispatch",
+      "to": "sdlc_check",
+      "label": "reads the plan's task"
+    },
+    {
+      "from": "agent_guard",
+      "to": "dispatch",
+      "label": "reads the agent-contract.json it writes"
+    },
+    {
+      "from": "claude_code",
+      "to": "agent_guard",
+      "label": "builder's tool calls"
+    },
+    {
+      "from": "claude_code",
+      "to": "loop_stop",
+      "label": "Stop"
+    },
+    {
+      "from": "loop_stop",
+      "to": "loop",
+      "label": "reads the open run"
+    },
+    {
+      "from": "loop_stop",
+      "to": "sdlc_check",
+      "label": "converge --checks"
+    },
+    {
+      "from": "loop_wake",
+      "to": "claude_code",
+      "label": "forks a dead run"
+    },
+    {
+      "from": "sdlc_check",
+      "to": "ambysto_graph",
+      "label": "validate, render"
+    },
+    {
+      "from": "progress",
+      "to": "ambysto_graph",
+      "label": "render"
+    },
+    {
+      "from": "graph_hook",
+      "to": "ambysto_graph",
+      "label": "overview"
+    },
+    {
+      "from": "claude_code",
+      "to": "saveit",
+      "label": "SessionStart, PreCompact"
+    },
+    {
+      "from": "claude_code",
+      "to": "graph_hook",
+      "label": "SessionEnd"
+    },
+    {
+      "from": "install",
+      "to": "claude_code",
+      "label": "installs into ~/.claude"
+    },
+    {
+      "from": "check",
+      "to": "sdlc_check",
+      "label": "runs every self-test"
+    },
+    {
+      "from": "plane",
+      "to": "plane_api",
+      "label": "REST API"
+    },
+    {
+      "from": "onep",
+      "to": "agent_guard",
+      "label": "copied at the pin"
+    },
+    {
+      "from": "switch_model",
+      "to": "agents",
+      "label": "pins the models"
+    },
+    {
+      "from": "check",
+      "to": "skills",
+      "label": "checks each skill's triggers"
+    },
+    {
+      "from": "install",
+      "to": "rules_global",
+      "label": "copies"
+    },
+    {
+      "from": "owner_token",
+      "to": "github",
+      "label": "denies taking the owner's token"
+    },
+    {
+      "from": "loop_wake",
+      "to": "loop",
+      "label": "reads the open runs"
+    },
+    {
+      "from": "skills",
+      "to": "sdlc_check",
+      "label": "the sdlc skill runs clarify, converge"
+    },
+    {
+      "from": "hil",
+      "to": "rules_global",
+      "label": "reads the owner time log the rules define"
+    },
+    {
+      "from": "skills",
+      "to": "graph_cli",
+      "label": "the graph skill runs it"
+    },
+    {
+      "from": "graph_cli",
+      "to": "graph_render",
+      "label": "draws"
+    },
+    {
+      "from": "graph_cli",
+      "to": "graph_core",
+      "label": "reads and checks sources"
+    },
+    {
+      "from": "skills",
+      "to": "mockup_tpl",
+      "label": "the mockup skill copies it"
+    },
+    {
+      "from": "mockup_tpl",
+      "to": "design_systems",
+      "label": "copies one system in"
+    }
+  ]
+}

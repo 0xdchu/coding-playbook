@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-preset="classic">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>coding-playbook: documents</title>
+<style>
+:root, [data-theme="dark"] {
+  --bg-canvas: #090d16;
+  --bg-surface: rgba(17, 24, 39, 0.88);
+  --bg-card: rgba(22, 31, 50, 0.94);
+  --bg-elevated: #1e293b;
+  --bg-code: #0b1120;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-subtle: rgba(148, 163, 184, 0.18);
+  --border-strong: rgba(148, 163, 184, 0.34);
+  --grid-dot: rgba(148, 163, 184, 0.14);
+  --shadow-card: 0 10px 28px -6px rgba(0, 0, 0, 0.55);
+  --edge-default: #94a3b8;
+  --edge-active: #38bdf8;
+  --layer-frontend: #06b6d4;
+  --layer-backend: #6366f1;
+  --layer-database: #10b981;
+  --layer-security: #f43f5e;
+  --layer-messagebus: #a855f7;
+  --layer-cloud: #0ea5e9;
+  --layer-external: #64748b;
+  --delta-added: #22c55e;
+  --delta-modified: #f59e0b;
+  --delta-removed: #ef4444;
+}
+[data-theme="light"] {
+  --bg-canvas: #f8fafc;
+  --bg-surface: rgba(255, 255, 255, 0.92);
+  --bg-card: rgba(255, 255, 255, 0.98);
+  --bg-elevated: #f1f5f9;
+  --bg-code: #0f172a;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --border-strong: rgba(15, 23, 42, 0.26);
+  --grid-dot: rgba(15, 23, 42, 0.12);
+  --shadow-card: 0 8px 22px -4px rgba(15, 23, 42, 0.10);
+  --edge-default: #475569;
+  --edge-active: #0284c7;
+  --layer-frontend: #0891b2;
+  --layer-backend: #4f46e5;
+  --layer-database: #059669;
+  --layer-security: #e11d48;
+  --layer-messagebus: #9333ea;
+  --layer-cloud: #0284c7;
+  --layer-external: #475569;
+}
+[data-preset="blueprint"] {
+  --bg-canvas: #07192f;
+  --bg-surface: rgba(10, 31, 58, 0.92);
+  --bg-card: rgba(12, 38, 70, 0.95);
+  --grid-dot: rgba(56, 189, 248, 0.20);
+  --border-subtle: rgba(56, 189, 248, 0.30);
+  --border-strong: rgba(56, 189, 248, 0.60);
+  --edge-default: #38bdf8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  user-select: none;
+}
+#app {
+  position: relative; width: 100vw; height: 100vh;
+  background-image: radial-gradient(var(--grid-dot) 1.25px, transparent 1.25px);
+  background-size: 24px 24px;
+}
+[data-preset="blueprint"] #app {
+  background-image:
+    linear-gradient(to right, var(--grid-dot) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-dot) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+/* Top Header & Toolbar */
+#topbar {
+  position: fixed; top: 14px; left: 16px; right: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; border-radius: 12px;
+  background: var(--bg-surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  z-index: 30;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+body.presentation #topbar,
+body.presentation #cards-dock,
+body.presentation #minimap-wrap {
+  opacity: 0; pointer-events: none; transform: translateY(-12px);
+}
+.brand-block { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.brand-title {
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.brand-subtitle {
+  font-size: 11.5px; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.toolbar-controls {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.ctrl-input, .ctrl-select, .ctrl-btn {
+  height: 32px; padding: 0 10px; border-radius: 7px;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-primary); background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  outline: none; cursor: pointer;
+}
+.ctrl-input { width: 180px; cursor: text; }
+.ctrl-input:focus, .ctrl-select:focus, .ctrl-btn:hover {
+  border-color: var(--edge-active);
+}
+.ctrl-btn.active {
+  background: var(--edge-active); color: #090d16; border-color: var(--edge-active); font-weight: 600;
+}
+.mode-pill {
+  padding: 3px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  background: rgba(99, 102, 241, 0.18); color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+/* Route Probe Bar */
+#probe-bar {
+  position: fixed; top: 76px; left: 16px;
+  display: none; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 10px;
+  background: var(--bg-surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-strong);
+  z-index: 29; font-size: 12px;
+}
+#probe-bar.open { display: flex; }
+/* Canvas Viewport */
+#viewport {
+  width: 100%; height: 100%; cursor: grab;
+}
+#viewport.dragging { cursor: grabbing; }
+/* SVG Styling */
+.boundary-box {
+  fill: rgba(30, 41, 59, 0.26);
+  stroke-width: 1.5; stroke-dasharray: 6 4;
+  rx: 14px; ry: 14px;
+}
+[data-theme="light"] .boundary-box {
+  fill: rgba(241, 245, 249, 0.55);
+}
+.boundary-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; fill: var(--text-secondary);
+}
+.node-group { cursor: pointer; transition: opacity 0.18s ease; }
+.node-card {
+  fill: var(--bg-card);
+  stroke: var(--border-subtle); stroke-width: 1.4;
+  rx: 10px; ry: 10px;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.30));
+}
+.node-group:hover .node-card,
+.node-group.selected .node-card {
+  stroke: var(--edge-active); stroke-width: 2.4;
+}
+.node-title {
+  font-size: 13.5px; font-weight: 700; fill: var(--text-primary);
+}
+.node-sub {
+  font-size: 11px; fill: var(--text-secondary);
+}
+.node-item-text {
+  font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  fill: var(--text-secondary);
+}
+.node-badge {
+  font-size: 9.5px; font-weight: 600; fill: var(--text-primary);
+}
+.edge-group { transition: opacity 0.18s ease; }
+.edge-path {
+  fill: none; stroke: var(--edge-default); stroke-width: 1.85;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.edge-path.heuristic { stroke-dasharray: 5 5; opacity: 0.82; }
+.edge-path.highlighted {
+  stroke: var(--edge-active); stroke-width: 2.8; opacity: 1 !important;
+}
+[data-preset="signal-flow"] .edge-path {
+  stroke-dasharray: 8 6;
+  animation: signalPulse 1.4s linear infinite;
+}
+@keyframes signalPulse {
+  to { stroke-dashoffset: -28; }
+}
+.edge-label-bg {
+  fill: var(--bg-surface); stroke: var(--border-subtle); stroke-width: 1;
+  rx: 5px; ry: 5px;
+}
+.edge-label-text {
+  font-size: 10.5px; font-weight: 600; fill: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.dimmed { opacity: 0.16 !important; }
+.lifeline {
+  stroke: var(--border-strong); stroke-width: 1.4; stroke-dasharray: 6 6;
+}
+/* Semantic Passport Sidebar */
+#passport {
+  position: fixed; top: 76px; right: 16px; bottom: 16px; width: 400px;
+  max-width: calc(100vw - 32px);
+  background: var(--bg-surface); backdrop-filter: blur(16px);
+  border: 1px solid var(--border-strong); border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column;
+  transform: translateX(440px); transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 35; user-select: text;
+}
+#passport.open { transform: translateX(0); }
+.passport-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+}
+.passport-body {
+  padding: 14px 16px; overflow-y: auto; flex: 1;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 6px;
+}
+.reach-list { display: flex; flex-direction: column; gap: 4px; }
+.reach-item {
+  padding: 6px 9px; border-radius: 6px; background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle); font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.reach-item:hover { border-color: var(--edge-active); }
+.source-card {
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border-subtle); background: var(--bg-code);
+}
+.source-header {
+  padding: 6px 10px; background: rgba(148, 163, 184, 0.10);
+  font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #38bdf8; display: flex; justify-content: space-between;
+}
+.source-pre {
+  padding: 8px 10px; font-size: 11px; line-height: 1.45;
+  color: #e2e8f0; overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+/* Summary Cards Dock */
+#cards-dock {
+  position: fixed; left: 16px; bottom: 16px;
+  display: flex; gap: 10px; max-width: calc(100vw - 240px);
+  overflow-x: auto; z-index: 25;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.summary-card {
+  min-width: 250px; max-width: 320px; padding: 10px 12px;
+  border-radius: 10px; background: var(--bg-surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle); box-shadow: var(--shadow-card);
+}
+.summary-card h4 { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.summary-card pre {
+  font-size: 11px; white-space: pre-wrap; color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.4;
+}
+/* Minimap */
+#minimap-wrap {
+  position: fixed; right: 16px; bottom: 16px;
+  width: 184px; height: 124px; border-radius: 10px;
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card); overflow: hidden; z-index: 26;
+}
+#minimap-wrap.hidden { display: none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand-block">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="mode-pill" id="mode-badge"></span>
+        <span class="brand-title" id="doc-title"></span>
+      </div>
+      <div class="brand-subtitle" id="doc-subtitle"></div>
+    </div>
+    <div class="toolbar-controls">
+      <input id="search-input" class="ctrl-input" type="search" placeholder="Search nodes / files (/)..." />
+      <select id="layer-select" class="ctrl-select" title="Filter by Semantic Layer (L)">
+        <option value="all">All Layers</option>
+        <option value="frontend">Frontend</option>
+        <option value="security">Security</option>
+        <option value="backend">Backend</option>
+        <option value="messagebus">MessageBus</option>
+        <option value="database">Database</option>
+        <option value="cloud">Cloud</option>
+        <option value="external">External</option>
+      </select>
+      <select id="prov-select" class="ctrl-select" title="Filter by Provenance">
+        <option value="all">All Provenance</option>
+        <option value="proven">Proven Only</option>
+        <option value="heuristic">Heuristic Only</option>
+      </select>
+      <select id="preset-select" class="ctrl-select" title="Style Preset (S)">
+        <option value="classic">Preset: Classic</option>
+        <option value="blueprint">Preset: Blueprint</option>
+        <option value="signal-flow">Preset: Signal Flow</option>
+      </select>
+      <button id="btn-probe" class="ctrl-btn" title="Route Probe (R)">Probe (R)</button>
+      <button id="btn-theme" class="ctrl-btn" title="Toggle Theme (T)">Theme (T)</button>
+      <button id="btn-reset" class="ctrl-btn" title="Fit to Screen (0)">Fit (0)</button>
+      <button id="btn-minimap" class="ctrl-btn" title="Toggle Minimap (M)">Map (M)</button>
+      <button id="btn-export" class="ctrl-btn" title="Export SVG (E)">Export SVG</button>
+    </div>
+  </header>
+
+  <div id="probe-bar">
+    <strong>Route Probe:</strong>
+    <select id="probe-from" class="ctrl-select"></select>
+    <span>→</span>
+    <select id="probe-to" class="ctrl-select"></select>
+    <button id="probe-run" class="ctrl-btn active">Trace Path</button>
+    <button id="probe-clear" class="ctrl-btn">Clear</button>
+    <span id="probe-status" style="color:var(--text-secondary);"></span>
+  </div>
+
+  <svg id="viewport">
+    <defs>
+      <marker id="arrow-default" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#94a3b8"></path>
+      </marker>
+      <marker id="arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#38bdf8"></path>
+      </marker>
+    </defs>
+    <g id="canvas-root">
+      <g id="layer-boundaries"></g>
+      <g id="layer-lifelines"></g>
+      <g id="layer-edges"></g>
+      <g id="layer-nodes"></g>
+    </g>
+  </svg>
+
+  <aside id="passport">
+    <div class="passport-header">
+      <div>
+        <div id="pp-layer" style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#38bdf8;"></div>
+        <h3 id="pp-title" style="font-size:15px;font-weight:700;margin-top:2px;"></h3>
+        <div id="pp-sub" style="font-size:12px;color:var(--text-secondary);margin-top:2px;"></div>
+      </div>
+      <button id="pp-close" class="ctrl-btn">✕</button>
+    </div>
+    <div class="passport-body">
+      <div id="pp-metrics" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      <div id="pp-items-sec">
+        <div class="section-title">Key Symbols & Items</div>
+        <div id="pp-items" class="reach-list"></div>
+      </div>
+      <div>
+        <div class="section-title">Upstream Callers / Importers</div>
+        <div id="pp-upstream" class="reach-list"></div>
+      </div>
+      <div>
+        <div class="section-title">Downstream Callees / Dependencies</div>
+        <div id="pp-downstream" class="reach-list"></div>
+      </div>
+      <div>
+        <div class="section-title">Verified Source Evidence (path:line)</div>
+        <div id="pp-sources" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+  </aside>
+
+  <div id="cards-dock"></div>
+  <div id="minimap-wrap">
+    <svg id="minimap-svg" width="184" height="124" viewBox="0 0 1000 700">
+      <g id="minimap-content"></g>
+      <rect id="minimap-viewport" x="0" y="0" width="200" height="140" fill="rgba(56,189,248,0.12)" stroke="#38bdf8" stroke-width="6"></rect>
+    </svg>
+  </div>
+</div>
+
+<script id="ambysto-diagram-data" type="application/json">{"mode":"architecture","title":"coding-playbook: documents","subtitle":"Which file is the source of truth, and which only describes it","theme":null,"preset":null,"boundaries":[{"id":"truth","label":"Source of truth","sublabel":null,"layer":"backend","pos":[52.0,48.0],"size":[312.0,894.0]},{"id":"derived","label":"Derived","sublabel":null,"layer":"cloud","pos":[388.0,48.0],"size":[312.0,894.0]},{"id":"internal","label":"Internal","sublabel":null,"layer":"frontend","pos":[724.0,48.0],"size":[312.0,422.0]},{"id":"schema","label":"Schema","sublabel":null,"layer":"database","pos":[1060.0,48.0],"size":[312.0,422.0]}],"nodes":[{"id":"d_rules","label":"rules/global/CLAUDE.md","sublabel":"The global rules, installed into ~/.claude/CLAUDE.md","layer":"backend","role":null,"boundary":"truth","row":0,"col":0,"pos":[80.0,92.0],"size":[256.0,118.0],"items":[],"badges":["source of truth"],"sources":[{"path":"rules/global/CLAUDE.md","line":1,"end_line":null,"label":"Global Claude Code instructions","snippet":"   1 | # Global Claude Code instructions (install into ~/.claude/CLAUDE.md, applies to every project)\n   2 | \n   3 | ## Model economy\n   4 | The main session runs the model with the best quality per cost for deciding, rating, gating and HARD work. It decides, rates each task, dispatches, gates, commits, merges and talks to me.\n   5 | **Current choice (2026-10-16): Opus 5.5.** On cost/quality it is ahead of Fable 5.1. Revisit when the next model ships, by the switch test below. Owner decision 2026-11-11: every role keeps its pinned model (Fable 5.2 as hard-reviewer) until a new model ships; no switch test before then.\n   6 | Switch (2026-11-10): hard-reviewer → Fable 5.2 (`claude-fable-5-2`); owner decision, the switch test was skipped, so the main session was not re-compared with Fable 5.2\n   7 | \n   8 | Where each setting lives (CLAUDE.md only records the choice; it cannot set a model):\n   9 | - Main session model: `\"model\"` in `~/.claude/settings.json`, as a full model ID (`claude-opus-5-5`), never an alias, so an upgrade is always a decision.\n  10 | - Effort: `modelSettings.<model id>.effortLevel` in `~/.claude/settings.json` for the main session (Opus 5.5: `high`, owner decision 2026-11-08); `effort:` in each agent file for subagents (builder, reviewers `high`, transcriber `low`). Set once per session, never changed mid-session.\n  11 | - Subagent models: `model:` in each agent file, pinned to full model IDs. They change together with the main session, in one edit."}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_agents","label":"rules/agents/*.md","sublabel":"Each subagent's model, tools and instructions","layer":"backend","role":null,"boundary":"truth","row":1,"col":0,"pos":[80.0,328.0],"size":[256.0,118.0],"items":[],"badges":["source of truth"],"sources":[{"path":"rules/agents/builder.md","line":2,"end_line":null,"label":"name: builder","snippet":"   2 | name: builder\n   3 | description: Implements one approved plan step, or one MEDIUM/EASY task, after the main session has decided what to build. It edits the working tree only; it never commits, pushes, opens PRs, merges or updates an issue tracker. After a reviewer FAIL, run it again with the numbered issue list (at most 2 rounds; then the main session stops and asks the owner).\n   4 | model: claude-sonnet-5-5\n   5 | effort: high\n   6 | hooks:\n   7 |   PreToolUse:\n   8 |     - matcher: \"*\"\n   9 |       hooks:\n  10 |         - type: command\n  11 |           command: 'python3 \"$HOME/.claude/hooks/1prompt/agent-guard.py\" build'\n  12 |   PostToolUse:"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_skills","label":"skills/*/SKILL.md","sublabel":"Each skill's steps","layer":"backend","role":null,"boundary":"truth","row":2,"col":0,"pos":[80.0,564.0],"size":[256.0,118.0],"items":[],"badges":["source of truth"],"sources":[{"path":"skills/sdlc/SKILL.md","line":2,"end_line":null,"label":"name: sdlc","snippet":"   2 | name: sdlc\n   3 | description: The artifact chain intent, plan, build, verify, ship for any piece of work big enough to need it in a repo. Use when you start a new feature or a large refactor, or say \"write the intent\", \"follow the plan\", \"/sdlc\". Not for a one-line fix, a quick diagnosis, or a one-off ops task.\n   4 | ---\n   5 | \n   6 | # /sdlc\n   7 | \n   8 | Each phase ends with an artifact committed to the repo. A later session (or another agent) only needs to read that file, not the chat history.\n   9 | \n  10 | You are both the one who sets the requirements and the one who builds, so every approval gate comes down to one rule: **you approve the artifact before the next phase runs.**\n  11 | \n  12 | The chain lives in the repo's `intent/` folder:"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_parser","label":"tools/sdlc-check.py","sublabel":"The intent, plan and map formats, as the code reads them","layer":"backend","role":null,"boundary":"truth","row":3,"col":0,"pos":[80.0,800.0],"size":[256.0,118.0],"items":[],"badges":["source of truth"],"sources":[{"path":"tools/sdlc-check.py","line":132,"end_line":null,"label":"def parse_tasks","snippet":" 132 | def parse_tasks(text):\n 133 |     \"\"\"The plan's tasks as dicts (id, who, parallel, title, allow, forbid, checks, not_needed), or None without a\n 134 |     `## Tasks` section. A line the format does not know is refused, never skipped.\"\"\"\n 135 |     lines = section(text, \"Tasks\")\n 136 |     if lines is None:\n 137 |         return None\n 138 |     tasks, task = [], None\n 139 |     for line in lines:\n 140 |         if not line.strip():\n 141 |             continue\n 142 |         if line.startswith(\"###\"):"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_guard","label":"hooks/1prompt/agent-guard.py","sublabel":"Copied from 0xdonniechu/1prompt at the pinned commit; never edited here","layer":"cloud","role":null,"boundary":"derived","row":0,"col":1,"pos":[416.0,92.0],"size":[256.0,118.0],"items":[],"badges":["derived"],"sources":[{"path":"hooks/1prompt/agent-guard.py","line":1193,"end_line":null,"label":"CONTRACT_NAME","snippet":"1193 | CONTRACT_NAME = \"agent-contract.json\"\n1194 | EDIT_TOOLS = (\"Edit\", \"Write\", \"MultiEdit\", \"NotebookEdit\")\n1195 | READ_TOOLS = (\"Read\", \"Grep\", \"Glob\", \"LS\")\n1196 | FOLD_CASE = sys.platform in (\"win32\", \"darwin\")  # file systems that ignore case\n1197 | \n1198 | \n1199 | def git_dir(top):\n1200 |     out = git(top, \"rev-parse\", \"--absolute-git-dir\")\n1201 |     return os.path.realpath(out.decode().strip()) if out else None\n1202 | \n1203 | "}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_readme","label":"README.md","sublabel":"What each file is and where it installs","layer":"cloud","role":null,"boundary":"derived","row":1,"col":1,"pos":[416.0,328.0],"size":[256.0,118.0],"items":[],"badges":["derived"],"sources":[{"path":"README.md","line":1,"end_line":null,"label":"coding-playbook","snippet":"   1 | # coding-playbook\n   2 | \n   3 | Which model does which job in a Claude Code setup, how work is handed from one role to another, and the skills that go with it. Everything here installs into `~/.claude`.\n   4 | \n   5 | ## Roles and rules (`rules/`)\n   6 | \n   7 | Which model does which job and the rules every session follows. Only `rules/` holds these; everything else here is tooling around them or a skill.\n   8 | \n   9 | | File | Installs to | What it is |\n  10 | |---|---|---|\n  11 | | `rules/agents/builder.md` | `~/.claude/agents/` | Sonnet 5.5: implements an approved plan step; edits the working tree only |"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_internals","label":"docs/internals.md","sublabel":"How each hook and script works inside","layer":"cloud","role":null,"boundary":"derived","row":2,"col":1,"pos":[416.0,564.0],"size":[256.0,118.0],"items":[],"badges":["derived"],"sources":[{"path":"docs/internals.md","line":1,"end_line":null,"label":"Internals","snippet":"   1 | # Internals: how each hook and script works\n   2 | \n   3 | Moved verbatim from `CLAUDE.md` (APS-62, 2026-11-11) so sessions in this repo do not load it on every turn. `CLAUDE.md` keeps the rules and one line per item; read the section here before changing that item.\n   4 | \n   5 | ## What `python maint/check.py` covers\n   6 | \n   7 | [line hidden: may hold a secret]\n   8 | \n   9 | ## What `install.py --check` compares\n  10 | \n  11 | [line hidden: may hold a secret]"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_map","label":"docs/map/*.json","sublabel":"This map: the views and the files left out; checked against the code","layer":"cloud","role":null,"boundary":"derived","row":3,"col":1,"pos":[416.0,800.0],"size":[256.0,118.0],"items":[],"badges":["derived"],"sources":[{"path":"docs/map/map.json","line":2,"end_line":null,"label":"views","snippet":"   2 |   \"views\": {\n   3 |     \"architecture\": \"architecture.json\",\n   4 |     \"docs\": \"docs.json\",\n   5 |     \"runtime\": [\n   6 |       \"runtime-dispatch.json\",\n   7 |       \"runtime-stop-hook.json\",\n   8 |       \"runtime-install.json\"\n   9 |     ]\n  10 |   },\n  11 |   \"left_out\": {\n  12 |     \"maint/switch-test/switch-test.py\": \"the model-switch test kit, run by hand on release day; not on any session's path\","}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_claude","label":"CLAUDE.md","sublabel":"This repo's own rules: Verify, rating, Rules","layer":"frontend","role":null,"boundary":"internal","row":0,"col":2,"pos":[752.0,92.0],"size":[256.0,118.0],"items":[],"badges":["internal"],"sources":[{"path":"CLAUDE.md","line":1,"end_line":null,"label":"coding-playbook","snippet":"   1 | # coding-playbook: which model does which job in Claude Code, and the skills and scripts that go with it\n   2 | \n   3 | ## Where things live\n   4 | One row per job. `maint/check.py` fails when a file under `rules/`, `hooks/`, `tools/` or `maint/` is named here neither by its path nor by a folder above it: add a row when you add one.\n   5 | \n   6 | | Job | Path |\n   7 | |---|---|\n   8 | | Write a builder's task contract (its own worktree, or the main checkout) | `tools/dispatch.py` |\n   9 | | Check an intent (`clarify`), a plan against its branch (`converge`), a repo's map (`map`) | `tools/sdlc-check.py` |\n  10 | [line hidden: may hold a secret]\n  11 | [line hidden: may hold a secret]"}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_intent","label":"intent/*.md","sublabel":"Why each change was made: intents and plans","layer":"frontend","role":null,"boundary":"internal","row":1,"col":2,"pos":[752.0,328.0],"size":[256.0,118.0],"items":[],"badges":["internal"],"sources":[{"path":"intent/2026-11-20-system-map.md","line":4,"end_line":null,"label":"system-map","snippet":"   4 | # system-map: a committed map of a repo, drawn as Architecture, Docs and Runtime Flow views, kept current by converge\n   5 | \n   6 | Ticket: Plane APS-88.\n   7 | \n   8 | ## Problem\n   9 | 1. **No picture of a whole system that a reader can trust.**\n  10 |    - `ambysto-graph render --auto` draws code structure only: clusters named after folders, with no domains and no line saying why a part exists.\n  11 |    - A diagram an agent writes by hand is checked by nobody. It can name code that does not exist and leave parts out.\n  12 | 2. **Pictures go stale.** Nothing tells a session that the code changed under a diagram, so a picture that was right last month is trusted after it stopped being right.\n  13 | 3. **Docs and diagrams drift apart.** A prose architecture doc and a diagram drawn beside it are two things to keep in step, and only one of them gets updated.\n  14 | "}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_settings","label":"rules/global/settings-defaults.json","sublabel":"The settings entries the installer writes into ~/.claude/settings.json","layer":"database","role":null,"boundary":"schema","row":0,"col":3,"pos":[1088.0,92.0],"size":[256.0,118.0],"items":[],"badges":["schema"],"sources":[{"path":"rules/global/settings-defaults.json","line":2,"end_line":null,"label":"enabledPlugins","snippet":"   2 |   \"enabledPlugins\": {\n   3 |     \"vercel-plugin@vercel\": false,\n   4 |     \"vercel@claude-plugins-official\": false\n   5 |   },\n   6 |   \"skillOverrides\": {\n   7 |     \"create-skill\": \"user-invocable-only\",\n   8 |     \"agent-team\": \"user-invocable-only\",\n   9 |     \"orchestration\": \"user-invocable-only\",\n  10 |     \"page-quality\": \"user-invocable-only\",\n  11 |     \"posthog\": \"user-invocable-only\",\n  12 |     \"event-review\": \"user-invocable-only\","}],"delta":null,"fan_in":null,"fan_out":null},{"id":"d_leak","label":"maint/leak-patterns.json","sublabel":"Secret shapes and internal names no tracked file may contain; read by maint/check.py","layer":"database","role":null,"boundary":"schema","row":1,"col":3,"pos":[1088.0,328.0],"size":[256.0,118.0],"items":[],"badges":["schema"],"sources":[{"path":"maint/leak-patterns.json","line":3,"end_line":null,"label":"patterns","snippet":"   3 | [line hidden: may hold a secret]\n   4 | [line hidden: may hold a secret]\n   5 | [line hidden: may hold a secret]\n   6 | [line hidden: may hold a secret]\n   7 | [line hidden: may hold a secret]\n   8 | [line hidden: may hold a secret]\n   9 | [line hidden: may hold a secret]\n  10 | [line hidden: may hold a secret]\n  11 | [line hidden: may hold a secret]\n  12 | [line hidden: may hold a secret]\n  13 | [line hidden: may hold a secret]"}],"delta":null,"fan_in":null,"fan_out":null}],"edges":[{"id":null,"from":"d_claude","to":"d_rules","label":"defers to","kind":null,"provenance":null,"step":null,"delta":null,"points":[[752.0,151.0],[398.0,151.0],[398.0,138.0],[336.0,138.0]]},{"id":null,"from":"d_rules","to":"d_readme","label":"documented by","kind":null,"provenance":null,"step":null,"delta":null,"points":[[208.0,210.0],[208.0,263.0],[544.0,263.0],[544.0,328.0]]},{"id":null,"from":"d_skills","to":"d_readme","label":"documented by","kind":null,"provenance":null,"step":null,"delta":null,"points":[[208.0,564.0],[208.0,505.0],[544.0,505.0],[544.0,446.0]]},{"id":null,"from":"d_parser","to":"d_internals","label":"documented by","kind":null,"provenance":null,"step":null,"delta":null,"points":[[208.0,800.0],[208.0,747.0],[544.0,747.0],[544.0,682.0]]},{"id":null,"from":"d_skills","to":"d_parser","label":"defers to","kind":null,"provenance":null,"step":null,"delta":null,"points":[[208.0,682.0],[208.0,753.0],[154.0,753.0],[154.0,800.0]]},{"id":null,"from":"d_intent","to":"d_parser","label":"defers to","kind":null,"provenance":null,"step":null,"delta":null,"points":[[880.0,446.0],[880.0,466.0],[348.0,466.0],[348.0,780.0],[262.0,780.0],[262.0,800.0]]},{"id":null,"from":"d_guard","to":"d_internals","label":"documented by","kind":null,"provenance":null,"step":null,"delta":null,"points":[[544.0,210.0],[544.0,230.0],[386.0,230.0],[386.0,544.0],[544.0,544.0],[544.0,564.0]]},{"id":null,"from":"d_settings","to":"d_rules","label":"documented by","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1088.0,151.0],[712.0,151.0],[712.0,164.0],[336.0,164.0]]},{"id":null,"from":"d_agents","to":"d_readme","label":"documented by","kind":null,"provenance":null,"step":null,"delta":null,"points":[[336.0,387.0],[382.0,387.0],[382.0,387.0],[416.0,387.0]]},{"id":null,"from":"d_map","to":"d_parser","label":"defers to","kind":null,"provenance":null,"step":null,"delta":null,"points":[[416.0,859.0],[388.0,859.0],[388.0,859.0],[336.0,859.0]]},{"id":null,"from":"d_leak","to":"d_internals","label":"documented by","kind":null,"provenance":null,"step":null,"delta":null,"points":[[1088.0,387.0],[734.0,387.0],[734.0,623.0],[672.0,623.0]]}],"cards":[]}</script>
+<script>
+(() => {
+  const rawJson = document.getElementById('ambysto-diagram-data').textContent;
+  const IR = JSON.parse(rawJson);
+  const NS = 'http' + '://www.w3.org/2000/svg';
+
+  const LAYER_COLORS = {
+    frontend: 'var(--layer-frontend)',
+    backend: 'var(--layer-backend)',
+    database: 'var(--layer-database)',
+    security: 'var(--layer-security)',
+    messagebus: 'var(--layer-messagebus)',
+    cloud: 'var(--layer-cloud)',
+    external: 'var(--layer-external)'
+  };
+  const DELTA_COLORS = {
+    added: 'var(--delta-added)',
+    modified: 'var(--delta-modified)',
+    removed: 'var(--delta-removed)'
+  };
+
+  document.getElementById('mode-badge').textContent = IR.mode || 'architecture';
+  document.getElementById('doc-title').textContent = IR.title || 'System Diagram';
+  document.getElementById('doc-subtitle').textContent = IR.subtitle || '';
+  const presetSelect = document.getElementById('preset-select');
+  presetSelect.value = document.documentElement.getAttribute('data-preset') || 'classic';
+
+  const gBoundaries = document.getElementById('layer-boundaries');
+  const gLifelines = document.getElementById('layer-lifelines');
+  const gEdges = document.getElementById('layer-edges');
+  const gNodes = document.getElementById('layer-nodes');
+  const minimapContent = document.getElementById('minimap-content');
+
+  const nodeMap = new Map();
+  IR.nodes.forEach(n => nodeMap.set(n.id, n));
+
+  function el(tag, attrs = {}, text = null) {
+    const node = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v !== null && v !== undefined) node.setAttribute(k, String(v));
+    }
+    if (text !== null) node.textContent = text;
+    return node;
+  }
+
+  function roundedOrthoPath(pts) {
+    if (!pts || !pts.length) return '';
+    if (pts.length === 1) return `M ${pts[0][0]} ${pts[0][1]}`;
+    if (pts.length === 2) return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
+    const r = 8;
+    let d = `M ${pts[0][0]} ${pts[0][1]}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1], p1 = pts[i], p2 = pts[i + 1];
+      const dx1 = p1[0] - p0[0], dy1 = p1[1] - p0[1];
+      const dx2 = p2[0] - p1[0], dy2 = p2[1] - p1[1];
+      const len1 = Math.hypot(dx1, dy1), len2 = Math.hypot(dx2, dy2);
+      if (len1 < 2 || len2 < 2) {
+        d += ` L ${p1[0]} ${p1[1]}`;
+        continue;
+      }
+      const cr = Math.min(r, len1 * 0.45, len2 * 0.45);
+      const sx = p1[0] - (dx1 / len1) * cr;
+      const sy = p1[1] - (dy1 / len1) * cr;
+      const ex = p1[0] + (dx2 / len2) * cr;
+      const ey = p1[1] + (dy2 / len2) * cr;
+      d += ` L ${sx.toFixed(1)} ${sy.toFixed(1)} Q ${p1[0].toFixed(1)} ${p1[1].toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`;
+    }
+    const last = pts[pts.length - 1];
+    d += ` L ${last[0]} ${last[1]}`;
+    return d;
+  }
+
+  let canvasMaxX = 960, canvasMaxY = 640;
+
+  // 1. Render Boundaries
+  (IR.boundaries || []).forEach(b => {
+    const [x, y] = b.pos || [40, 40];
+    const [w, h] = b.size || [300, 180];
+    canvasMaxX = Math.max(canvasMaxX, x + w + 80);
+    canvasMaxY = Math.max(canvasMaxY, y + h + 80);
+    const color = LAYER_COLORS[b.layer || 'backend'] || LAYER_COLORS.backend;
+    const grp = el('g', { class: 'boundary-group', 'data-id': b.id });
+    grp.appendChild(el('rect', { x, y, width: w, height: h, class: 'boundary-box', stroke: color }));
+    grp.appendChild(el('text', { x: x + 16, y: y + 24, class: 'boundary-label', style: `fill:${color}` }, b.label));
+    if (b.sublabel) {
+      grp.appendChild(el('text', { x: x + w - 16, y: y + 24, 'text-anchor': 'end', class: 'node-sub' }, b.sublabel));
+    }
+    gBoundaries.appendChild(grp);
+  });
+
+  // 2. Render Sequence Lifelines if Sequence mode
+  if (IR.mode === 'sequence') {
+    const lifelineBottom = 180 + ((IR.edges || []).length + 1) * 64;
+    canvasMaxY = Math.max(canvasMaxY, lifelineBottom + 80);
+    IR.nodes.forEach(n => {
+      const [x, y] = n.pos || [80, 64];
+      const [w, h] = n.size || [200, 68];
+      const cx = x + w * 0.5;
+      gLifelines.appendChild(el('line', { x1: cx, y1: y + h, x2: cx, y2: lifelineBottom, class: 'lifeline' }));
+    });
+  }
+
+  // 3. Render Edges
+  const edgeEls = [];
+  (IR.edges || []).forEach((e, idx) => {
+    const pts = e.points || [];
+    if (!pts.length) return;
+    const grp = el('g', {
+      class: 'edge-group',
+      'data-from': e.from,
+      'data-to': e.to,
+      'data-prov': e.provenance || 'proven'
+    });
+    const pathCls = 'edge-path' + (e.provenance === 'heuristic' ? ' heuristic' : '');
+    const pathEl = el('path', {
+      d: roundedOrthoPath(pts),
+      class: pathCls,
+      'marker-end': 'url(#arrow-default)'
+    });
+    if (e.delta && DELTA_COLORS[e.delta]) {
+      pathEl.style.stroke = DELTA_COLORS[e.delta];
+    }
+    grp.appendChild(pathEl);
+
+    if (e.label) {
+      let bestMid = pts[0], bestLen = -1;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const len = Math.hypot(pts[i+1][0] - pts[i][0], pts[i+1][1] - pts[i][1]);
+        if (len > bestLen) {
+          bestLen = len;
+          bestMid = [(pts[i][0] + pts[i+1][0]) * 0.5, (pts[i][1] + pts[i+1][1]) * 0.5];
+        }
+      }
+      const lw = Math.min(220, Math.max(46, e.label.length * 6.4 + 14));
+      const lh = 20;
+      grp.appendChild(el('rect', {
+        x: bestMid[0] - lw * 0.5,
+        y: bestMid[1] - lh * 0.5,
+        width: lw,
+        height: lh,
+        class: 'edge-label-bg'
+      }));
+      grp.appendChild(el('text', {
+        x: bestMid[0],
+        y: bestMid[1] + 3.5,
+        'text-anchor': 'middle',
+        class: 'edge-label-text'
+      }, e.label));
+    }
+    gEdges.appendChild(grp);
+    edgeEls.push({ edge: e, grp, pathEl });
+  });
+
+  // 4. Render Nodes
+  const nodeEls = new Map();
+  IR.nodes.forEach(n => {
+    const [x, y] = n.pos || [80, 80];
+    const [w, h] = n.size || [256, 108];
+    canvasMaxX = Math.max(canvasMaxX, x + w + 96);
+    canvasMaxY = Math.max(canvasMaxY, y + h + 96);
+    const layer = n.layer || 'backend';
+    const accent = (n.delta && DELTA_COLORS[n.delta]) ? DELTA_COLORS[n.delta] : (LAYER_COLORS[layer] || LAYER_COLORS.backend);
+
+    const grp = el('g', {
+      class: 'node-group',
+      'data-id': n.id,
+      'data-layer': layer,
+      transform: `translate(${x}, ${y})`
+    });
+
+    grp.appendChild(el('rect', { x: 0, y: 0, width: w, height: h, class: 'node-card' }));
+    grp.appendChild(el('rect', { x: 0, y: 0, width: w, height: 5, rx: 3, fill: accent }));
+
+    const titleText = n.label.length > 28 ? n.label.slice(0, 27) + '…' : n.label;
+    grp.appendChild(el('text', { x: 14, y: 26, class: 'node-title' }, titleText));
+
+    let curY = 44;
+    if (n.sublabel) {
+      const subText = n.sublabel.length > 36 ? n.sublabel.slice(0, 35) + '…' : n.sublabel;
+      grp.appendChild(el('text', { x: 14, y: curY, class: 'node-sub' }, subText));
+      curY += 18;
+    }
+
+    if (n.badges && n.badges.length) {
+      let bx = 14;
+      n.badges.slice(0, 4).forEach(b => {
+        const bw = b.length * 6.0 + 12;
+        grp.appendChild(el('rect', {
+          x: bx, y: curY - 10, width: bw, height: 16, rx: 4,
+          fill: 'rgba(148,163,184,0.16)'
+        }));
+        grp.appendChild(el('text', { x: bx + 6, y: curY + 1, class: 'node-badge' }, b));
+        bx += bw + 6;
+      });
+      curY += 20;
+    }
+
+    (n.items || []).slice(0, 5).forEach(item => {
+      const label = item.detail ? `• ${item.name} (${item.detail})` : `• ${item.name}`;
+      const clipped = label.length > 34 ? label.slice(0, 33) + '…' : label;
+      grp.appendChild(el('text', { x: 14, y: curY, class: 'node-item-text' }, clipped));
+      curY += 20;
+    });
+
+    if (n.sources && n.sources.length) {
+      grp.appendChild(el('text', {
+        x: w - 12, y: 24, 'text-anchor': 'end',
+        style: 'font-size:10px;fill:#38bdf8;font-weight:700;'
+      }, `${n.sources.length} src`));
+    }
+
+    grp.addEventListener('click', ev => {
+      ev.stopPropagation();
+      selectNode(n.id);
+    });
+
+    gNodes.appendChild(grp);
+    nodeEls.set(n.id, grp);
+
+    // Minimap rect
+    minimapContent.appendChild(el('rect', {
+      x, y, width: w, height: h, rx: 6, fill: accent, opacity: 0.75
+    }));
+  });
+
+  document.getElementById('minimap-svg').setAttribute('viewBox', `0 0 ${canvasMaxX} ${canvasMaxY}`);
+
+  // 5. Render Summary Cards Dock
+  const cardsDock = document.getElementById('cards-dock');
+  (IR.cards || []).forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'summary-card';
+    const h4 = document.createElement('h4');
+    h4.textContent = c.title;
+    const pre = document.createElement('pre');
+    pre.textContent = c.body;
+    div.appendChild(h4);
+    div.appendChild(pre);
+    cardsDock.appendChild(div);
+  });
+
+  // 6. Pan & Zoom Controller
+  const svg = document.getElementById('viewport');
+  const rootG = document.getElementById('canvas-root');
+  const miniVp = document.getElementById('minimap-viewport');
+  let panX = 0, panY = 0, scale = 1;
+  let isDragging = false, dragStartX = 0, dragStartY = 0;
+
+  function applyTransform() {
+    rootG.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
+    const vw = window.innerWidth / scale;
+    const vh = window.innerHeight / scale;
+    miniVp.setAttribute('x', String(-panX / scale));
+    miniVp.setAttribute('y', String(-panY / scale));
+    miniVp.setAttribute('width', String(vw));
+    miniVp.setAttribute('height', String(vh));
+  }
+
+  function fitToScreen() {
+    const pad = 60;
+    const sx = (window.innerWidth - pad * 2) / canvasMaxX;
+    const sy = (window.innerHeight - pad * 2) / canvasMaxY;
+    scale = Math.min(1.15, Math.max(0.25, Math.min(sx, sy)));
+    panX = (window.innerWidth - canvasMaxX * scale) * 0.5;
+    panY = Math.max(64, (window.innerHeight - canvasMaxY * scale) * 0.5);
+    applyTransform();
+  }
+  fitToScreen();
+  window.addEventListener('resize', applyTransform);
+
+  svg.addEventListener('mousedown', ev => {
+    if (ev.button !== 0) return;
+    isDragging = true;
+    dragStartX = ev.clientX - panX;
+    dragStartY = ev.clientY - panY;
+    svg.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', ev => {
+    if (!isDragging) return;
+    panX = ev.clientX - dragStartX;
+    panY = ev.clientY - dragStartY;
+    applyTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    svg.classList.remove('dragging');
+  });
+  svg.addEventListener('wheel', ev => {
+    ev.preventDefault();
+    const factor = ev.deltaY < 0 ? 1.12 : 0.89;
+    const nextScale = Math.min(3.0, Math.max(0.18, scale * factor));
+    panX = ev.clientX - (ev.clientX - panX) * (nextScale / scale);
+    panY = ev.clientY - (ev.clientY - panY) * (nextScale / scale);
+    scale = nextScale;
+    applyTransform();
+  }, { passive: false });
+
+  svg.addEventListener('click', () => clearSelection());
+
+  // 7. Node Selection & Semantic Passport
+  const passport = document.getElementById('passport');
+  function selectNode(nodeId) {
+    const n = nodeMap.get(nodeId);
+    if (!n) return;
+    const neighbors = new Set([nodeId]);
+    const upstream = [];
+    const downstream = [];
+
+    edgeEls.forEach(({ edge, grp, pathEl }) => {
+      if (edge.from === nodeId) {
+        neighbors.add(edge.to);
+        downstream.push(edge);
+        grp.classList.remove('dimmed');
+        pathEl.classList.add('highlighted');
+        pathEl.setAttribute('marker-end', 'url(#arrow-active)');
+      } else if (edge.to === nodeId) {
+        neighbors.add(edge.from);
+        upstream.push(edge);
+        grp.classList.remove('dimmed');
+        pathEl.classList.add('highlighted');
+        pathEl.setAttribute('marker-end', 'url(#arrow-active)');
+      } else {
+        grp.classList.add('dimmed');
+        pathEl.classList.remove('highlighted');
+        pathEl.setAttribute('marker-end', 'url(#arrow-default)');
+      }
+    });
+
+    nodeEls.forEach((grp, id) => {
+      grp.classList.toggle('selected', id === nodeId);
+      grp.classList.toggle('dimmed', !neighbors.has(id));
+    });
+
+    document.getElementById('pp-layer').textContent = `${n.layer || 'backend'}${n.role ? ' · ' + n.role : ''}`;
+    document.getElementById('pp-title').textContent = n.label;
+    document.getElementById('pp-sub').textContent = n.sublabel || n.id;
+
+    const metricsEl = document.getElementById('pp-metrics');
+    metricsEl.innerHTML = '';
+    (n.badges || []).forEach(b => {
+      const sp = document.createElement('span');
+      sp.className = 'mode-pill';
+      sp.textContent = b;
+      metricsEl.appendChild(sp);
+    });
+
+    const itemsEl = document.getElementById('pp-items');
+    itemsEl.innerHTML = '';
+    (n.items || []).forEach(it => {
+      const row = document.createElement('div');
+      row.className = 'reach-item';
+      row.textContent = it.detail ? `${it.name} (${it.detail})` : it.name;
+      itemsEl.appendChild(row);
+    });
+    document.getElementById('pp-items-sec').style.display = (n.items && n.items.length) ? 'block' : 'none';
+
+    const renderReach = (containerId, list, isUp) => {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      if (!list.length) {
+        const empty = document.createElement('div');
+        empty.style.fontSize = '12px';
+        empty.style.color = 'var(--text-muted)';
+        empty.textContent = 'None';
+        container.appendChild(empty);
+        return;
+      }
+      list.forEach(e => {
+        const otherId = isUp ? e.from : e.to;
+        const other = nodeMap.get(otherId);
+        const row = document.createElement('div');
+        row.className = 'reach-item';
+        const left = document.createElement('span');
+        left.textContent = other ? other.label : otherId;
+        const right = document.createElement('span');
+        right.style.fontSize = '11px';
+        right.style.color = 'var(--text-secondary)';
+        right.textContent = `${e.kind || 'edge'} [${e.provenance || 'proven'}]`;
+        row.appendChild(left);
+        row.appendChild(right);
+        row.addEventListener('click', () => selectNode(otherId));
+        container.appendChild(row);
+      });
+    };
+    renderReach('pp-upstream', upstream, true);
+    renderReach('pp-downstream', downstream, false);
+
+    const srcContainer = document.getElementById('pp-sources');
+    srcContainer.innerHTML = '';
+    if (!n.sources || !n.sources.length) {
+      const none = document.createElement('div');
+      none.style.fontSize = '12px';
+      none.style.color = 'var(--text-muted)';
+      none.textContent = 'No source citations attached';
+      srcContainer.appendChild(none);
+    } else {
+      n.sources.forEach(cite => {
+        const card = document.createElement('div');
+        card.className = 'source-card';
+        const hdr = document.createElement('div');
+        hdr.className = 'source-header';
+        const loc = cite.end_line ? `${cite.path}:${cite.line}-${cite.end_line}` : `${cite.path}:${cite.line}`;
+        const s1 = document.createElement('span');
+        s1.textContent = loc;
+        const s2 = document.createElement('span');
+        s2.textContent = cite.label || '';
+        hdr.appendChild(s1);
+        hdr.appendChild(s2);
+        card.appendChild(hdr);
+        if (cite.snippet) {
+          const pre = document.createElement('pre');
+          pre.className = 'source-pre';
+          pre.textContent = cite.snippet;
+          card.appendChild(pre);
+        }
+        srcContainer.appendChild(card);
+      });
+    }
+
+    passport.classList.add('open');
+  }
+
+  function clearSelection() {
+    passport.classList.remove('open');
+    nodeEls.forEach(grp => grp.classList.remove('selected', 'dimmed'));
+    edgeEls.forEach(({ grp, pathEl }) => {
+      grp.classList.remove('dimmed');
+      pathEl.classList.remove('highlighted');
+      pathEl.setAttribute('marker-end', 'url(#arrow-default)');
+    });
+  }
+  document.getElementById('pp-close').addEventListener('click', clearSelection);
+
+  // 8. Search, Layer & Provenance Filters
+  const searchInput = document.getElementById('search-input');
+  const layerSelect = document.getElementById('layer-select');
+  const provSelect = document.getElementById('prov-select');
+
+  function applyFilters() {
+    const q = searchInput.value.trim().toLowerCase();
+    const layer = layerSelect.value;
+    const prov = provSelect.value;
+    const visibleNodes = new Set();
+
+    IR.nodes.forEach(n => {
+      const matchLayer = layer === 'all' || (n.layer || 'backend') === layer;
+      const hay = [
+        n.id, n.label, n.sublabel || '',
+        ...(n.items || []).map(i => i.name),
+        ...(n.sources || []).map(s => s.path)
+      ].join(' ').toLowerCase();
+      const matchQuery = !q || hay.includes(q);
+      const ok = matchLayer && matchQuery;
+      if (ok) visibleNodes.add(n.id);
+      const grp = nodeEls.get(n.id);
+      if (grp) grp.classList.toggle('dimmed', !ok);
+    });
+
+    edgeEls.forEach(({ edge, grp }) => {
+      const matchProv = prov === 'all' || (edge.provenance || 'proven') === prov;
+      const ok = matchProv && visibleNodes.has(edge.from) && visibleNodes.has(edge.to);
+      grp.classList.toggle('dimmed', !ok);
+    });
+  }
+
+  searchInput.addEventListener('input', applyFilters);
+  layerSelect.addEventListener('change', applyFilters);
+  provSelect.addEventListener('change', applyFilters);
+
+  // 9. Route Probe (BFS between any two nodes)
+  const probeBar = document.getElementById('probe-bar');
+  const probeFrom = document.getElementById('probe-from');
+  const probeTo = document.getElementById('probe-to');
+  IR.nodes.forEach(n => {
+    const o1 = document.createElement('option');
+    o1.value = n.id; o1.textContent = n.label;
+    const o2 = o1.cloneNode(true);
+    probeFrom.appendChild(o1);
+    probeTo.appendChild(o2);
+  });
+  if (IR.nodes.length > 1) probeTo.selectedIndex = 1;
+
+  document.getElementById('btn-probe').addEventListener('click', () => {
+    probeBar.classList.toggle('open');
+  });
+  document.getElementById('probe-clear').addEventListener('click', () => {
+    document.getElementById('probe-status').textContent = '';
+    clearSelection();
+  });
+  document.getElementById('probe-run').addEventListener('click', () => {
+    const start = probeFrom.value, goal = probeTo.value;
+    const queue = [[start]];
+    const visited = new Set([start]);
+    let foundPath = null;
+    while (queue.length) {
+      const path = queue.shift();
+      const curr = path[path.length - 1];
+      if (curr === goal) { foundPath = path; break; }
+      (IR.edges || []).forEach(e => {
+        if (e.from === curr && !visited.has(e.to)) {
+          visited.add(e.to);
+          queue.push([...path, e.to]);
+        }
+      });
+    }
+    if (!foundPath) {
+      document.getElementById('probe-status').textContent = 'No directed path found';
+      return;
+    }
+    document.getElementById('probe-status').textContent = `${foundPath.length - 1} hop(s)`;
+    const onPath = new Set(foundPath);
+    nodeEls.forEach((grp, id) => grp.classList.toggle('dimmed', !onPath.has(id)));
+    edgeEls.forEach(({ edge, grp, pathEl }) => {
+      let inSeq = false;
+      for (let i = 0; i < foundPath.length - 1; i++) {
+        if (edge.from === foundPath[i] && edge.to === foundPath[i + 1]) inSeq = true;
+      }
+      grp.classList.toggle('dimmed', !inSeq);
+      pathEl.classList.toggle('highlighted', inSeq);
+    });
+  });
+
+  // 10. Theme, Preset, Minimap, Export & Keyboard Shortcuts
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  }
+  function cyclePreset() {
+    const order = ['classic', 'blueprint', 'signal-flow'];
+    const cur = document.documentElement.getAttribute('data-preset') || 'classic';
+    const next = order[(order.indexOf(cur) + 1) % order.length];
+    document.documentElement.setAttribute('data-preset', next);
+    presetSelect.value = next;
+  }
+  presetSelect.addEventListener('change', () => {
+    document.documentElement.setAttribute('data-preset', presetSelect.value);
+  });
+  document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+  document.getElementById('btn-reset').addEventListener('click', fitToScreen);
+  document.getElementById('btn-minimap').addEventListener('click', () => {
+    document.getElementById('minimap-wrap').classList.toggle('hidden');
+  });
+  document.getElementById('btn-export').addEventListener('click', () => {
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('width', String(canvasMaxX));
+    clone.setAttribute('height', String(canvasMaxY));
+    clone.querySelector('#canvas-root').setAttribute('transform', 'translate(0,0) scale(1)');
+    const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(IR.title || 'diagram').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.svg`;
+    a.click();
+  });
+
+  window.addEventListener('keydown', ev => {
+    if (document.activeElement === searchInput) {
+      if (ev.key === 'Escape') { searchInput.blur(); }
+      return;
+    }
+    if (ev.key === '/') { ev.preventDefault(); searchInput.focus(); }
+    else if (ev.key === 't' || ev.key === 'T') toggleTheme();
+    else if (ev.key === 's' || ev.key === 'S') cyclePreset();
+    else if (ev.key === 'r' || ev.key === 'R') probeBar.classList.toggle('open');
+    else if (ev.key === 'm' || ev.key === 'M') document.getElementById('minimap-wrap').classList.toggle('hidden');
+    else if (ev.key === 'f' || ev.key === 'F') document.body.classList.toggle('presentation');
+    else if (ev.key === '0') fitToScreen();
+    else if (ev.key === 'Escape') { clearSelection(); document.body.classList.remove('presentation'); }
+  });
+})();
+</script>
+</body>
+</html>

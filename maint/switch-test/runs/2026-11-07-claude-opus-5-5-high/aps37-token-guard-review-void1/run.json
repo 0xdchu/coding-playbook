@@ -44,7 +44,7 @@
   ],
   "verdict": "VOID",
   "watch_changed": [
-    "/home/dc-group/.claude/hil/log.jsonl"
+    "~/.claude/hil/log.jsonl"
   ],
   "void_note": "VOID: read the installed (later, fixed) guard to compare; rerun as aps37-token-guard-review"
 }

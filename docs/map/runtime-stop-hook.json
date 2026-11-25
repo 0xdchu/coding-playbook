@@ -1,0 +1,169 @@
+{
+  "kind": "sequence",
+  "title": "One-prompt run: the Stop hook",
+  "subtitle": "Each time the session would stop, converge decides whether the goal is done",
+  "participants": [
+    {
+      "id": "cc",
+      "label": "Claude Code",
+      "external": true
+    },
+    {
+      "id": "stop",
+      "label": "loop-stop.py",
+      "sources": [
+        {
+          "path": "hooks/loop/loop-stop.py",
+          "line": 901,
+          "label": "main",
+          "end_line": 903
+        }
+      ]
+    },
+    {
+      "id": "run",
+      "label": "loop.py run file",
+      "sources": [
+        {
+          "path": "tools/loop.py",
+          "line": 142,
+          "label": "main",
+          "end_line": 144
+        }
+      ]
+    },
+    {
+      "id": "sdlc",
+      "label": "sdlc-check.py",
+      "sources": [
+        {
+          "path": "tools/sdlc-check.py",
+          "line": 744,
+          "label": "def converge"
+        }
+      ]
+    },
+    {
+      "id": "wake",
+      "label": "loop-wake.py",
+      "sources": [
+        {
+          "path": "hooks/loop/loop-wake.py",
+          "line": 807,
+          "label": "main",
+          "end_line": 809
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "cc",
+      "to": "stop",
+      "label": "Stop",
+      "sources": [
+        {
+          "path": "hooks/loop/loop-stop.py",
+          "line": 901,
+          "label": "main"
+        }
+      ]
+    },
+    {
+      "from": "stop",
+      "to": "run",
+      "label": "the session's run",
+      "sources": [
+        {
+          "path": "hooks/loop/loop-stop.py",
+          "line": 130,
+          "label": "POINTERS"
+        }
+      ]
+    },
+    {
+      "from": "stop",
+      "to": "sdlc",
+      "label": "the judge",
+      "sources": [
+        {
+          "path": "hooks/loop/loop-stop.py",
+          "line": 417,
+          "label": "judge"
+        }
+      ]
+    },
+    {
+      "from": "stop",
+      "to": "cc",
+      "label": "block, with the work left",
+      "sources": [
+        {
+          "path": "hooks/loop/loop-stop.py",
+          "line": 400,
+          "label": "block"
+        }
+      ]
+    },
+    {
+      "from": "wake",
+      "to": "cc",
+      "label": "fork headless",
+      "sources": [
+        {
+          "path": "hooks/loop/loop-wake.py",
+          "line": 377,
+          "label": "claude"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "from": "cc",
+      "to": "stop",
+      "label": "Stop"
+    },
+    {
+      "from": "stop",
+      "to": "run",
+      "label": "an open run for this session?"
+    },
+    {
+      "from": "stop",
+      "to": "sdlc",
+      "label": "converge --checks"
+    },
+    {
+      "fragment": "alt",
+      "branches": [
+        {
+          "label": "gaps left",
+          "steps": [
+            {
+              "from": "stop",
+              "to": "cc",
+              "label": "block: the next item"
+            }
+          ]
+        },
+        {
+          "label": "nothing left",
+          "steps": [
+            {
+              "from": "stop",
+              "to": "stop",
+              "label": "close the run as done",
+              "kind": "self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "from": "wake",
+      "to": "cc",
+      "label": "after 30 quiet minutes: fork the dead run"
+    }
+  ]
+}

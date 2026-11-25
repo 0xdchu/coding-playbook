@@ -44,8 +44,8 @@
   "committed": true,
   "void": [],
   "watch_changed": [
-    "/home/dc-group/.claude/hil/log.jsonl",
-    "/home/dc-group/work/ambysto/claudecode-guide"
+    "~/.claude/hil/log.jsonl",
+    "~/work/ambysto/claudecode-guide"
   ],
   "void_note": "rechecked clean with the read-only answer-key rule",
   "watch_changed_note": "the owner log lines came from another owner session (what-to-build); claudecode-guide changed by the main session's own commits; the replay touched neither"

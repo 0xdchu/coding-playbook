@@ -1,10 +1,10 @@
 # coding-playbook: which model does which job in Claude Code & Antigravity, and the skills and scripts that go with it
 
 ## What it does
-The subagent roles (decision-gate, builder, reviewer, hard-reviewer, transcriber), the global instructions, twelve skills (`starter-kit`, `handoff`, `sdlc`, `teardown`, `orca-worktree-setup`, `agent-team`, `create-skill`, `secrets`, `whats-next`, `graph`, `mockup`, `userflow`), the builder dispatch and sdlc check scripts, a one-command model switch and the switch test kit, the agent-guard and Gemini Decision 1 (`gd1_hook.py`) hooks, the owner-token guard and the save-it hooks, the Plane and progress-diagram scripts, the one-prompt loop (`tools/loop.py` and its Stop hook), the session graph hook, the session gates, the owner time log report, the cost report, plus a check script and an installer. Standard library Python only. Every session on every machine follows these files, so a wrong rule rates HARD work as EASY or lets an unreviewed change through.
+The subagent roles (decision-gate, builder, reviewer, hard-reviewer, transcriber), the global instructions, fourteen skills (`starter-kit`, `handoff`, `sdlc`, `teardown`, `orca-worktree-setup`, `agent-team`, `create-skill`, `secrets`, `whats-next`, `system-map`, `graph`, `mockup`, `static-mockup-visuals`, `userflow`), the builder dispatch and sdlc check scripts, a one-command model switch and the switch test kit, the agent-guard and Gemini Decision 1 (`gd1_hook.py`) hooks, the owner-token guard and the save-it hooks, the Plane and progress-diagram scripts, the one-prompt loop (`tools/loop.py` and its Stop hook), the session graph hook, the session gates, the owner time log report, the cost report, plus a check script and an installer. Standard library Python only. Every session on every machine follows these files, so a wrong rule rates HARD work as EASY or lets an unreviewed change through.
 
 ## Verify
-- `python3 maint/check.py`: agent frontmatter and pinned models, `hard-reviewer` body equal to `reviewer` body, `rules/global/CLAUDE.md` matches the pins, the starter-kit template's sections, skill frontmatter, `settings-defaults.json`, and the self-tests of `dispatch.py`, `sdlc-check.py`, `switch-model.py`, `hooks/saveit/saveit-hook.py`, `plane.py`, `progress-diagram.py`, `hooks/graph/graph-hook.py`, `tools/loop.py` and `hooks/loop/loop-stop.py`, `maint/cost-report.py` and `maint/sync-public.py`, `hooks/loop/loop-wake.py --self-test`, plus `install.py --settings`.
+- `python3 maint/check.py`: agent frontmatter and pinned models, `hard-reviewer` body equal to `reviewer` body, `rules/global/CLAUDE.md` matches the pins, the starter-kit template's sections, skill frontmatter, `settings-defaults.json`, and the self-tests of `dispatch.py`, `sdlc-check.py`, `switch-model.py`, `hooks/saveit/saveit-hook.py`, `plane.py`, `progress-diagram.py`, `hooks/graph/graph-hook.py`, `tools/loop.py` and `hooks/loop/loop-stop.py`, `maint/cost-report.py`, the leak check (`maint/leak-patterns.json`), `hooks/loop/loop-wake.py --self-test`, plus `install.py --settings`.
 - `HOME=$(mktemp -d) python3 maint/install.py --settings` then `--check` under the same `HOME`: installs and reports no drift (exit 0), without touching `~/.claude`. Without `--settings` the install skips the session hook entries in `settings.json`, and `--check` reports them as drift (exit 1).
 
 ## Gemini Decision 1 (`gemini-decision-1`) Gate & Triage
@@ -32,7 +32,7 @@ The subagent roles (decision-gate, builder, reviewer, hard-reviewer, transcriber
 - README wording, typos, examples that do not change a rule, intent and plan status lines that record work done.
 
 ## Rules
-- Follow all rules in [CLAUDE.md](CLAUDE.md) (pinned model IDs, `reviewer.md` / `hard-reviewer.md` body parity, universal paths, no secrets, `sync-public.py` flow, `0xdonniechu` git identity).
+- Follow all rules in [CLAUDE.md](CLAUDE.md) (pinned model IDs, `reviewer.md` / `hard-reviewer.md` body parity, universal paths, no secrets, the leak check, `0xdonniechu` git identity, `cpb-N-slug` branches).
 
 ## Session state
 `HANDOFF.md` (gitignored) holds only where the current goal stands. Plans, decisions and dead ends go in files, not in the chat.
