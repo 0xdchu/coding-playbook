@@ -74,7 +74,7 @@ Mark every open point where it stands in the text as `[NEEDS CLARIFICATION: <que
 python3 <coding-playbook>/tools/sdlc-check.py clarify intent/<yyyy-mm-dd>-<slug>.md
 ```
 
-(`tools/sdlc-check.py` in the coding-playbook repo) before the intent goes to `approved`, and again before the plan is written. It fails while any marker remains, `## Open questions` does not begin with `None`, a Coverage bullet is missing or empty, the `Usability:` line is missing or empty while the UI states bullet is not `N/A`, the `Flow:` line is missing or wrong, or a flow fails validation or its `.flow.html` is not a fresh render. With no flow tool installed it says the flows were not checked; say so too.
+(`tools/sdlc-check.py` in the coding-playbook repo) before the intent goes to `approved`, and again before the plan is written. It fails while any marker remains, `## Open questions` does not begin with `None`, a Coverage bullet is missing or empty, the `Usability:` line is missing, doubled, empty or `not needed` without a reason while the UI states bullet is not `N/A`, the `Flow:` line is missing or wrong, or a flow fails validation or its `.flow.html` is not a fresh render. With no flow tool installed it says the flows were not checked; say so too.
 
 **Fresh reader.** Before you ask the owner to approve, run one fresh agent, with none of this chat, on the model your builder agent uses, read-only. Give it this prompt, with the paths filled in:
 

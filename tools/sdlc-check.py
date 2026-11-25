@@ -247,7 +247,8 @@ def usability_line(text):
     lines = section(text, "Coverage")
     rows = coverage_rows(lines)[0] if lines is not None else {}
     ui = rows.get("UI states")
-    if ui is None or empty_row(ui) or re.match(r"\s*N/A\s*:", ui[0], re.I):
+    first = next((re.sub(r"^\s*(?:[-*]|\d+\.)\s+", "", l).strip() for l in ui or [] if l.strip()), "")
+    if ui is None or empty_row(ui) or re.match(r"N/A\s*:", first, re.I):  # also `N/A: …` as the first sub-bullet
         return []
     found, fenced = [], False
     for line in text.splitlines():
@@ -262,7 +263,7 @@ def usability_line(text):
     value = found[0]
     if value.rstrip(".").strip().lower() in EMPTY_ROW:
         return ["`Usability:` is empty (list the 3-5 tasks, or write `not needed: <reason>`)"]
-    if value.startswith("not needed") and not re.match(r"not needed:\s*\S", value):
+    if value.lower().startswith("not needed") and not re.match(r"not needed:\s*\S", value, re.I):
         return ["`Usability: not needed` gives no reason"]
     return []
 
@@ -946,6 +947,11 @@ def self_test():
                    ["`Usability:` is empty (list the 3-5 tasks, or write `not needed: <reason>`)"])
         expect("Usability not needed without a reason", run_clarify("Flow: not needed: x\nUsability: not needed\n", text=ui_head)[1],
                ["`Usability: not needed` gives no reason"])
+        expect("Usability Not needed (capitalised) without a reason", run_clarify("Flow: not needed: x\nUsability: Not needed\n", text=ui_head)[1],
+               ["`Usability: not needed` gives no reason"])
+        expect("Usability Not needed: with a reason", run_clarify("Flow: not needed: x\nUsability: Not needed: admin only\n", text=ui_head)[1], [])
+        expect("UI states N/A as the first sub-bullet, no Usability line",
+               run_clarify("Flow: not needed: x\n", text=head.replace("- UI states: N/A: no screen", "- UI states:\n  - N/A: no screen"))[1], [])
         expect("two Usability lines", run_clarify("Flow: not needed: x\nUsability: a\nUsability: b\n", text=ui_head)[1], ["2 `Usability:` lines; write one"])
         expect("Usability in a fence is not the line", run_clarify("Flow: not needed: x\n```\nUsability: a\n```\n", text=ui_head)[1], [nu])
         expect("UI states N/A: CLI, no Usability line", run_clarify("Flow: not needed: x\n", text=head.replace("N/A: no screen", "N/A: CLI"))[1], [])
