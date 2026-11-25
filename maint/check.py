@@ -35,15 +35,6 @@ MORE_SKILLS = {
               (["draw a sequence diagram of the purchase flow with numbered steps and a webhook",
                 "flowchart of the onboarding flow with a decision and a loop"],
                ["save progress to HANDOFF.md before clear"])),
-    # mockup's own check is a Playwright script (template/check.mjs), outside standard-library Python (APS-85)
-    "mockup": (None,
-               (["build a clickable mockup from the user flow", "turn this flow into app screens with a gallery"],
-                ["draw a sequence diagram of the checkout flow", "write the intent and plan first"])),
-    "userflow": (None,
-                 (["design a user flow to international standards",
-                   "review this user flow and add error branches and success metrics",
-                   "write a flow spec with actors and entry and exit criteria"],
-                  ["draw a sequence diagram of the checkout flow", "build a clickable mockup from this flow"])),
     "static-mockup-visuals": (None,
                               (["move the existing mascot beside the post cards in this static hero",
                                 "make the static landing hero fit a 9:16 mobile frame",
@@ -553,13 +544,13 @@ with tempfile.TemporaryDirectory() as home:
              f"got exits {[r.returncode for r in runs]}, {commands}")
 
 # A skill folder that is a symlink into another repo is never written through (APS-97): a scratch HOME whose
-# skills/mockup links to an outside folder; install leaves that folder as it was and says it skipped it.
+# skills/graph links to an outside folder; install leaves that folder as it was and says it skipped it.
 with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as outside:
     env = {k: v for k, v in os.environ.items() if not k.startswith(("XDG_", "CLAUDE"))
            and k not in ("HOMEDRIVE", "HOMEPATH")} | {"HOME": home, "USERPROFILE": home}
     (Path(home) / ".claude" / "skills").mkdir(parents=True)
     (Path(outside) / "SKILL.md").write_text("another repo's skill\n", encoding="utf-8")
-    (Path(home) / ".claude" / "skills" / "mockup").symlink_to(outside)
+    (Path(home) / ".claude" / "skills" / "graph").symlink_to(outside)
     out = subprocess.run([sys.executable, str(ROOT / "maint" / "install.py")], env=env, capture_output=True, text=True, timeout=120)
     if out.returncode != 0 or sorted(p.name for p in Path(outside).iterdir()) != ["SKILL.md"] \
             or (Path(outside) / "SKILL.md").read_text(encoding="utf-8") != "another repo's skill\n" or "symlink to" not in out.stdout:

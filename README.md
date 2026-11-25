@@ -32,13 +32,11 @@ Skills are separate from the roles: each folder is one skill, invoked by name or
 | `skills/teardown/` | `~/.claude/skills/` | Decompose an existing product, write a clean-room spec, then build from the spec only |
 | `skills/orca-worktree-setup/` | `~/.claude/skills/` | Setup scripts so every new Orca worktree gets the gitignored local files it needs |
 | `skills/sdlc/` | `~/.claude/skills/` | The artifact chain intent, plan, build, verify, ship; an intent has a Coverage list and, when the work branches, flows drawn with the `graph` skill and checked by `clarify`; a fresh-reader agent reads the intent before approval; a plan's `## Tasks` section feeds the builder's contract and its Proof items name the Outcome items they prove |
-| `skills/mockup/` | `~/.claude/skills/` | Build a clickable end-user mockup from a user flow: a gallery of every screen, web/mobile, light/dark, hover and loading states, with a Playwright check and a static deploy |
 | `skills/static-mockup-visuals/` | `~/.claude/skills/` | Make a scoped visual change to a single-screen static mockup in code, then render and inspect the requested desktop and mobile frames |
-| `skills/userflow/` | `~/.claude/skills/` | Design and review a software user flow to ISO 9241 / ISO/IEC 25010 / WCAG 2.2: one actor and goal, entry/exit, flow spec, failure/recovery, accessibility and metrics |
 
 ## Design systems (`design-systems/`)
 
-Six design snapshots the `mockup` skill can copy in one step: **shadcn/ui** for modern SaaS, **Radix Colors** for
+Six design snapshots the `mockup` skill (BYFA-skills, `0xdchu/BYFA-skills`) can copy in one step: **shadcn/ui** for modern SaaS, **Radix Colors** for
 app UI, **Open Props** for playful products, **Microsoft Fluent 2** for productivity apps and **IBM Carbon 11** for
 enterprise consoles, plus **Flex-style** for luxury private-banking editorial (an original interpretation
 of flex.one, no site code or assets copied). Each folder is five files — a manifest, tokens, components, a reference page and the upstream
@@ -75,7 +73,7 @@ Every model is pinned to a full model ID, never an alias, so an upgrade is alway
 
 ## Install
 
-This repo is the only copy (since 2026-11-25): the private internal copy it was synced from is archived, and its rules, agents, hooks, tools, `docs/map/` and intents came in here, with the four skills that used to be public-only (`graph`, `mockup`, `static-mockup-visuals`, `userflow`) now required like the others. Clone it to `~/work/0xdonniechu/coding-playbook` (the path the global block names) and the guard source `1prompt` beside it, then:
+This repo is the only copy (since 2026-11-25): the private internal copy it was synced from is archived, and its rules, agents, hooks, tools, `docs/map/` and intents came in here, with the skills that used to be public-only (`graph`, `static-mockup-visuals`) now required like the others; `mockup` and `userflow` moved to BYFA-skills (`0xdchu/BYFA-skills`) on 2026-11-25. Clone it to `~/work/0xdonniechu/coding-playbook` (the path the global block names) and the guard source `1prompt` beside it, then:
 
 ```sh
 python3 maint/install.py --global --settings   # agents, skills, hooks, the global block and the session hooks
