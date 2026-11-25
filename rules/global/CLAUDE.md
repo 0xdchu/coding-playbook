@@ -3,7 +3,6 @@
 ## Model economy
 The main session runs the model with the best quality per cost for deciding, rating, gating and HARD work. It decides, rates each task, dispatches, gates, commits, merges and talks to me.
 **Current choice (2026-10-16): Opus 5.5.** On cost/quality it is ahead of Fable 5.1. Revisit when the next model ships, by the switch test below. Owner decision 2026-11-11: every role keeps its pinned model (Fable 5.2 as hard-reviewer) until a new model ships; no switch test before then.
-Switch (2026-11-10): hard-reviewer → Fable 5.2 (`claude-fable-5-2`); owner decision, the switch test was skipped, so the main session was not re-compared with Fable 5.2
 
 Where each setting lives (CLAUDE.md only records the choice; it cannot set a model):
 - Main session model: `"model"` in `~/.claude/settings.json`, as a full model ID (`claude-opus-5-5`), never an alias, so an upgrade is always a decision.
@@ -16,7 +15,6 @@ Subagents (in `~/.claude/agents/`; a project's `.claude/agents/` overrides them)
 - **hard-reviewer** (Fable 5.2): the same review for HARD changes. A different model from the one that wrote the change, so it does not share its blind spots.
 - **transcriber** (Haiku 5.5): mechanical copying and conversion only, no judgment.
 
-Subagents return concise summaries, never full file dumps: builder and transcriber at most 200 words (the builder's contract check commands not counted), reviewers at most 300 (500 for a HARD change).
 Small tasks (1-2 files, obvious change) are done directly, not dispatched.
 
 ## Task rating (do this before dispatching)
@@ -31,9 +29,6 @@ Each project's CLAUDE.md lists its own HARD / MEDIUM / EASY examples; those over
 
 ## The loop
 - Every builder dispatch carries a task contract, written with `tools/dispatch.py` in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`): `new <repo> <branch> --allow … --check …` gives a builder that runs beside another its own worktree and contract; `contract <tree> --allow … --check …` serves a single builder in the main checkout. agent-guard refuses the builder's writes outside the contract (and all writes without one) and locks the run when anything changes outside it. The main session reruns the contract's checks as its gate before review, judges an `OUTSIDE CONTRACT` report before anything else, and runs `dispatch.py done <tree>` when the work is committed.
-- When the plan has a `## Tasks` section (the sdlc skill), a builder's contract comes from its task: `dispatch.py new <repo> <branch> --task <plan> <id>` (or `contract <tree> --task …`), not from flags typed again.
-- Before the review of a plan's build, `tools/sdlc-check.py converge <plan>` lists every changed file outside the plan's tasks, every task left untouched and every Proof item without a result; the reviewer gets its output with the diff. `sdlc-check.py clarify <intent>` fails while an intent still has an open point.
-- The reviewer gets the task and the diff, not the builder's or the main session's summary.
 - On FAIL: the builder (MEDIUM) or the main session (HARD) fixes from the numbered issue list, at most 2 rounds; then stop and ask me.
 - **One-prompt run** (opt-in, when the owner gives a goal to carry to done): follow the sdlc skill's "One-prompt run" section. Its loop tool is `python3 ~/work/0xdonniechu/coding-playbook/tools/loop.py` (`start <plan> [--hours <n>]`, default 12 hours; `pass <task>`, `fail <task> "<reason>"`, `ask "<question>"` and then ask it, `stop`, `resume`, `status`). Every reviewer prompt for the open run's plan has a line of its own `loop task: T<n>` (two tasks: `loop tasks: T1, T2`); a review of other work gets none. Record every reviewer FAIL with `loop.py fail`, once per task it named (the run is not done without it); a task whose last verdict is FAIL holds the run until a later PASS. For a run nobody watches, the session must be in a permission mode that does not ask; if it dies, the wake timer forks it (Tools). The run closes itself after 3 stops with no change, 40 stops held or its time limit; `loop.py resume` reopens it (not after two fails or done). A path outside every task that is not this work's: ask, never delete it or widen the plan. To merge inside a run: once `converge` passes and every review is recorded, `loop.py stop "converged"`, then merge as the rules below say (an open run reads the merged, empty branch as tasks not done).
 - A BLOCKER or MAJOR issue is never waived silently: fix it, or ask me.
@@ -59,7 +54,6 @@ Ambysto repos share one owner-reviewed memory in `~/work/ambysto/ambysto-memory`
 - After any subagent has run, check the branch in the same command as a commit, amend or reset; agents share the working tree and can switch it.
 - Give each agent that runs at the same time its own worktree (`dispatch.py new` for builders). Never edit a worktree while an agent is running in it: it may stage everything there.
 - After stopping an agent, look for processes it started that outlive it.
-- Before a merge, run the project's whole Verify on that branch, not only the suite for the part that changed.
 - After a merge or rebase, check `git status` for unmerged paths before committing.
 - End every finished task, and every session, with the same short summary so the owner never has to ask "done?": what changed and its PR or commit, pushed or not, merged or not (and who merges), worktree clean or what is left uncommitted, ticket updated or not, checks run and "not run: <reason>" for the rest, and what waits for the owner (lesson 2026-10-23: about 12 of 22 owner status questions in one day were "done?", "what remains?", "anything uncommitted?").
 - An installer or update proof also installs over the previous build, not only on a clean machine.
@@ -77,9 +71,7 @@ Ambysto repos share one owner-reviewed memory in `~/work/ambysto/ambysto-memory`
 - **Waking a dead run** (`hooks/loop/loop-wake.py`, timer `1prompt-wake.timer`): a one-prompt run whose session died is forked headless under 1prompt's boundary settings after 30 quiet minutes and continues (at most 4 times, $20 a wake, $50 a day, each wake on its ticket); a run in a permission mode that asks is not woken. Closing a window does not end a run: `loop.py stop` does. `python3 ~/.claude/hooks/loop/loop-wake.py tick --dry-run` shows what it would do.
 
 ## Switching models (when a new model ships)
-1. Pick 2-3 past diffs whose review findings are on record (review logs, PR comments), including at least one HARD change. The prepared cases, runner and release-day checklist are in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`), `maint/switch-test/`.
-2. Run the candidate as reviewer on each diff, without the old findings. Count the known issues it catches, the new real issues it finds, the false alarms, and the cost.
-3. Switch only if it catches at least as many known issues at an acceptable cost. Then change `settings.json`, the effort entry and every agent file in one edit, and update the "Current choice" line with the date and the numbers (`maint/switch-model.py` in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`) makes the repo's part of that edit in one command).
+Run the switch test in the coding-playbook repo (`~/work/0xdonniechu/coding-playbook`): `maint/switch-test/README.md`, then its `RELEASE-DAY.md`. Switch only if the candidate catches at least as many known issues at an acceptable cost; `maint/switch-model.py` then makes the edit in one command.
 
 ## Honesty
 - Never report a check as passing that was not run. Write "not run: <reason>" (wrong OS, owner-only step, missing credentials).
