@@ -162,15 +162,15 @@
     {
       "id": "owner_token",
       "label": "owner-token-guard.py",
-      "sublabel": "Denies any command that would take the owner's GitHub token or switch the account",
+      "sublabel": "Denies any command that would take the owner's GitHub token or switch the account, except the one change back to the personal account",
       "boundary": "guards",
       "layer": "security",
       "sources": [
         {
           "path": "hooks/owner-token-guard/owner-token-guard.py",
-          "line": 134,
+          "line": 194,
           "label": "main",
-          "end_line": 136
+          "end_line": 196
         }
       ],
       "row": 1,

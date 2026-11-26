@@ -280,6 +280,35 @@ body.presentation #minimap-wrap {
   box-shadow: var(--shadow-card); overflow: hidden; z-index: 26;
 }
 #minimap-wrap.hidden { display: none; }
+/* Touch: the canvas takes finger gestures itself (one finger pans, two fingers pinch; see the script). */
+#viewport { touch-action: none; -webkit-touch-callout: none; }
+.menu-btn { display: none; }
+/* Phone: the top bar shrinks to the title and a Menu button, and the panels stop covering the diagram. */
+@media (max-width: 700px) {
+  #topbar { top: 8px; left: 8px; right: 8px; padding: 8px 10px; flex-wrap: wrap; gap: 8px; }
+  .brand-block { flex: 1 1 0; min-width: 0; }
+  .brand-title { min-width: 0; font-size: 14px; }
+  .mode-pill { flex: none; }
+  .brand-subtitle { display: none; }
+  .menu-btn { display: inline-block; flex: none; }
+  .toolbar-controls { display: none; flex: 0 0 100%; width: 100%; }
+  #topbar.menu-open .toolbar-controls {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 60vh; overflow-y: auto;
+  }
+  #topbar.menu-open .toolbar-controls .ctrl-input { grid-column: 1 / -1; width: 100%; }
+  #topbar.menu-open .toolbar-controls .ctrl-select { min-width: 0; width: 100%; }
+  .ctrl-input, .ctrl-select, .ctrl-btn { height: 40px; font-size: 14px; }
+  #probe-bar { top: 72px; left: 8px; right: 8px; flex-wrap: wrap; }
+  #probe-bar .ctrl-select { min-width: 0; flex: 1 1 120px; }
+  #passport {
+    top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-width: none;
+    height: 70vh; height: 70dvh; transform: translateY(calc(100% + 16px));
+  }
+  #passport.open { transform: translateY(0); }
+  #cards-dock { left: 8px; right: 8px; bottom: 8px; max-width: none; max-height: 26vh; max-height: 26dvh; overflow: auto; align-items: flex-start; }
+  .summary-card { flex: none; min-width: min(260px, 80vw); max-width: 80vw; }
+  #minimap-wrap { right: 8px; bottom: calc(26vh + 16px); bottom: calc(26dvh + 16px); }
+}
 </style>
 </head>
 <body>
@@ -292,7 +321,8 @@ body.presentation #minimap-wrap {
       </div>
       <div class="brand-subtitle" id="doc-subtitle"></div>
     </div>
-    <div class="toolbar-controls">
+    <button id="btn-menu" class="ctrl-btn menu-btn" type="button" aria-expanded="false" aria-controls="toolbar-controls">Menu</button>
+    <div class="toolbar-controls" id="toolbar-controls">
       <input id="search-input" class="ctrl-input" type="search" placeholder="Search nodes / files (/)..." />
       <select id="layer-select" class="ctrl-select" title="Filter by Semantic Layer (L)">
         <option value="all">All Layers</option>
@@ -647,17 +677,46 @@ body.presentation #minimap-wrap {
     miniVp.setAttribute('height', String(vh));
   }
 
+  // A phone screen (up to 700 px) uses a thin top bar and little padding; wider screens keep the earlier numbers.
+  const ZOOM_MAX = 3.0, ZOOM_FLOOR = 0.18, FIT_MIN = 0.04, FIT_MAX = 1.15;
+  let minScale = ZOOM_FLOOR;
+  const narrowScreen = () => window.matchMedia('(max-width: 700px)').matches;
+  // The fit: scale and offsets that show the whole diagram. Wide screens keep the earlier margins. On a phone the
+  // diagram stays clear of the top bar above it and of the summary cards below it, so "whole" means whole.
+  function fitGeometry() {
+    const W = window.innerWidth, H = window.innerHeight;
+    if (!narrowScreen()) {
+      const s = Math.min(FIT_MAX, Math.max(FIT_MIN, Math.min((W - 120) / canvasMaxX, (H - 120) / canvasMaxY)));
+      return { s, x: (W - canvasMaxX * s) * 0.5, y: Math.max(64, (H - canvasMaxY * s) * 0.5) };
+    }
+    const top = 72;
+    const bottom = (cardsDock.offsetHeight ? cardsDock.offsetHeight + 16 : 0) + 16;
+    const availH = Math.max(H - top - bottom, 40);
+    const s = Math.min(FIT_MAX, Math.max(FIT_MIN, Math.min((W - 32) / canvasMaxX, availH / canvasMaxY)));
+    return { s, x: (W - canvasMaxX * s) * 0.5, y: top + (availH - canvasMaxY * s) * 0.5 };
+  }
+  // Zoom out never goes above the fit scale, so a diagram that needs less than 18% can still be shown whole.
+  function updateMinScale() { minScale = Math.min(ZOOM_FLOOR, fitGeometry().s); }
   function fitToScreen() {
-    const pad = 60;
-    const sx = (window.innerWidth - pad * 2) / canvasMaxX;
-    const sy = (window.innerHeight - pad * 2) / canvasMaxY;
-    scale = Math.min(1.15, Math.max(0.25, Math.min(sx, sy)));
-    panX = (window.innerWidth - canvasMaxX * scale) * 0.5;
-    panY = Math.max(64, (window.innerHeight - canvasMaxY * scale) * 0.5);
+    const g = fitGeometry();
+    scale = g.s;
+    panX = g.x;
+    panY = g.y;
+    updateMinScale();
     applyTransform();
   }
   fitToScreen();
-  window.addEventListener('resize', applyTransform);
+  if (narrowScreen()) document.getElementById('minimap-wrap').classList.add('hidden');
+  // A turn of the phone changes the margins and the zoom floor, so a view made for the other shape means nothing: the
+  // diagram is fitted again when the screen crosses the 700 px line, or when the floor has moved above the zoom.
+  let wasNarrow = narrowScreen();
+  window.addEventListener('resize', () => {
+    updateMinScale();
+    const nowNarrow = narrowScreen();
+    if (nowNarrow !== wasNarrow || scale < minScale) fitToScreen();
+    else applyTransform();
+    wasNarrow = nowNarrow;
+  });
 
   svg.addEventListener('mousedown', ev => {
     if (ev.button !== 0) return;
@@ -679,12 +738,68 @@ body.presentation #minimap-wrap {
   svg.addEventListener('wheel', ev => {
     ev.preventDefault();
     const factor = ev.deltaY < 0 ? 1.12 : 0.89;
-    const nextScale = Math.min(3.0, Math.max(0.18, scale * factor));
+    const nextScale = Math.min(ZOOM_MAX, Math.max(minScale, scale * factor));
     panX = ev.clientX - (ev.clientX - panX) * (nextScale / scale);
     panY = ev.clientY - (ev.clientY - panY) * (nextScale / scale);
     scale = nextScale;
     applyTransform();
   }, { passive: false });
+
+  // Touch and pen (the mouse keeps its own handlers above). One pointer pans; two pointers pinch, and the point of the
+  // diagram under their midpoint stays under it. No pointer capture: it would send the click that follows a tap to
+  // the canvas and break node selection. A drag moves past the browser's tap slop, so it never clicks a node.
+  const touchPts = new Map();   // pointerId -> { x, y }, at most two
+  let pinch = null;             // { d, scale, wx, wy } while two pointers are down
+  function touchMid() {
+    const [a, b] = [...touchPts.values()];
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) };
+  }
+  // Called whenever the set of pointers changes: the remaining one becomes the pan anchor, so nothing jumps.
+  function beginTouchGesture() {
+    if (touchPts.size === 1) {
+      const p = [...touchPts.values()][0];
+      dragStartX = p.x - panX;
+      dragStartY = p.y - panY;
+      pinch = null;
+    } else if (touchPts.size === 2) {
+      const m = touchMid();
+      pinch = { d: Math.max(m.d, 1), scale, wx: (m.x - panX) / scale, wy: (m.y - panY) / scale };
+    }
+  }
+  svg.addEventListener('pointerdown', ev => {
+    setMenu(false);
+    if (ev.pointerType === 'mouse' || touchPts.size >= 2) return;
+    touchPts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    beginTouchGesture();
+    svg.classList.add('dragging');
+  });
+  window.addEventListener('pointermove', ev => {
+    const p = touchPts.get(ev.pointerId);
+    if (!p) return;
+    p.x = ev.clientX;
+    p.y = ev.clientY;
+    if (touchPts.size === 1) {
+      panX = p.x - dragStartX;
+      panY = p.y - dragStartY;
+    } else if (pinch) {
+      const m = touchMid();
+      scale = Math.min(ZOOM_MAX, Math.max(minScale, pinch.scale * (m.d / pinch.d)));
+      panX = m.x - pinch.wx * scale;
+      panY = m.y - pinch.wy * scale;
+    }
+    applyTransform();
+  });
+  function endTouch(ev) {
+    if (!touchPts.delete(ev.pointerId)) return;
+    if (touchPts.size === 0) {
+      pinch = null;
+      svg.classList.remove('dragging');
+    } else {
+      beginTouchGesture();
+    }
+  }
+  window.addEventListener('pointerup', endTouch);
+  window.addEventListener('pointercancel', endTouch);
 
   svg.addEventListener('click', () => clearSelection());
 
@@ -931,6 +1046,15 @@ body.presentation #minimap-wrap {
   document.getElementById('btn-minimap').addEventListener('click', () => {
     document.getElementById('minimap-wrap').classList.toggle('hidden');
   });
+  // Menu button (shown on a phone only): opens and closes the controls panel.
+  const topbar = document.getElementById('topbar');
+  const menuBtn = document.getElementById('btn-menu');
+  function setMenu(open) {
+    topbar.classList.toggle('menu-open', open);
+    menuBtn.setAttribute('aria-expanded', String(open));
+    menuBtn.textContent = open ? 'Close' : 'Menu';
+  }
+  menuBtn.addEventListener('click', () => setMenu(!topbar.classList.contains('menu-open')));
   document.getElementById('btn-export').addEventListener('click', () => {
     const clone = svg.cloneNode(true);
     clone.setAttribute('width', String(canvasMaxX));
@@ -948,14 +1072,14 @@ body.presentation #minimap-wrap {
       if (ev.key === 'Escape') { searchInput.blur(); }
       return;
     }
-    if (ev.key === '/') { ev.preventDefault(); searchInput.focus(); }
+    if (ev.key === '/') { ev.preventDefault(); if (narrowScreen()) setMenu(true); searchInput.focus(); }
     else if (ev.key === 't' || ev.key === 'T') toggleTheme();
     else if (ev.key === 's' || ev.key === 'S') cyclePreset();
     else if (ev.key === 'r' || ev.key === 'R') probeBar.classList.toggle('open');
     else if (ev.key === 'm' || ev.key === 'M') document.getElementById('minimap-wrap').classList.toggle('hidden');
     else if (ev.key === 'f' || ev.key === 'F') document.body.classList.toggle('presentation');
     else if (ev.key === '0') fitToScreen();
-    else if (ev.key === 'Escape') { clearSelection(); document.body.classList.remove('presentation'); }
+    else if (ev.key === 'Escape') { clearSelection(); setMenu(false); document.body.classList.remove('presentation'); }
   });
 })();
 </script>
