@@ -78,8 +78,8 @@ points below. Typing `/shiip` is the owner's request to commit, push, merge and 
     is a red gate: read its log (a GitHub Actions check: the run id is the number after `/actions/runs/` in its URL,
     then `gh run view <id> --log-failed`; any other check, such as a hosting preview: open its URL). Then stop and
     report, or fix it: rerun the gate, commit, rate the whole diff again with the fix in it (step 3: the highest rating of
-    the files it touches) and send the fix as a delta to the reviewer that rating asks for (none only when it is still
-    EASY), push, and do this step again. At most 2 CI fix rounds, as for review; then ask the owner.
+    the files it touches) and send the fix to the reviewer that rating asks for (none only when it is still EASY): as a
+    delta when the rating stayed the same, the whole diff when it rose, push, and do this step again. At most 2 CI fix rounds, as for review; then ask the owner.
   - Comments: read them once the checks have finished, no sooner than 2 minutes after the PR opened (a review app
     can post a few minutes late), and again just before step 5. Read all three lists with `gh api --paginate repos/{owner}/{repo}/<path>`: `issues/<pr>/comments`
     (conversation), `pulls/<pr>/reviews` (review summaries) and `pulls/<pr>/comments` (inline comments on diff lines).
