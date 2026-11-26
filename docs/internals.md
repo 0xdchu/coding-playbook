@@ -36,7 +36,7 @@ The installer's writes to `~/.claude` (backups, the marker block, which also tak
 
 ## `hooks/owner-token-guard/owner-token-guard.py`
 
-`hooks/owner-token-guard/owner-token-guard.py` (APS-37): a PreToolUse hook for every session. It denies a command or a Read/Grep/Glob that would take the owner's GitHub token (`gh auth token`, `--show-token`, `auth switch`/`logout`/`refresh`, `git credential fill`/`get` and running a credential helper, `gh alias set`/`gh extension install`, git's credential traces, gh's config folder, the keyring) and asks the owner to confirm any command that sets `AMBYSTO_OWNER`. It catches mistakes and casual use, not a script file that reaches the keyring; the wrapper and credential helper read the token outside the agent's tools and are not seen.
+`hooks/owner-token-guard/owner-token-guard.py` (APS-37): a PreToolUse hook for every session. It denies a command or a Read/Grep/Glob that would take the owner's GitHub token (`gh auth token`, `--show-token`, `auth switch`/`logout`/`refresh`, except the one switch back to the personal account, `gh auth switch --user 0xdchu` (owner decision 2026-11-26; alone in its segment, any other account or shape stays refused; the gh wrapper picks `ambysto` by folder, so no agent needs to switch to it), `git credential fill`/`get` and running a credential helper, `gh alias set`/`gh extension install`, git's credential traces, gh's config folder, the keyring) and asks the owner to confirm any command that sets `AMBYSTO_OWNER`. It catches mistakes and casual use, not a script file that reaches the keyring; the wrapper and credential helper read the token outside the agent's tools and are not seen.
 
 ## APS-37, the server-side boundary
 
