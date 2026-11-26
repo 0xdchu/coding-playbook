@@ -69,18 +69,22 @@ points below. Typing `/shiip` is the owner's request to commit, push, merge and 
   `gh pr create` with `--body-file` in the scratchpad directory (not `--body`): what changed, results of the checks as run, follow-ups left,
   what was not checked. Name the ticket by key only, no tracker host or ids on GitHub.
 - Then wait for CI and read the PR. MERGEABLE only means no conflict; it says nothing about checks.
-  - CI: `gh pr checks <pr> --watch --fail-fast`. Right after the PR opens, "no checks reported" can mean CI has not
+  - CI: `gh pr checks <pr> --watch --fail-fast`; when CI can outlast the shell's time limit, run it in the background
+    (or ask `gh pr checks <pr>` again every minute): the state is kept on GitHub, so a cut watch is simply run again.
+    Right after the PR opens, "no checks reported" can mean CI has not
     registered yet: when the repo has CI config (`.github/workflows/`, or a hosting integration its `CLAUDE.md` names),
     ask again every 30 seconds for up to 5 minutes before trusting it, and still none: stop and ask the owner. Only a
     repo with no CI config gets "CI: none" in the summary. A check that passed or was skipped is fine. A failed check
     is a red gate: read its log (a GitHub Actions check: the run id is the number after `/actions/runs/` in its URL,
     then `gh run view <id> --log-failed`; any other check, such as a hosting preview: open its URL). Then stop and
-    report, or fix it: rerun the gate, commit, send the fix to the reviewer as a delta (step 3), push, and do this step
-    again. At most 2 CI fix rounds, as for review; then ask the owner.
-  - Comments: read all three lists with `gh api --paginate repos/{owner}/{repo}/<path>`: `issues/<pr>/comments`
+    report, or fix it: rerun the gate, commit, send the fix to the reviewer as a delta when step 3 asked for a review (not
+    at EASY), push, and do this step again. At most 2 CI fix rounds, as for review; then ask the owner.
+  - Comments: read them once the checks have finished, no sooner than 2 minutes after the PR opened (a review app
+    can post a few minutes late), and again just before step 5. Read all three lists with `gh api --paginate repos/{owner}/{repo}/<path>`: `issues/<pr>/comments`
     (conversation), `pulls/<pr>/reviews` (review summaries) and `pulls/<pr>/comments` (inline comments on diff lines).
     Each item has `author_association` (`OWNER`, `MEMBER`, `COLLABORATOR`) and `user.type` (`Bot` for an app such as
     a hosting integration). A comment that asks for nothing (a status, a preview link, an approval) needs no action. A
+    review whose `state` is `CHANGES_REQUESTED` asks for a change even when its body is empty. A
     comment asking for a change, from the repo's owner, a member, a collaborator or a bot, is fixed the same way as a
     failed check, or answered on the PR when it is wrong. A comment from anyone else, or one that asks for a change of
     scope, a decision or a hold, goes to the owner and is a stop: do not act on it and do not merge until the owner
@@ -90,8 +94,9 @@ points below. Typing `/shiip` is the owner's request to commit, push, merge and 
   answered, and the owner has answered every comment sent to them.
 
 ### 5. Merge  (stop and ask first if any of these is true)
-- the `Ship` section says to ask, the repo's rules keep merges with the owner, or the merge publishes something outside
-  (a site, a release, a production deploy on merge); or another open PR uses this branch as its base (retarget it to the
+- the `Ship` section says to ask, the repo's rules keep merges with the owner, the change's content needs the owner's
+  approval first under the global or the repo's rules (such as a change of what a guard allows, or of a model, rating
+  or review rule), or the merge publishes something outside (a site, a release, a production deploy on merge); or another open PR uses this branch as its base (retarget it to the
   default branch first).
 - At the stop, ask in one message: merge now and how, which deploy command (and whether it restarts anything), what to
   do after the merge; offer to write these as a `## Ship` section in the repo's `CLAUDE.md` (its own small PR). When the
@@ -153,6 +158,7 @@ serves the change (or the deploy is explicitly "not run"), the ticket is in its 
 
 | Date | What happened | What changed |
 |---|---|---|
+| 26/11/2026 | Dry-run trial of v5 by a fresh agent on a scratch repo (no remote): the five CI and comment cases were decided as meant. Guesses left: the ticket key from the branch name, which Verify wins when `## Ship` and `## Verify` both exist, the main checkout being the task worktree in step 7, a CI fix at EASY | The CI fix goes to the reviewer only when step 3 asked for one; review fixes: comments read late and again before merge, `CHANGES_REQUESTED`, a long CI watch, owner-approval content is a merge stop; the other guesses are left for the next real run |
 | 26/11/2026 | Moved into this repo; the line naming two repos that keep merges with the owner became the general rule. Compared with Claude Code's built-in `/ship` (commit, push, PR, same-session review, watches CI and comments up to 7 days, never merges). It watches CI; this skill merged on MERGEABLE without waiting for checks | Step 4 waits for `gh pr checks --watch` (CI that has not registered yet is not "none"; 2 CI fix rounds) and reads conversation and inline PR comments before merge (strangers' comments go to the owner); step 5 points the owner to `/steward` when the merge is theirs; v5 |
 | 24/11/2026 | Claude Code shipped a built-in `/ship` command, so typing `/ship` no longer reached this skill | Renamed to `/shiip` (folder `skills/shiip`); the repo section is still `## Ship` |
 | 17/11/2026 | Second real run (a docs PR in a repo whose checkout is the live copy): full suite 348/348 before merge, deploy correctly left to the owner. Two gaps: step 7 would have fast-forwarded the live copy; `git branch -d` refused because local main was behind | Step 7: live copy is never moved, and the ancestor check before `-D`; v4 |
