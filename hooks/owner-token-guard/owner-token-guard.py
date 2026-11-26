@@ -16,7 +16,9 @@ reachable by any process of this user. This hook closes the paths an agent would
         anything before it (`cd x &&`, `sudo`, a variable, a line continuation) or after it (a second command, a
         redirection, a suffix, a substitution) and the exception does not apply, the deny patterns judge the
         command as before. The switch changes machine-wide state, so it also undoes a switch the owner made on
-        purpose; run it from outside ~/work/ambysto, where the wrapper sets GH_TOKEN for gh
+        purpose. It needs a shell that is already outside ~/work/ambysto (the guard refuses `cd x &&` before it,
+        and under ~/work/ambysto the wrapper sets GH_TOKEN for gh); a session whose shell sits there does not
+        need the switch, because the wrapper picks the account by folder
   ask   a command that sets AMBYSTO_OWNER (the owner's own merge in ambysto-memory): Claude Code asks the owner
         to confirm each time; a run with nobody at the keyboard cannot confirm, so it is refused there
 
@@ -143,6 +145,11 @@ def self_test():
         "/usr/bin/gh >|gh auth switch -u 0xdonniechu", "echo \\;gh auth switch -u 0xdonniechu",
         "echo -u ambysto | xargs /usr/bin/gh >&gh auth switch -u 0xdonniechu",
         "gh auth switch -u 0xdonniechu\r", "gh auth switch -u 0xdonniechu\x0b-u ambysto", "gh auth switch -u 0xdonniechu\\",
+        # only github.com: another host, a look-alike host or a second host flag is refused
+        "gh auth switch -h evil.example -u 0xdonniechu", "gh auth switch --hostname evil.example --user 0xdchu",
+        "gh auth switch --hostname=github.com.evil --user 0xdonniechu", "gh auth switch -h github.com.evil -u 0xdonniechu",
+        "gh auth switch --hostname github.com --hostname evil.example --user 0xdonniechu",
+        "gh auth switch -h evilgithub.com -u 0xdonniechu", "gh auth switch --hostname=github.comx --user=0xdchu",
     ]
     ask = ["AMBYSTO_OWNER=1 gh pr merge 23 --merge --admin", "export AMBYSTO_OWNER=1; gh pr merge 23",
            "env AMBYSTO_OWNER=1 gh api user"]
