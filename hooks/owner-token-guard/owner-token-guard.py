@@ -9,6 +9,16 @@ reachable by any process of this user. This hook closes the paths an agent would
         `auth switch`, `auth logout`, and the same words written as a list, e.g. `["gh", "auth", "token"]`),
         reads gh's hosts file, or reads the keyring (`secret-tool lookup`, the keyring folder, python `keyring`);
         a Read, Grep or Glob of gh's hosts file or the keyring folder
+  allow one switch (owner decision 2026-11-26): back to the personal account, `gh auth switch --user 0xdonniechu`
+        (the name gh still keeps in the keyring since the account was renamed to `0xdchu`; gh matches on that
+        name, and the guard accepts both). The gh wrapper picks `ambysto` by folder, so no agent needs to switch
+        to it. The WHOLE command must be exactly that: another account, no `--user` (gh asks interactively),
+        anything before it (`cd x &&`, `sudo`, a variable, a line continuation) or after it (a second command, a
+        redirection, a suffix, a substitution) and the exception does not apply, the deny patterns judge the
+        command as before. The switch changes machine-wide state, so it also undoes a switch the owner made on
+        purpose. It needs a shell that is already outside ~/work/ambysto (the guard refuses `cd x &&` before it,
+        and under ~/work/ambysto the wrapper sets GH_TOKEN for gh); a session whose shell sits there does not
+        need the switch, because the wrapper picks the account by folder
   ask   a command that sets AMBYSTO_OWNER (the owner's own merge in ambysto-memory): Claude Code asks the owner
         to confirm each time; a run with nobody at the keyboard cannot confirm, so it is refused there
 
@@ -48,6 +58,17 @@ TOKEN_COMMANDS = [
     (re.compile(r"\b(?:import\s+keyring|from\s+keyring\s+import|import\s+secretstorage)\b|\bkeyring\.get_password\b"
                 r"|(?:^|[\s;&|])keyring\s+get\b", re.I), "reads the keyring"),
 ]
+# The one switch an agent may run: back to the personal account. The WHOLE command must be this and nothing else:
+# nothing before it (no `cd x &&`, no `sudo`, no variable), nothing after it (no second command, no redirection),
+# at most one trailing newline. It is matched with fullmatch, so there is no splicing: a command that is not exactly
+# this shape is judged by the deny patterns below as if this exception did not exist. (An earlier draft cut the
+# shape out of a longer command and checked the rest; `&>file` is a redirection, not a separator, and slipped a
+# second account name through.) `0xdonniechu` is the name gh keeps in the keyring since the rename to `0xdchu`,
+# and the name gh matches on, so it is the form to use; both are accepted here.
+PERSONAL = r"(?:0xdonniechu|0xdchu)"
+SWITCH_PERSONAL = re.compile(
+    r"[ \t]*gh[ \t]+auth[ \t]+switch(?:[ \t]+(?:-h|--hostname)[ =]github\.com)?"
+    r"[ \t]+(?:-u|--user)(?:[ \t]+|=)" + PERSONAL + r"[ \t]*\n?")
 OWNER = re.compile(r"\bAMBYSTO_OWNER\b")
 PATH_FIELDS = ("file_path", "path", "pattern")
 SECRET_PATHS = re.compile(r"\.config/gh(?:/|$)|\.local/share/keyrings", re.I)
@@ -59,11 +80,15 @@ def decide(event):
     params = event.get("tool_input") or {}
     if tool == "Bash":
         command = str(params.get("command", ""))
+        if SWITCH_PERSONAL.fullmatch(command):
+            return None
         for pattern, what in TOKEN_COMMANDS:
             if pattern.search(command):
-                return "deny", ("owner-token-guard: this command %s. Agents never take the owner's GitHub token or "
-                                "switch accounts (APS-37); in ambysto-memory they act as the bot. If the owner "
-                                "asked for this, they run it themselves." % what)
+                return "deny", ("owner-token-guard: this command %s. Agents never take the owner's GitHub token, and "
+                                "switch accounts only back to the personal one, as the whole command and nothing "
+                                "else: `gh auth switch --user 0xdonniechu` (the name gh keeps in the keyring) "
+                                "(APS-37); in ambysto-memory they act as the bot. Anything else: if the owner "
+                                "asked for it, they run it themselves." % what)
         if OWNER.search(command):
             return "ask", ("owner-token-guard: this command acts as the owner (AMBYSTO_OWNER). Confirm only if you "
                            "asked for exactly this, e.g. merging a reviewed ambysto-memory PR.")
@@ -96,6 +121,35 @@ def self_test():
         "gh extension install someone/gh-x", "GIT_TRACE_REDACT=0 GIT_CURL_VERBOSE=1 git ls-remote https://github.com/x/y",
         "cat ~/.config/gh/*.yml", "python3 -c 'from keyring import get_password'", "gh auth refresh -s repo",
         "gh auth \\\n  token", "gh \\\n auth status \\\n --show-token",
+        # near misses of the one allowed switch
+        "gh auth switch -u ambysto", "gh auth switch", "gh auth switch -u 0xdchu2", "gh auth switch -u 0xdchu-x",
+        "gh auth switch -u 0xdchu; gh auth token", "gh auth switch -u 0xdchu && gh auth switch -u ambysto",
+        "gh auth switch -u 0xdchu $(gh auth token)", "gh auth switch -u 0xdchu -u ambysto",
+        "gh auth switch -u ambysto -u 0xdchu", "gh auth switch --user 0xdchu --hostname evil.example",
+        "FOO=1 gh auth switch -u 0xdchu", "/usr/bin/gh auth switch -u 0xdchu", "sudo gh auth switch -u 0xdchu",
+        "gh auth switch -u 0xdchu\n gh auth token", "gh auth switch -u 0xdchu # then ambysto",
+        "gh auth switch -u '0xdchu'", "gh auth switch --user 0xdchu | gh auth logout",
+        "echo ok && gh auth switch -u ambysto", "gh auth switch -u 0xDCHU2", "gh auth switch -u 0xdchu\\\n -u ambysto",
+        "gh auth logout -u 0xdchu", "gh auth refresh -u 0xdchu", "bash -c 'gh auth switch -u ambysto'",
+        # the one allowed switch must be the whole command: nothing around it, in any shell spelling
+        "cd ~/work/x && gh auth switch -u 0xdonniechu", "gh auth switch -u 0xdonniechu; gh api user --jq .login",
+        "gh auth switch -u 0xdonniechu && true", "gh auth switch -u 0xdonniechu | cat",
+        "gh auth switch -u 0xdonniechu 2>&1", "gh auth switch -u 0xdonniechu &", "gh auth switch -u 0xdonniechu\ntrue",
+        "\ngh auth switch -u 0xdonniechu", "x=1; gh auth switch -u 0xdonniechu",
+        # `&>` and `&>>` are redirections: the words after them still belong to the same command
+        "gh auth switch -u 0xdonniechu &>/dev/null -u ambysto", "gh auth switch -u 0xdonniechu &>>/dev/null --user ambysto",
+        "gh auth switch -u 0xdonniechu &> /dev/null -h evil.example", "gh auth switch -u 0xdonniechu >&/dev/null -u ambysto",
+        # a prefix that hides the wrapper, a line continuation, a redirection or an escaped separator before it
+        "sudo \\\ngh auth switch -u 0xdonniechu", "GH_CONFIG_DIR=/tmp/x \\\ngh auth switch -u 0xdonniechu",
+        "env -u GH_TOKEN \\\ngh auth switch -u 0xdonniechu", "/usr/bin/gh >&gh auth switch -u 0xdonniechu",
+        "/usr/bin/gh >|gh auth switch -u 0xdonniechu", "echo \\;gh auth switch -u 0xdonniechu",
+        "echo -u ambysto | xargs /usr/bin/gh >&gh auth switch -u 0xdonniechu",
+        "gh auth switch -u 0xdonniechu\r", "gh auth switch -u 0xdonniechu\x0b-u ambysto", "gh auth switch -u 0xdonniechu\\",
+        # only github.com: another host, a look-alike host or a second host flag is refused
+        "gh auth switch -h evil.example -u 0xdonniechu", "gh auth switch --hostname evil.example --user 0xdchu",
+        "gh auth switch --hostname=github.com.evil --user 0xdonniechu", "gh auth switch -h github.com.evil -u 0xdonniechu",
+        "gh auth switch --hostname github.com --hostname evil.example --user 0xdonniechu",
+        "gh auth switch -h evilgithub.com -u 0xdonniechu", "gh auth switch --hostname=github.comx --user=0xdchu",
     ]
     ask = ["AMBYSTO_OWNER=1 gh pr merge 23 --merge --admin", "export AMBYSTO_OWNER=1; gh pr merge 23",
            "env AMBYSTO_OWNER=1 gh api user"]
@@ -104,7 +158,13 @@ def self_test():
              "cat ~/.config/ambysto-bot/token.md", "ls ~/.config/gh/", "gh pr create --title 'Auth flow' --body x",
              "git commit -m 'Fix auth token refresh'", "git log --grep 'auth token'", "grep -rn 'auth-token' src/",
              "echo 'see docs/auth/token.md'", "cat docs/auth.token.md", "gh pr view 3 --json title",
-             "git credential-cache exit", "gh auth status && git status -t"]
+             "git credential-cache exit", "gh auth status && git status -t",
+             # the one switch agents may run: back to the personal account, as the whole command
+             "gh auth switch -u 0xdonniechu", "gh auth switch --user 0xdonniechu", "gh auth switch --user=0xdonniechu",
+             "gh auth switch -u 0xdchu", "gh auth switch --user 0xdchu", "gh auth switch --user=0xdchu",
+             "gh auth switch --hostname github.com --user 0xdonniechu", "gh auth switch --hostname=github.com --user=0xdchu",
+             "gh auth switch -h github.com -u 0xdonniechu", "gh auth switch -h=github.com -u 0xdonniechu",
+             "gh auth switch -u 0xdonniechu\n", "  gh auth switch \t --user \t 0xdonniechu  "]
     bad = []
     for command in deny:
         if (decide({"tool_name": "Bash", "tool_input": {"command": command}}) or ("allow",))[0] != "deny":
