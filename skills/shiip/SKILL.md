@@ -77,8 +77,9 @@ points below. Typing `/shiip` is the owner's request to commit, push, merge and 
     repo with no CI config gets "CI: none" in the summary. A check that passed or was skipped is fine. A failed check
     is a red gate: read its log (a GitHub Actions check: the run id is the number after `/actions/runs/` in its URL,
     then `gh run view <id> --log-failed`; any other check, such as a hosting preview: open its URL). Then stop and
-    report, or fix it: rerun the gate, commit, send the fix to the reviewer as a delta when step 3 asked for a review (not
-    at EASY), push, and do this step again. At most 2 CI fix rounds, as for review; then ask the owner.
+    report, or fix it: rerun the gate, commit, rate the whole diff again with the fix in it (step 3: the highest rating of
+    the files it touches) and send the fix as a delta to the reviewer that rating asks for (none only when it is still
+    EASY), push, and do this step again. At most 2 CI fix rounds, as for review; then ask the owner.
   - Comments: read them once the checks have finished, no sooner than 2 minutes after the PR opened (a review app
     can post a few minutes late), and again just before step 5. Read all three lists with `gh api --paginate repos/{owner}/{repo}/<path>`: `issues/<pr>/comments`
     (conversation), `pulls/<pr>/reviews` (review summaries) and `pulls/<pr>/comments` (inline comments on diff lines).
@@ -158,7 +159,7 @@ serves the change (or the deploy is explicitly "not run"), the ticket is in its 
 
 | Date | What happened | What changed |
 |---|---|---|
-| 26/11/2026 | Dry-run trial of v5 by a fresh agent on a scratch repo (no remote): the five CI and comment cases were decided as meant. Guesses left: the ticket key from the branch name, which Verify wins when `## Ship` and `## Verify` both exist, the main checkout being the task worktree in step 7, a CI fix at EASY | The CI fix goes to the reviewer only when step 3 asked for one; review fixes: comments read late and again before merge, `CHANGES_REQUESTED`, a long CI watch, owner-approval content is a merge stop; the other guesses are left for the next real run |
+| 26/11/2026 | Dry-run trial of v5 by a fresh agent on a scratch repo (no remote): the five CI and comment cases were decided as meant. Guesses left: the ticket key from the branch name, which Verify wins when `## Ship` and `## Verify` both exist, the main checkout being the task worktree in step 7, a CI fix at EASY | A CI or comment fix is rated again with the whole diff and reviewed as that rating asks; review fixes: comments read late and again before merge, `CHANGES_REQUESTED`, a long CI watch, owner-approval content is a merge stop; the other guesses are left for the next real run |
 | 26/11/2026 | Moved into this repo; the line naming two repos that keep merges with the owner became the general rule. Compared with Claude Code's built-in `/ship` (commit, push, PR, same-session review, watches CI and comments up to 7 days, never merges). It watches CI; this skill merged on MERGEABLE without waiting for checks | Step 4 waits for `gh pr checks --watch` (CI that has not registered yet is not "none"; 2 CI fix rounds) and reads conversation and inline PR comments before merge (strangers' comments go to the owner); step 5 points the owner to `/steward` when the merge is theirs; v5 |
 | 24/11/2026 | Claude Code shipped a built-in `/ship` command, so typing `/ship` no longer reached this skill | Renamed to `/shiip` (folder `skills/shiip`); the repo section is still `## Ship` |
 | 17/11/2026 | Second real run (a docs PR in a repo whose checkout is the live copy): full suite 348/348 before merge, deploy correctly left to the owner. Two gaps: step 7 would have fast-forwarded the live copy; `git branch -d` refused because local main was behind | Step 7: live copy is never moved, and the ancestor check before `-D`; v4 |
