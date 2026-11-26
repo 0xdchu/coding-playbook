@@ -90,7 +90,8 @@ typed. Day-to-day work uses `/handoff`.
 ### 6. Git identity
 - Do: per the account rules in `~/.claude/CLAUDE.md`, set `git config user.name` and
   `git config user.email` for this repo only (never `--global`), with the remote URL form and
-  time zone those rules name. Never `gh auth switch`. The owner gave a remote and the repo has
+  time zone those rules name. Never switch the gh account to another one and never ask the owner to
+  (only back to the personal account, per `~/.claude/CLAUDE.md`). The owner gave a remote and the repo has
   none: `git remote add origin <url>` (local only, no push).
 - Done when: `git config user.name`, `git config user.email` and `git remote -v` are printed and
   match the rules.
