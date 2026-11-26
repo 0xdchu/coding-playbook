@@ -27,7 +27,7 @@ BUILD_HOOKS = [("PreToolUse", "*", "build"), ("PostToolUse", "Bash|PowerShell|Ed
 GUARDED = {"builder": BUILD_HOOKS, "reviewer": REVIEW_HOOKS, "hard-reviewer": REVIEW_HOOKS}
 TEMPLATE_SECTIONS = ["## What it does", "## Verify", "## HARD", "## MEDIUM", "## EASY", "## Rules", "## Read when", "## Session state"]
 SKILLS = {"starter-kit", "handoff", "sdlc", "teardown", "orca-worktree-setup", "agent-team", "create-skill", "secrets", "whats-next",
-          "system-map"}
+          "system-map", "shiip"}
 # Skills that carry their own self-test script (None: it has no standard-library self-test) and trigger prompts here
 # instead of in SKILL_TRIGGERS; required like the others (until APS-97 they lived only in the public copy).
 MORE_SKILLS = {
@@ -67,6 +67,9 @@ SKILL_TRIGGERS = {
     "system-map": (["map this repo: architecture view by domain and docs view, committed in docs/map",
                     "converge listed map gaps, update the system map"],
                    ["write the intent and follow the plan to verify and ship"]),
+    "shiip": (["ship it: commit push merge deploy, remove the worktree and close the ticket",
+               "merge and clean up the branch after the PR passed review"],
+              ["save progress to HANDOFF.md before clear"]),
     "starter-kit": (["run /starter-kit to set up a new repo from the CLAUDE.md template", "set git identity and tracker project for a new repo"],
                     ["save progress before compact"]),
     "teardown": (["decompose product and write a clean-room specification", "reverse engineer how product X works"],
